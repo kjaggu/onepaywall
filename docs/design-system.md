@@ -2,6 +2,16 @@
 
 This document is the single source of truth for all visual decisions. Follow it exactly. Do not use raw Tailwind color or spacing values where a token exists.
 
+## Component hierarchy — follow this order
+
+1. **shadcn block** — check https://ui.shadcn.com/blocks first. Install with `npx shadcn@latest add <block>`. Covers most dashboard layouts, auth pages, data tables, charts.
+2. **shadcn primitive** — compose from `components/ui/` (Button, Input, Card, Table, etc.). See inventory below.
+3. **Custom component** — only when blocks and primitives genuinely don't cover the need. Build in `components/shared/`, `components/dashboard/`, or `components/admin/`.
+
+After installing any block: replace all hardcoded Tailwind color values with CSS tokens from `app/globals.css`. Spacing and radius from the scale below. Never leave block defaults that conflict with the design system.
+
+---
+
 ---
 
 ## Foundations

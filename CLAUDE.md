@@ -92,6 +92,38 @@ Components never touch DB. API routes never contain business logic. `/lib` is pu
 
 ---
 
+## UI development — shadcn blocks first
+
+Before building any UI component or page layout, check shadcn blocks:
+```bash
+npx shadcn@latest add <block-name>   # install a block
+```
+
+**Workflow:**
+1. Check https://ui.shadcn.com/blocks for pre-built blocks (dashboard, sidebar, auth, data-table, etc.)
+2. If a block covers the need → install it, customise to design tokens, done
+3. If no block fits → compose from shadcn primitives in `components/ui/`
+4. Never write raw HTML/CSS for something a shadcn primitive covers
+
+**Useful blocks to install as needed** (don't pre-install — add when the feature is built):
+- `sidebar-*` — dashboard sidebar layouts
+- `login-*` — auth page layouts  
+- `dashboard-*` — dashboard shells
+- `data-table` — tables with sorting/pagination
+- `chart-*` — analytics charts (uses recharts)
+- `calendar` — date pickers
+
+**Design system always wins** — after installing a block, replace all hardcoded colors/spacing with CSS tokens from `app/globals.css`. See `docs/design-system.md`.
+
+---
+
+## Session hygiene
+After every session that creates new files:
+1. Update `docs/progress.md` — mark completed items `done`
+2. Update `docs/file-map.md` — add any new files created
+
+---
+
 ## Never do
 - Subdomain-based routing
 - Reader login / reader accounts
