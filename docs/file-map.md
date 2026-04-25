@@ -164,6 +164,8 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Task | Files |
 |------|-------|
 | CSS tokens | `app/globals.css` |
-| shadcn components | `components/ui/` |
+| shadcn components | `components/ui/` (button, sidebar, card, badge, avatar, tabs, sheet, skeleton, dropdown-menu, breadcrumb, separator, tooltip) |
+| Dashboard shell components | `components/dashboard/sidebar.tsx` |
 | Shared layout components | `components/shared/` |
+| Root layout + font | `app/layout.tsx` (Inter + Geist Mono) |
 | Design reference | `docs/design-system.md` |

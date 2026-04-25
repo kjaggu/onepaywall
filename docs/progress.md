@@ -22,7 +22,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | .env.example | `done` | |
 | Drizzle schema | `todo` | `lib/db/schema.ts` is a stub — no tables yet |
 | DB migrations | `todo` | No migrations yet |
-| CSS design tokens | `todo` | `app/globals.css` not yet updated with token layer |
+| CSS design tokens | `done` | Brand (indigo), semantic, surface, text tokens + typography utilities in `app/globals.css` |
 
 ---
 
@@ -43,7 +43,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | DB schema | `todo` | publishers, publisher_members |
 | Publisher CRUD API | `todo` | |
 | Team member management | `todo` | |
-| Dashboard shell | `todo` | Sidebar, layout |
+| Dashboard shell | `done` | Sidebar nav, layout shell — `app/(dashboard)/layout.tsx`, `components/dashboard/sidebar.tsx` |
 
 ---
 
@@ -53,7 +53,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | DB schema | `todo` | domains |
 | Domain CRUD API | `todo` | |
 | Site key generation | `todo` | `lib/embed/siteKey.ts` |
-| Domain list UI | `todo` | |
+| Domain list UI | `partial` | Placeholder page at `app/(dashboard)/domains/page.tsx` |
 
 ---
 
@@ -89,7 +89,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Google AdSense adapter | `todo` | `lib/ads/networks/adsense.ts` |
 | Google Ad Manager adapter | `todo` | `lib/ads/networks/gam.ts` |
 | Ad rotation + relevance | `todo` | `lib/ads/rotate.ts` |
-| Ad management UI | `todo` | |
+| Ad management UI | `partial` | Placeholder page at `app/(dashboard)/ads/page.tsx` |
 
 ---
 
@@ -122,7 +122,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | DB schema | `todo` | gate_events, analytics_rollups |
 | Event ingestion | `todo` | `lib/analytics/ingest.ts` |
 | Rollup computation | `todo` | `lib/analytics/rollup.ts` |
-| Analytics dashboard | `todo` | |
+| Analytics dashboard | `partial` | Placeholder page at `app/(dashboard)/analytics/page.tsx` |
 
 ---
 
