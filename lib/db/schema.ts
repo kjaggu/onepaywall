@@ -2,9 +2,11 @@ import {
   pgTable,
   text,
   integer,
-  bigint,
   boolean,
   timestamp,
+  date,
+  real,
+  jsonb,
   pgEnum,
   uniqueIndex,
   index,
@@ -13,11 +15,29 @@ import { sql } from "drizzle-orm"
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const userRoleEnum    = pgEnum("user_role",    ["superadmin", "publisher"])
-export const memberRoleEnum  = pgEnum("member_role",  ["owner", "admin", "member"])
-export const planSlugEnum    = pgEnum("plan_slug",    ["trial", "lite", "starter", "growth", "scale"])
-export const subStatusEnum   = pgEnum("sub_status",   ["trialing", "active", "past_due", "cancelled"])
-export const domainStatusEnum = pgEnum("domain_status", ["active", "paused", "removed"])
+export const userRoleEnum        = pgEnum("user_role",        ["superadmin", "publisher"])
+export const memberRoleEnum      = pgEnum("member_role",      ["owner", "admin", "member"])
+export const planSlugEnum        = pgEnum("plan_slug",        ["trial", "lite", "starter", "growth", "scale"])
+export const subStatusEnum       = pgEnum("sub_status",       ["trialing", "active", "past_due", "cancelled"])
+export const domainStatusEnum    = pgEnum("domain_status",    ["active", "paused", "removed"])
+export const stepTypeEnum        = pgEnum("step_type",        ["ad", "subscription_cta", "one_time_unlock"])
+export const stepActionEnum      = pgEnum("step_action",      ["proceed", "next_step"])
+export const matchTypeEnum       = pgEnum("match_type",       ["path_glob", "content_type"])
+export const deviceTypeEnum      = pgEnum("device_type",      ["mobile", "desktop", "tablet"])
+export const unlockTypeEnum      = pgEnum("unlock_type",      ["ad_completion", "one_time_payment", "subscription"])
+export const readerSegmentEnum   = pgEnum("reader_segment",   ["new", "casual", "regular", "power_user"])
+export const visitFrequencyEnum  = pgEnum("visit_frequency",  ["unknown", "one_time", "occasional", "weekly", "daily"])
+export const adProviderEnum      = pgEnum("ad_provider",      ["google_adsense", "google_ad_manager"])
+export const adSourceTypeEnum    = pgEnum("ad_source_type",   ["direct", "network"])
+export const mediaTypeEnum       = pgEnum("media_type",       ["image", "video"])
+export const pgModeEnum          = pgEnum("pg_mode",          ["platform", "own"])
+export const pgProviderEnum      = pgEnum("pg_provider",      ["razorpay"])
+export const gateEventTypeEnum   = pgEnum("gate_event_type",  [
+  "gate_shown", "step_shown", "gate_passed",
+  "ad_start", "ad_complete", "ad_skip",
+  "subscription_cta_click", "subscription_cta_skip",
+  "one_time_unlock_start", "one_time_unlock_complete", "one_time_unlock_skip",
+])
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -27,8 +47,10 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   name:         text("name").notNull(),
   role:         userRoleEnum("role").notNull().default("publisher"),
+  avatarUrl:    text("avatar_url"),
   createdAt:    timestamp("created_at").notNull().defaultNow(),
   updatedAt:    timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:    timestamp("deleted_at"),
 }, t => [
   uniqueIndex("users_email_idx").on(t.email),
 ])
@@ -39,7 +61,10 @@ export const publishers = pgTable("publishers", {
   id:        text("id").primaryKey().default(sql`gen_random_uuid()`),
   name:      text("name").notNull(),
   slug:      text("slug").notNull(),
+  logoUrl:   text("logo_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 }, t => [
   uniqueIndex("publishers_slug_idx").on(t.slug),
 ])
@@ -59,45 +84,285 @@ export const publisherMembers = pgTable("publisher_members", {
 // ─── Domains ──────────────────────────────────────────────────────────────────
 
 export const domains = pgTable("domains", {
-  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
-  publisherId: text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
-  domain:      text("domain").notNull(),
-  status:      domainStatusEnum("status").notNull().default("active"),
-  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:         text("name").notNull(),
+  domain:       text("domain").notNull(),
+  siteKey:      text("site_key").notNull(),
+  embedEnabled: boolean("embed_enabled").notNull().default(false),
+  status:       domainStatusEnum("status").notNull().default("active"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:    timestamp("deleted_at"),
 }, t => [
   uniqueIndex("domains_domain_idx").on(t.domain),
+  uniqueIndex("domains_site_key_idx").on(t.siteKey),
   index("domains_publisher_idx").on(t.publisherId),
+])
+
+// ─── Gates ────────────────────────────────────────────────────────────────────
+
+export const gates = pgTable("gates", {
+  id:                text("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainId:          text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  name:              text("name").notNull(),
+  priority:          integer("priority").notNull().default(0),
+  enabled:           boolean("enabled").notNull().default(true),
+  triggerConditions: jsonb("trigger_conditions").notNull().default(sql`'{}'::jsonb`),
+  createdAt:         timestamp("created_at").notNull().defaultNow(),
+  updatedAt:         timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:         timestamp("deleted_at"),
+}, t => [
+  index("gates_domain_idx").on(t.domainId),
+  index("gates_priority_idx").on(t.domainId, t.priority),
+])
+
+export const gateRules = pgTable("gate_rules", {
+  id:        text("id").primaryKey().default(sql`gen_random_uuid()`),
+  gateId:    text("gate_id").notNull().references(() => gates.id, { onDelete: "cascade" }),
+  pattern:   text("pattern").notNull(),
+  matchType: matchTypeEnum("match_type").notNull().default("path_glob"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("gate_rules_gate_idx").on(t.gateId),
+])
+
+export const gateSteps = pgTable("gate_steps", {
+  id:                text("id").primaryKey().default(sql`gen_random_uuid()`),
+  gateId:            text("gate_id").notNull().references(() => gates.id, { onDelete: "cascade" }),
+  stepOrder:         integer("step_order").notNull(),
+  stepType:          stepTypeEnum("step_type").notNull(),
+  config:            jsonb("config").notNull().default(sql`'{}'::jsonb`),
+  triggerConditions: jsonb("trigger_conditions").notNull().default(sql`'{}'::jsonb`),
+  onSkip:            stepActionEnum("on_skip").notNull().default("proceed"),
+  onDecline:         stepActionEnum("on_decline").notNull().default("proceed"),
+  createdAt:         timestamp("created_at").notNull().defaultNow(),
+  updatedAt:         timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("gate_steps_gate_idx").on(t.gateId),
 ])
 
 // ─── Plans ────────────────────────────────────────────────────────────────────
 
 export const plans = pgTable("plans", {
-  slug:           planSlugEnum("slug").primaryKey(),
-  name:           text("name").notNull(),
-  priceMonthly:   integer("price_monthly"),           // paise; null = free
-  maxDomains:     integer("max_domains"),             // null = unlimited
-  maxMauPerDomain: integer("max_mau_per_domain"),     // null = unlimited
-  maxGates:       integer("max_gates"),               // null = unlimited
-  trialDays:      integer("trial_days").default(0),
-  active:         boolean("active").notNull().default(true),
+  slug:              planSlugEnum("slug").primaryKey(),
+  name:              text("name").notNull(),
+  priceMonthly:      integer("price_monthly"),
+  maxDomains:        integer("max_domains"),
+  maxMauPerDomain:   integer("max_mau_per_domain"),
+  maxGates:          integer("max_gates"),
+  trialDays:         integer("trial_days").default(0),
+  active:            boolean("active").notNull().default(true),
 })
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
 
 export const subscriptions = pgTable("subscriptions", {
-  id:                  text("id").primaryKey().default(sql`gen_random_uuid()`),
-  publisherId:         text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
-  planSlug:            planSlugEnum("plan_slug").notNull(),
-  status:              subStatusEnum("status").notNull().default("trialing"),
-  razorpaySubId:       text("razorpay_sub_id"),
-  currentPeriodStart:  timestamp("current_period_start"),
-  currentPeriodEnd:    timestamp("current_period_end"),
-  cancelledAt:         timestamp("cancelled_at"),
-  createdAt:           timestamp("created_at").notNull().defaultNow(),
-  updatedAt:           timestamp("updated_at").notNull().defaultNow(),
+  id:                 text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:        text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  planSlug:           planSlugEnum("plan_slug").notNull(),
+  status:             subStatusEnum("status").notNull().default("trialing"),
+  razorpaySubId:      text("razorpay_sub_id"),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd:   timestamp("current_period_end"),
+  cancelledAt:        timestamp("cancelled_at"),
+  createdAt:          timestamp("created_at").notNull().defaultNow(),
+  updatedAt:          timestamp("updated_at").notNull().defaultNow(),
 }, t => [
   index("subscriptions_publisher_idx").on(t.publisherId),
   index("subscriptions_status_idx").on(t.status),
+])
+
+// ─── Readers ──────────────────────────────────────────────────────────────────
+
+export const readers = pgTable("readers", {
+  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
+  fingerprint: text("fingerprint").notNull(),
+  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  lastSeenAt:  timestamp("last_seen_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("readers_fingerprint_idx").on(t.fingerprint),
+])
+
+export const readerTokens = pgTable("reader_tokens", {
+  id:         text("id").primaryKey().default(sql`gen_random_uuid()`),
+  readerId:   text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
+  domainId:   text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  token:      text("token").notNull(),
+  visitCount: integer("visit_count").notNull().default(0),
+  expiresAt:  timestamp("expires_at"),
+  createdAt:  timestamp("created_at").notNull().defaultNow(),
+  updatedAt:  timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("reader_tokens_token_idx").on(t.token),
+  uniqueIndex("reader_tokens_reader_domain_idx").on(t.readerId, t.domainId),
+  index("reader_tokens_domain_idx").on(t.domainId),
+])
+
+export const gateUnlocks = pgTable("gate_unlocks", {
+  id:         text("id").primaryKey().default(sql`gen_random_uuid()`),
+  readerId:   text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
+  gateId:     text("gate_id").notNull().references(() => gates.id, { onDelete: "cascade" }),
+  contentId:  text("content_id"),
+  unlockType: unlockTypeEnum("unlock_type").notNull(),
+  expiresAt:  timestamp("expires_at"),
+  createdAt:  timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("gate_unlocks_reader_gate_idx").on(t.readerId, t.gateId),
+  index("gate_unlocks_gate_idx").on(t.gateId),
+])
+
+// ─── Reader intelligence ──────────────────────────────────────────────────────
+
+export const readerPageVisits = pgTable("reader_page_visits", {
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  readerId:         text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
+  domainId:         text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  url:              text("url").notNull(),
+  contentCategory:  text("content_category"),
+  readTimeSeconds:  integer("read_time_seconds"),
+  scrollDepthPct:   integer("scroll_depth_pct"),
+  deviceType:       deviceTypeEnum("device_type"),
+  referrer:         text("referrer"),
+  occurredAt:       timestamp("occurred_at").notNull().defaultNow(),
+}, t => [
+  index("reader_page_visits_reader_idx").on(t.readerId),
+  index("reader_page_visits_domain_idx").on(t.domainId),
+  index("reader_page_visits_occurred_idx").on(t.occurredAt),
+])
+
+export const contentClassifications = pgTable("content_classifications", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  url:          text("url").notNull(),
+  categories:   text("categories").array().notNull().default(sql`ARRAY[]::text[]`),
+  confidence:   real("confidence").notNull().default(0),
+  classifiedAt: timestamp("classified_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("content_classifications_url_idx").on(t.url),
+])
+
+export const readerProfiles = pgTable("reader_profiles", {
+  id:                       text("id").primaryKey().default(sql`gen_random_uuid()`),
+  readerId:                 text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
+  segment:                  readerSegmentEnum("segment").notNull().default("new"),
+  engagementScore:          real("engagement_score").notNull().default(0),
+  adCompletionRate:         real("ad_completion_rate").notNull().default(0),
+  monetizationProbability:  real("monetization_probability").notNull().default(0),
+  topicInterests:           jsonb("topic_interests").notNull().default(sql`'{}'::jsonb`),
+  visitFrequency:           visitFrequencyEnum("visit_frequency").notNull().default("unknown"),
+  totalVisits:              integer("total_visits").notNull().default(0),
+  totalDomains:             integer("total_domains").notNull().default(0),
+  lastComputedAt:           timestamp("last_computed_at").notNull().defaultNow(),
+  createdAt:                timestamp("created_at").notNull().defaultNow(),
+  updatedAt:                timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("reader_profiles_reader_idx").on(t.readerId),
+])
+
+// ─── Ads ──────────────────────────────────────────────────────────────────────
+
+export const publisherAdNetworks = pgTable("publisher_ad_networks", {
+  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId: text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  provider:    adProviderEnum("provider").notNull(),
+  credentials: jsonb("credentials").notNull(),
+  active:      boolean("active").notNull().default(true),
+  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  updatedAt:   timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("publisher_ad_networks_unique_idx").on(t.publisherId, t.provider),
+  index("publisher_ad_networks_publisher_idx").on(t.publisherId),
+])
+
+export const adUnits = pgTable("ad_units", {
+  id:                 text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:        text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:               text("name").notNull(),
+  sourceType:         adSourceTypeEnum("source_type").notNull(),
+  weight:             integer("weight").notNull().default(1),
+  relevantCategories: text("relevant_categories").array().notNull().default(sql`ARRAY[]::text[]`),
+  // direct fields
+  mediaType:          mediaTypeEnum("media_type"),
+  storageKey:         text("storage_key"),
+  cdnUrl:             text("cdn_url"),
+  ctaLabel:           text("cta_label"),
+  ctaUrl:             text("cta_url"),
+  skipAfterSeconds:   integer("skip_after_seconds"),
+  // network fields
+  adNetworkId:        text("ad_network_id").references(() => publisherAdNetworks.id, { onDelete: "set null" }),
+  networkConfig:      jsonb("network_config"),
+  active:             boolean("active").notNull().default(true),
+  createdAt:          timestamp("created_at").notNull().defaultNow(),
+  updatedAt:          timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:          timestamp("deleted_at"),
+}, t => [
+  index("ad_units_publisher_idx").on(t.publisherId),
+  index("ad_units_network_idx").on(t.adNetworkId),
+])
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+export const publisherPgConfigs = pgTable("publisher_pg_configs", {
+  id:            text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:   text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  mode:          pgModeEnum("mode").notNull().default("platform"),
+  provider:      pgProviderEnum("provider").notNull().default("razorpay"),
+  keyId:         text("key_id"),
+  keySecret:     text("key_secret"),
+  webhookSecret: text("webhook_secret"),
+  active:        boolean("active").notNull().default(true),
+  createdAt:     timestamp("created_at").notNull().defaultNow(),
+  updatedAt:     timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("publisher_pg_configs_publisher_idx").on(t.publisherId),
+])
+
+export const pgWebhookEvents = pgTable("pg_webhook_events", {
+  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId: text("publisher_id").references(() => publishers.id, { onDelete: "cascade" }),
+  provider:    pgProviderEnum("provider").notNull(),
+  eventId:     text("event_id").notNull(),
+  eventType:   text("event_type").notNull(),
+  payload:     jsonb("payload").notNull(),
+  processedAt: timestamp("processed_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("pg_webhook_events_unique_idx").on(t.provider, t.publisherId, t.eventId),
+  index("pg_webhook_events_publisher_idx").on(t.publisherId),
+])
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export const gateEvents = pgTable("gate_events", {
+  id:         text("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainId:   text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  gateId:     text("gate_id").notNull().references(() => gates.id, { onDelete: "cascade" }),
+  stepId:     text("step_id").references(() => gateSteps.id, { onDelete: "set null" }),
+  readerId:   text("reader_id").references(() => readers.id, { onDelete: "set null" }),
+  eventType:  gateEventTypeEnum("event_type").notNull(),
+  adUnitId:   text("ad_unit_id").references(() => adUnits.id, { onDelete: "set null" }),
+  contentId:  text("content_id"),
+  metadata:   jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+  occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+}, t => [
+  index("gate_events_domain_idx").on(t.domainId),
+  index("gate_events_gate_idx").on(t.gateId),
+  index("gate_events_occurred_idx").on(t.occurredAt),
+])
+
+export const analyticsRollups = pgTable("analytics_rollups", {
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainId:         text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  gateId:           text("gate_id").references(() => gates.id, { onDelete: "cascade" }),
+  date:             date("date").notNull(),
+  impressions:      integer("impressions").notNull().default(0),
+  stepCompletions:  integer("step_completions").notNull().default(0),
+  gatePasses:       integer("gate_passes").notNull().default(0),
+  uniqueReaders:    integer("unique_readers").notNull().default(0),
+  createdAt:        timestamp("created_at").notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("analytics_rollups_unique_idx").on(t.domainId, t.gateId, t.date),
+  index("analytics_rollups_domain_idx").on(t.domainId),
 ])
 
 // ─── Password reset tokens ────────────────────────────────────────────────────

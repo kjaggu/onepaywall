@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { users } from "@/lib/db/schema"
+import { users, publisherMembers } from "@/lib/db/schema"
 
 export type AuthUser = {
   id: string
@@ -14,12 +14,22 @@ export type AuthUser = {
 export async function verifyUser(email: string, password: string): Promise<AuthUser | null> {
   const normalised = email.toLowerCase().trim()
   const [user] = await db.select().from(users).where(eq(users.email, normalised)).limit(1)
-  if (!user) return null
+  if (!user || user.deletedAt) return null
 
   const ok = await bcrypt.compare(password, user.passwordHash)
   if (!ok) return null
 
-  return { id: user.id, email: user.email, role: user.role, name: user.name }
+  let publisherId: string | undefined
+  if (user.role === "publisher") {
+    const [membership] = await db
+      .select({ publisherId: publisherMembers.publisherId })
+      .from(publisherMembers)
+      .where(eq(publisherMembers.userId, user.id))
+      .limit(1)
+    publisherId = membership?.publisherId
+  }
+
+  return { id: user.id, email: user.email, role: user.role, name: user.name, publisherId }
 }
 
 export async function getUserByEmail(email: string) {
