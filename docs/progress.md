@@ -20,8 +20,8 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Folder structure | `done` | Per CLAUDE.md spec |
 | Founding docs | `done` | CLAUDE.md, AGENTS.md, design-system, data-model (split), file-map, progress |
 | .env.example | `done` | |
-| Drizzle schema | `todo` | `lib/db/schema.ts` is a stub — no tables yet |
-| DB migrations | `todo` | No migrations yet |
+| Drizzle schema | `done` | All 22 tables defined — users, publishers, domains, gates, readers, ads, payments, analytics |
+| DB migrations | `done` | `0000` (foundation tables) + `0001` (gates, readers, ads, payments, analytics, schema additions) |
 | CSS design tokens | `done` | Brand (indigo), semantic, surface, text tokens + typography utilities in `app/globals.css` |
 
 ---
@@ -29,18 +29,19 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Auth
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema (users) | `todo` | |
-| JWT session lib | `todo` | `lib/auth/session.ts` |
-| Login page + API | `todo` | |
-| Signup page + API | `todo` | |
-| Session guards | `todo` | Dashboard + admin layout guards |
+| DB schema (users) | `done` | users + password_reset_tokens in schema.ts |
+| JWT session lib | `done` | `lib/auth/session.ts` — sign, verify, get, set, clear cookie |
+| Login page + API | `done` | `app/(auth)/login/page.tsx`, `app/api/auth/login/route.ts` |
+| Forgot / reset password | `done` | Pages + API routes + email via Resend |
+| Signup page + API | `todo` | No signup flow yet — invite-only or admin-created |
+| Session guards | `done` | Dashboard redirects to /login; admin requires superadmin role |
 
 ---
 
 ## Publisher management
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | publishers, publisher_members |
+| DB schema | `done` | publishers, publisher_members in schema.ts |
 | Publisher CRUD API | `todo` | |
 | Team member management | `todo` | |
 | Dashboard shell | `done` | Sidebar nav, layout shell — `app/(dashboard)/layout.tsx`, `components/dashboard/sidebar.tsx` |
@@ -50,7 +51,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Domain management
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | domains |
+| DB schema | `done` | domains in schema.ts — includes site_key, embed_enabled, soft-delete |
 | Domain CRUD API | `todo` | |
 | Site key generation | `todo` | `lib/embed/siteKey.ts` |
 | Domain list UI | `partial` | Placeholder page at `app/(dashboard)/domains/page.tsx` |
@@ -60,7 +61,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Gate builder
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | gates, gate_steps, gate_rules |
+| DB schema | `done` | gates, gate_steps, gate_rules in schema.ts |
 | Gate CRUD API | `todo` | |
 | Gate evaluation engine | `todo` | `lib/gates/evaluate.ts` |
 | Trigger condition evaluator | `todo` | `lib/gates/conditions.ts` |
@@ -71,7 +72,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Embed script
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | readers, reader_tokens, gate_unlocks |
+| DB schema | `done` | readers, reader_tokens, gate_unlocks in schema.ts |
 | Gate-check endpoint | `todo` | `/api/embed/gate-check` |
 | Signal endpoint | `todo` | `/api/embed/signal` |
 | Event endpoint | `todo` | `/api/embed/event` |
@@ -83,7 +84,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Ads
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | ad_units, publisher_ad_networks |
+| DB schema | `done` | ad_units, publisher_ad_networks in schema.ts |
 | Ad unit CRUD API | `todo` | |
 | Upload signed URL | `todo` | |
 | Google AdSense adapter | `todo` | `lib/ads/networks/adsense.ts` |
@@ -96,7 +97,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Payments
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | publisher_pg_configs, plans, publisher_subscriptions, pg_webhook_events |
+| DB schema | `done` | publisher_pg_configs, plans, subscriptions, pg_webhook_events in schema.ts |
 | PG config API | `todo` | |
 | Credential resolver | `todo` | `lib/payments/resolveConfig.ts` |
 | OnePaywall billing | `todo` | |
@@ -108,7 +109,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Reader intelligence
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | reader_page_visits, content_classifications, reader_profiles |
+| DB schema | `done` | reader_page_visits, content_classifications, reader_profiles in schema.ts |
 | Signal collection | `todo` | |
 | Content classification | `todo` | |
 | URL sanitisation | `todo` | `lib/intelligence/sanitize.ts` |
@@ -119,7 +120,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Analytics
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `todo` | gate_events, analytics_rollups |
+| DB schema | `done` | gate_events, analytics_rollups in schema.ts |
 | Event ingestion | `todo` | `lib/analytics/ingest.ts` |
 | Rollup computation | `todo` | `lib/analytics/rollup.ts` |
 | Analytics dashboard | `partial` | Placeholder page at `app/(dashboard)/analytics/page.tsx` |
@@ -129,7 +130,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Admin panel
 | Area | Status | Notes |
 |------|--------|-------|
-| Admin layout + guard | `todo` | |
+| Admin layout + guard | `done` | `app/admin/layout.tsx` — requires superadmin session |
 | Publisher management | `todo` | |
 | Plan management | `todo` | |
 
