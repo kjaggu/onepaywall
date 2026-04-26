@@ -32,6 +32,15 @@ export async function verifyUser(email: string, password: string): Promise<AuthU
   return { id: user.id, email: user.email, role: user.role, name: user.name, publisherId }
 }
 
+export async function createUser(email: string, password: string, name: string) {
+  const passwordHash = await bcrypt.hash(password, 12)
+  const [user] = await db
+    .insert(users)
+    .values({ email: email.toLowerCase().trim(), passwordHash, name, role: "publisher" })
+    .returning({ id: users.id, email: users.email, name: users.name, role: users.role })
+  return user
+}
+
 export async function getUserByEmail(email: string) {
   const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim())).limit(1)
   return user ?? null

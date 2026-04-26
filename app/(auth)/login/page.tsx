@@ -125,24 +125,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* SSO */}
-        <div style={{ marginTop: 20, padding: 14, border: "1px solid #e5e5e5", borderRadius: 6, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth={1.5}>
-              <circle cx={12} cy={12} r={10} /><path d="M12 8v4l3 3" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "#333" }}>SSO available</div>
-            <div style={{ fontSize: 11, color: "#aaa" }}>Sign in with Google Workspace</div>
-          </div>
-          <button style={{ marginLeft: "auto", padding: "4px 10px", border: "1px solid #e5e5e5", borderRadius: 5, background: "#fff", fontSize: 12, fontWeight: 500, color: "#555", cursor: "pointer", fontFamily: "inherit" }}>
-            Connect
-          </button>
+        {/* Sign up */}
+        <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #ebebeb", display: "flex", justifyContent: "center", gap: 4, fontSize: 12, color: "#aaa" }}>
+          Don&apos;t have an account?{" "}
+          <Link href="/register" style={{ color: "#111", fontWeight: 500, textDecoration: "none" }}>
+            Sign up free
+          </Link>
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: "auto", paddingTop: 32, display: "flex", gap: 16, fontSize: 12, color: "#aaa" }}>
+        <div style={{ marginTop: "auto", paddingTop: 24, display: "flex", gap: 16, fontSize: 12, color: "#aaa" }}>
           <a href="#" style={{ color: "#aaa" }}>Privacy</a>
           <a href="#" style={{ color: "#aaa" }}>Terms</a>
           <a href="#" style={{ color: "#aaa" }}>Status</a>
