@@ -3,6 +3,7 @@ import { Code2, CheckCircle2 } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getDomain } from "@/lib/db/queries/domains"
 import { CopyEmbedScript } from "@/components/dashboard/domains/copy-embed-script"
+import { EmbedVerifyButton } from "@/components/dashboard/domains/embed-verify-button"
 
 export default async function DomainEmbedPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -69,6 +70,13 @@ export default async function DomainEmbedPage({ params }: { params: Promise<{ id
               </li>
             ))}
           </ol>
+        </div>
+
+        <div className="border-t border-[var(--color-border)]" />
+
+        <div>
+          <h3 className="text-body font-semibold text-[var(--color-text)] mb-2">Installation status</h3>
+          <EmbedVerifyButton domainId={domain.id} verified={domain.embedEnabled} />
         </div>
 
         <div className="border-t border-[var(--color-border)]" />
