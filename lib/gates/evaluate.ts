@@ -106,8 +106,8 @@ export async function evaluateGate(opts: {
 
     const rules = allRules.filter(r => r.gateId === gate.id)
 
-    // URL doesn't match this gate's rules — skip
-    if (!gateMatchesUrl(rules, urlPath)) continue
+    // URL doesn't match this gate's rules — skip (not enforced in preview mode)
+    if (!preview && !gateMatchesUrl(rules, urlPath)) continue
 
     // Gate-level trigger conditions (skip in preview mode)
     if (!preview) {
