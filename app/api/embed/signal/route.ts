@@ -5,7 +5,7 @@ import { getReaderByToken } from "@/lib/embed/readerToken"
 import { sanitizeUrl } from "@/lib/intelligence/sanitize"
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null)
+  const body = await req.text().then(t => JSON.parse(t)).catch(() => null)
   if (!body?.token || !body?.url) {
     return new NextResponse(null, { status: 204 })
   }

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse(null, { status: 204 })
   }
 
-  void db.insert(gateEvents).values({
+  await db.insert(gateEvents).values({
     domainId: reader.domainId,
     gateId: gate.id,
     stepId: typeof body.stepId === "string" ? body.stepId : undefined,
