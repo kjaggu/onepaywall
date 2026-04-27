@@ -6,7 +6,7 @@ import { Trash2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 
 type Gate = {
   id: string
@@ -83,22 +83,20 @@ export function GateHeader({ gate, domain }: { gate: Gate; domain: Domain }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-label text-[var(--muted-foreground)]">Status</label>
-              {canEnable ? (
-                <button
-                  onClick={() => handleChange(setEnabled)(!enabled)}
-                  className="flex items-center gap-2 text-sm"
+              <div className="flex items-center gap-2.5 h-8">
+                <Switch
+                  checked={canEnable && enabled}
+                  onChange={v => handleChange(setEnabled)(v)}
+                  disabled={!canEnable}
+                  label="Gate enabled"
+                />
+                <span
+                  className="text-body-sm"
+                  style={{ color: canEnable && enabled ? "var(--color-text)" : "var(--color-text-secondary)" }}
                 >
-                  <Badge variant={enabled ? "default" : "secondary"}>
-                    {enabled ? "Enabled" : "Paused"}
-                  </Badge>
-                  <span className="text-[var(--muted-foreground)] text-xs">click to toggle</span>
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">Paused</Badge>
-                  <span className="text-[var(--muted-foreground)] text-xs">disabled</span>
-                </div>
-              )}
+                  {!canEnable ? "Disabled" : enabled ? "Enabled" : "Paused"}
+                </span>
+              </div>
             </div>
           </div>
           <p className="text-body-sm text-[var(--muted-foreground)]">
