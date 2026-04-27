@@ -49,13 +49,9 @@ export default function AdsPage() {
   }
 
   return (
-    <div style={{ padding: "28px 32px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>Ads</h1>
-          <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Upload ad creatives shown inside your gates.</p>
-        </div>
+    <div>
+      {/* Inline create-CTA — sits above the table within the Library tab. */}
+      <div className="flex justify-end mb-3">
         <button
           onClick={() => setShowCreate(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
