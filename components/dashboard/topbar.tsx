@@ -12,6 +12,7 @@ export function DashboardTopbar() {
   const [email, setEmail] = useState<string | null>(null)
   const [initials, setInitials] = useState("…")
   const [plan, setPlan] = useState<string | null>(null)
+  const [planTone, setPlanTone] = useState<"neutral" | "trial" | "warning" | "danger">("neutral")
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -23,6 +24,10 @@ export function DashboardTopbar() {
         setEmail(d.email)
         setInitials(d.initials)
         setPlan(d.plan)
+        if (d.subscription?.isSuspended)      setPlanTone("danger")
+        else if (d.subscription?.isPastDue)   setPlanTone("warning")
+        else if (d.subscription?.isTrialing)  setPlanTone("trial")
+        else                                   setPlanTone("neutral")
       })
       .catch(() => {})
   }, [])
@@ -58,13 +63,22 @@ export function DashboardTopbar() {
 
       {/* Plan badge + avatar */}
       <div className="flex items-center gap-2" ref={menuRef}>
-        {plan && (
-          <span
-            className="px-[7px] py-[1px] rounded border border-[#e5e5e5] text-[11px] text-[#555] font-medium capitalize"
-          >
-            {plan}
-          </span>
-        )}
+        {plan && (() => {
+          const styles = {
+            neutral: { border: "#e5e5e5", color: "#555", bg: "transparent",  suffix: "" },
+            trial:   { border: "#c8eced", color: "#1f7e80", bg: "#f0fafa",   suffix: " · trial" },
+            warning: { border: "#f5d28a", color: "#7a4500", bg: "#fff8ed",   suffix: " · past due" },
+            danger:  { border: "#f5b5b0", color: "#922118", bg: "#fdecea",   suffix: " · suspended" },
+          }[planTone]
+          return (
+            <span
+              className="px-[7px] py-[1px] rounded text-[11px] font-medium capitalize"
+              style={{ border: `1px solid ${styles.border}`, color: styles.color, background: styles.bg }}
+            >
+              {plan}{styles.suffix}
+            </span>
+          )
+        })()}
 
         {/* Avatar button */}
         <div className="relative">

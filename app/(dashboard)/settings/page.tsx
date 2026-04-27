@@ -5,8 +5,8 @@ const sections = [
     title: "Publisher",
     rows: [
       { label: "General — name, currency & timezone", href: "/settings/general" },
+      { label: "Plan & billing", href: "/settings/billing" },
       { label: "Billing email", href: null },
-      { label: "Plan & billing", href: null },
     ],
   },
   {
