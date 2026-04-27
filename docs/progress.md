@@ -42,7 +42,8 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | publishers, publisher_members in schema.ts |
-| Publisher CRUD API | `todo` | |
+| Publisher CRUD API | `done` | `app/api/publishers/route.ts` — GET + POST (re-issues session with publisherId) |
+| Query helpers | `done` | `lib/db/queries/publishers.ts` |
 | Team member management | `todo` | |
 | Dashboard shell | `done` | Sidebar nav, layout shell — `app/(dashboard)/layout.tsx`, `components/dashboard/sidebar.tsx` |
 
@@ -52,9 +53,13 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | domains in schema.ts — includes site_key, embed_enabled, soft-delete |
-| Domain CRUD API | `todo` | |
-| Site key generation | `todo` | `lib/embed/siteKey.ts` |
-| Domain list UI | `partial` | Placeholder page at `app/(dashboard)/domains/page.tsx` |
+| Domain CRUD API | `done` | `app/api/domains/route.ts` (GET+POST) + `app/api/domains/[id]/route.ts` (PATCH+DELETE soft) |
+| Query helpers | `done` | `lib/db/queries/domains.ts` |
+| Site key generation | `done` | `lib/embed/siteKey.ts` — `opw_` prefixed hex, 44 chars |
+| Domain list UI | `done` | `app/(dashboard)/domains/page.tsx` — server component, real data, table + empty state |
+| Add domain sheet | `done` | `components/dashboard/domains/add-domain-sheet.tsx` |
+| Domain actions | `done` | `components/dashboard/domains/domain-actions.tsx` — pause/activate/remove dropdown |
+| Copy site key | `done` | `components/dashboard/domains/copy-site-key.tsx` |
 
 ---
 
@@ -62,10 +67,17 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | gates, gate_steps, gate_rules in schema.ts |
-| Gate CRUD API | `todo` | |
+| Gate query helpers | `done` | `lib/db/queries/gates.ts` — gates, steps, rules CRUD with ownership checks |
+| Gate CRUD API | `done` | `app/api/gates/` + `app/api/gates/[id]/` — GET/POST/PATCH/DELETE |
+| Step CRUD API | `done` | `app/api/gates/[id]/steps/` + `app/api/gates/[id]/steps/[stepId]/` |
+| Rule CRUD API | `done` | `app/api/gates/[id]/rules/` + `app/api/gates/[id]/rules/[ruleId]/` |
+| Gates list page | `done` | `app/(dashboard)/gates/page.tsx` — grouped by domain, create-gate sheet |
+| Gate builder page | `done` | `app/(dashboard)/gates/[id]/page.tsx` — header, rules, steps |
+| Gate header component | `done` | `components/dashboard/gates/gate-header.tsx` — name/priority/enabled editor |
+| URL rules component | `done` | `components/dashboard/gates/gate-rules.tsx` — add/remove glob patterns |
+| Steps component | `done` | `components/dashboard/gates/gate-steps.tsx` — add/reorder/delete + per-type config |
 | Gate evaluation engine | `todo` | `lib/gates/evaluate.ts` |
 | Trigger condition evaluator | `todo` | `lib/gates/conditions.ts` |
-| Gate builder UI | `todo` | |
 
 ---
 
@@ -73,11 +85,14 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | readers, reader_tokens, gate_unlocks in schema.ts |
-| Gate-check endpoint | `todo` | `/api/embed/gate-check` |
-| Signal endpoint | `todo` | `/api/embed/signal` |
-| Event endpoint | `todo` | `/api/embed/event` |
-| Reader fingerprinting | `todo` | `lib/embed/fingerprint.ts` |
-| Embed JS bundle | `todo` | |
+| Reader fingerprinting | `done` | `lib/embed/fingerprint.ts` — SHA-256(clientId:UA), no IP stored |
+| Reader token resolution | `done` | `lib/embed/readerToken.ts` — upsert reader + token, visit_count increment |
+| Gate evaluation engine | `done` | `lib/gates/evaluate.ts` — rule matching, unlock check, trigger conditions |
+| URL sanitizer | `done` | `lib/intelligence/sanitize.ts` — strips PII params, normalises |
+| Gate-check endpoint | `done` | `app/api/embed/gate-check/route.ts` — GET, Cache-Control: private |
+| Signal endpoint | `done` | `app/api/embed/signal/route.ts` — POST, fire-and-forget via sendBeacon |
+| Event endpoint | `done` | `app/api/embed/event/route.ts` — POST, gate event recording |
+| Embed JS bundle | `done` | `public/embed/embed.js` — 11.7KB raw / 3.4KB gzip, vanilla JS |
 
 ---
 

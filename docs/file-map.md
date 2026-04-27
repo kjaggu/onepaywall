@@ -34,8 +34,13 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Task | Files |
 |------|-------|
 | Domain CRUD | `app/api/domains/route.ts`, `app/api/domains/[id]/route.ts` |
+| Domain query helpers | `lib/db/queries/domains.ts` |
+| Publisher query helpers | `lib/db/queries/publishers.ts` |
 | Site key generation | `lib/embed/siteKey.ts` |
 | Domain dashboard page | `app/(dashboard)/domains/page.tsx` |
+| Add domain sheet | `components/dashboard/domains/add-domain-sheet.tsx` |
+| Domain actions dropdown | `components/dashboard/domains/domain-actions.tsx` |
+| Copy site key button | `components/dashboard/domains/copy-site-key.tsx` |
 | DB schema | `lib/db/schema.ts` → `domains` |
 | Data model reference | `docs/data-model/publishers.md` |
 
@@ -46,10 +51,17 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Task | Files |
 |------|-------|
 | Gate CRUD | `app/api/gates/route.ts`, `app/api/gates/[id]/route.ts` |
-| Gate step CRUD | `app/api/gates/[id]/steps/route.ts` |
-| Gate evaluation logic | `lib/gates/evaluate.ts` |
-| Trigger condition evaluation | `lib/gates/conditions.ts` |
-| Gate builder UI | `app/(dashboard)/domains/[id]/gates/`, `components/dashboard/gate-builder/` |
+| Step CRUD | `app/api/gates/[id]/steps/route.ts`, `app/api/gates/[id]/steps/[stepId]/route.ts` |
+| Rule CRUD | `app/api/gates/[id]/rules/route.ts`, `app/api/gates/[id]/rules/[ruleId]/route.ts` |
+| Gate query helpers | `lib/db/queries/gates.ts` |
+| Gates list page | `app/(dashboard)/gates/page.tsx` |
+| Gate builder page | `app/(dashboard)/gates/[id]/page.tsx` |
+| Gate header editor | `components/dashboard/gates/gate-header.tsx` |
+| URL rules manager | `components/dashboard/gates/gate-rules.tsx` |
+| Steps manager | `components/dashboard/gates/gate-steps.tsx` |
+| Create gate sheet | `components/dashboard/gates/create-gate-sheet.tsx` |
+| Gate evaluation logic | `lib/gates/evaluate.ts` (todo) |
+| Trigger condition evaluation | `lib/gates/conditions.ts` (todo) |
 | DB schema | `lib/db/schema.ts` → `gates`, `gate_steps`, `gate_rules` |
 | Data model reference | `docs/data-model/publishers.md` |
 

@@ -36,6 +36,35 @@ async function seed() {
     console.log("✓ Superadmin already exists — skipped")
   }
 
+  // ── Publisher test user ────────────────────────────────────────────────────
+  const pubEmail = "publisher@test.com"
+  const [existingPub] = await db.select().from(schema.users).where(eq(schema.users.email, pubEmail)).limit(1)
+
+  if (!existingPub) {
+    const pubHash = await bcrypt.hash("Test1234!", 10)
+    const [pubUser] = await db.insert(schema.users).values({
+      email:        pubEmail,
+      passwordHash: pubHash,
+      name:         "Test Publisher",
+      role:         "publisher",
+    }).returning()
+
+    const [publisher] = await db.insert(schema.publishers).values({
+      name: "Test Publication",
+      slug: "test-publication",
+    }).returning()
+
+    await db.insert(schema.publisherMembers).values({
+      publisherId: publisher.id,
+      userId:      pubUser.id,
+      role:        "owner",
+    })
+
+    console.log("✓ Publisher test user created (publisher@test.com / Test1234!)")
+  } else {
+    console.log("✓ Publisher test user already exists — skipped")
+  }
+
   console.log("Done.")
 }
 
