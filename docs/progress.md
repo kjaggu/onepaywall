@@ -123,7 +123,9 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Credential resolver | `done` | `lib/payments/resolveConfig.ts` — always call this; returns platform or own keys decrypted |
 | PG config API | `done` | `app/api/pg-config/route.ts` — GET (never returns secrets) + PATCH |
 | Payment gateway settings UI | `done` | `app/(dashboard)/settings/payment-gateway/page.tsx` + `components/dashboard/settings/pg-config-form.tsx` |
-| OnePaywall billing | `todo` | |
+| OnePaywall billing — schema + API + webhook | `done` | Session 2a — migration `0006`, `lib/payments/billing.ts`, `app/api/billing/route.ts`, `app/api/webhooks/billing/route.ts`, signup hook in `lib/auth/register.ts`, `/api/me` extended for sub state |
+| OnePaywall billing — UI | `done` | Session 2b — `/settings/billing` plan picker + manage view, `BillingBanner`, topbar plan-tone badge, Razorpay Checkout integration |
+| OnePaywall billing — enforcement (Session 2c) | `todo` | Pending: 7-day past-due suspension worker (cron), `gate-check` skip when `status='suspended'`, plan-limit enforcement (max_domains / max_gates / max_mau_per_domain) on the relevant API endpoints |
 | One-time unlock flow | `done` | `app/api/embed/unlock/route.ts` create+verify; embed checkout; price resolution via `lib/payments/resolveUnlockPrice.ts` (URL override → publisher default → step config); revenue + unlock recorded atomically via `lib/payments/recordUnlock.ts`, idempotent on `razorpay_payment_id` |
 | Webhook handler | `done` | `app/api/webhooks/publisher/[publisherId]/route.ts` — signature verified, replay-protected via `pg_webhook_events`, writes both `gate_unlocks` and `reader_transactions` |
 | Revenue ledger | `done` | `reader_transactions` written on every successful one-time unlock (verify route + webhook); surfaced in Revenue page and Analytics summary stat |
