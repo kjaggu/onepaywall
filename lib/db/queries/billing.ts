@@ -76,3 +76,54 @@ export async function updateSubscription(id: string, patch: Partial<{
     .returning()
   return row
 }
+
+// Effective state for whether the publisher's gates / dashboard writes should
+// be served. Honours all the time-based rules without needing the cron to
+// have run yet (defensive — if cron is delayed, request-time check still
+// returns the right answer).
+export async function isPublisherActive(publisherId: string): Promise<boolean> {
+  const sub = await getCurrentSubscription(publisherId)
+  if (!sub) return false
+
+  const now = Date.now()
+  const periodEnd = sub.currentPeriodEnd?.getTime() ?? null
+
+  switch (sub.status) {
+    case "active":
+      return true
+    case "past_due":
+      // Within the 7-day soft-suspension grace window. The cron flips
+      // dunning_started_at + 7d → suspended.
+      return true
+    case "trialing":
+      return periodEnd != null && periodEnd > now
+    case "cancelled":
+      return periodEnd != null && periodEnd > now
+    case "suspended":
+      return false
+  }
+}
+
+// Plan limits for a publisher's current subscription. Returns null if no sub
+// exists; null limit fields = unlimited (Scale tier).
+export type PublisherLimits = {
+  planSlug:        PlanRow["slug"]
+  planName:        string
+  maxDomains:      number | null
+  maxGates:        number | null
+  maxMauPerDomain: number | null
+}
+
+export async function getPublisherLimits(publisherId: string): Promise<PublisherLimits | null> {
+  const sub = await getCurrentSubscription(publisherId)
+  if (!sub) return null
+  const plan = await getPlan(sub.planSlug)
+  if (!plan) return null
+  return {
+    planSlug:        plan.slug,
+    planName:        plan.name,
+    maxDomains:      plan.maxDomains,
+    maxGates:        plan.maxGates,
+    maxMauPerDomain: plan.maxMauPerDomain,
+  }
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { listGatesForPublisher, createGate } from "@/lib/db/queries/gates"
+import { listGatesForPublisher, createGate, countActiveGates } from "@/lib/db/queries/gates"
+import { getPublisherLimits } from "@/lib/db/queries/billing"
 
 export async function GET() {
   const session = await getSession()
@@ -19,6 +20,18 @@ export async function POST(req: NextRequest) {
   const { domainId, name, priority, triggerConditions } = await req.json()
   if (!domainId?.trim()) return NextResponse.json({ error: "domainId is required" }, { status: 400 })
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 })
+
+  // Plan-limit check. NULL maxGates means unlimited.
+  const limits = await getPublisherLimits(session.publisherId)
+  if (limits?.maxGates != null) {
+    const current = await countActiveGates(session.publisherId)
+    if (current >= limits.maxGates) {
+      return NextResponse.json({
+        error: `Your ${limits.planName} plan allows ${limits.maxGates} gate${limits.maxGates === 1 ? "" : "s"}. Upgrade to add more.`,
+        upgrade: true,
+      }, { status: 422 })
+    }
+  }
 
   const gate = await createGate({
     domainId,

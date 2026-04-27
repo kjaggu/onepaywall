@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { listDomains, createDomain } from "@/lib/db/queries/domains"
+import { listDomains, createDomain, countActiveDomains } from "@/lib/db/queries/domains"
+import { getPublisherLimits } from "@/lib/db/queries/billing"
 
 export async function GET() {
   const session = await getSession()
@@ -24,6 +25,18 @@ export async function POST(req: NextRequest) {
   const normalised = domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "")
   if (!domainPattern.test(normalised)) {
     return NextResponse.json({ error: "Invalid domain format" }, { status: 400 })
+  }
+
+  // Plan-limit check. NULL maxDomains means unlimited (Scale tier).
+  const limits = await getPublisherLimits(session.publisherId)
+  if (limits?.maxDomains != null) {
+    const current = await countActiveDomains(session.publisherId)
+    if (current >= limits.maxDomains) {
+      return NextResponse.json({
+        error: `Your ${limits.planName} plan allows ${limits.maxDomains} domain${limits.maxDomains === 1 ? "" : "s"}. Upgrade to add more.`,
+        upgrade: true,
+      }, { status: 422 })
+    }
   }
 
   try {

@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm"
+import { eq, and, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { domains } from "@/lib/db/schema"
 import { generateSiteKey } from "@/lib/embed/siteKey"
@@ -57,4 +57,13 @@ export async function deleteDomain(id: string, publisherId: string) {
     .update(domains)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(domains.id, id), eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
+}
+
+// Count of non-deleted domains for plan-limit enforcement.
+export async function countActiveDomains(publisherId: string): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(domains)
+    .where(and(eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
+  return row?.count ?? 0
 }

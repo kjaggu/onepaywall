@@ -5,6 +5,7 @@ import { domains } from "@/lib/db/schema"
 import { resolveReader } from "@/lib/embed/readerToken"
 import { evaluateGate } from "@/lib/gates/evaluate"
 import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
+import { isPublisherActive } from "@/lib/db/queries/billing"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -28,6 +29,17 @@ export async function GET(req: NextRequest) {
 
   if (!domain) {
     // Return pass-through — don't reveal whether domain exists
+    return NextResponse.json({ gate: null }, {
+      headers: { "Cache-Control": "private, no-cache" },
+    })
+  }
+
+  // Billing gate: stop serving if the publisher's subscription is suspended,
+  // their trial has expired without converting, or a cancelled sub is past
+  // its period end. Same fail-open shape as a missing domain — the embed
+  // never sees why; the publisher dashboard is loud about it via the banner.
+  const billingActive = await isPublisherActive(domain.publisherId)
+  if (!billingActive) {
     return NextResponse.json({ gate: null }, {
       headers: { "Cache-Control": "private, no-cache" },
     })

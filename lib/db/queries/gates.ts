@@ -1,4 +1,4 @@
-import { eq, and, isNull, asc } from "drizzle-orm"
+import { eq, and, isNull, asc, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { gates, gateSteps, gateRules, domains } from "@/lib/db/schema"
 
@@ -127,6 +127,21 @@ export async function deleteGate(id: string, publisherId: string) {
 
   await db.update(gates).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(gates.id, id))
   return true
+}
+
+// Count of non-deleted gates across the publisher's non-deleted domains.
+// Used for plan-limit enforcement on gate creation.
+export async function countActiveGates(publisherId: string): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(gates)
+    .innerJoin(domains, eq(gates.domainId, domains.id))
+    .where(and(
+      eq(domains.publisherId, publisherId),
+      isNull(domains.deletedAt),
+      isNull(gates.deletedAt),
+    ))
+  return row?.count ?? 0
 }
 
 // ─── Gate steps ───────────────────────────────────────────────────────────────
