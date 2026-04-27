@@ -55,7 +55,9 @@ export default async function GatesPage() {
                 {domain.name} — {domain.domain}
               </p>
               <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-                {gates.map((gate, i) => (
+                {gates.map((gate, i) => {
+                  const live = gate.enabled && domain.embedEnabled && domain.status === "active"
+                  return (
                   <Link
                     key={gate.id}
                     href={`/gates/${gate.id}`}
@@ -67,12 +69,13 @@ export default async function GatesPage() {
                       <p className="text-body font-medium text-[var(--color-text)] truncate">{gate.name}</p>
                       <p className="text-body-sm text-[var(--muted-foreground)]">Priority {gate.priority}</p>
                     </div>
-                    <Badge variant={gate.enabled ? "default" : "secondary"} className="shrink-0">
-                      {gate.enabled ? "Enabled" : "Paused"}
+                    <Badge variant={live ? "default" : "secondary"} className="shrink-0">
+                      {live ? "Enabled" : "Paused"}
                     </Badge>
                     <ChevronRight size={15} className="text-[var(--muted-foreground)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}

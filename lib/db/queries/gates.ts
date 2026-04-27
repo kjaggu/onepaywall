@@ -25,7 +25,7 @@ async function gateOwnedByPublisher(gateId: string, publisherId: string) {
 
 export async function listGatesForPublisher(publisherId: string) {
   return db
-    .select({ gate: gates, domain: { id: domains.id, name: domains.name, domain: domains.domain } })
+    .select({ gate: gates, domain: { id: domains.id, name: domains.name, domain: domains.domain, embedEnabled: domains.embedEnabled, status: domains.status } })
     .from(gates)
     .innerJoin(domains, eq(gates.domainId, domains.id))
     .where(and(eq(domains.publisherId, publisherId), isNull(gates.deletedAt), isNull(domains.deletedAt)))

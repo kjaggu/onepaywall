@@ -59,6 +59,14 @@ export async function deleteDomain(id: string, publisherId: string) {
     .where(and(eq(domains.id, id), eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
 }
 
+// Mark a domain's embed as verified (called automatically on first gate-check hit).
+export async function markEmbedVerified(siteKey: string) {
+  await db
+    .update(domains)
+    .set({ embedEnabled: true, updatedAt: new Date() })
+    .where(and(eq(domains.siteKey, siteKey), isNull(domains.deletedAt)))
+}
+
 // Count of non-deleted domains for plan-limit enforcement.
 export async function countActiveDomains(publisherId: string): Promise<number> {
   const [row] = await db

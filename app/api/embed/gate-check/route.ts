@@ -6,6 +6,7 @@ import { resolveReader } from "@/lib/embed/readerToken"
 import { evaluateGate } from "@/lib/gates/evaluate"
 import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
 import { isPublisherActive } from "@/lib/db/queries/billing"
+import { markEmbedVerified } from "@/lib/db/queries/domains"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -20,11 +21,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "siteKey and clientId are required" }, { status: 400 })
   }
 
-  // Look up domain by site key
+  // Look up domain by site key — no embedEnabled filter so we can auto-verify on first hit
   const [domain] = await db
     .select()
     .from(domains)
-    .where(and(eq(domains.siteKey, siteKey), eq(domains.embedEnabled, true), isNull(domains.deletedAt)))
+    .where(and(eq(domains.siteKey, siteKey), eq(domains.status, "active"), isNull(domains.deletedAt)))
     .limit(1)
 
   if (!domain) {
@@ -32,6 +33,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ gate: null }, {
       headers: { "Cache-Control": "private, no-cache" },
     })
+  }
+
+  // Auto-verify embed on first hit — flips embedEnabled so the publisher can enable gates
+  if (!domain.embedEnabled) {
+    await markEmbedVerified(siteKey)
   }
 
   // Billing gate: stop serving if the publisher's subscription is suspended,
