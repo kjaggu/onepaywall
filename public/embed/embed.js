@@ -3,7 +3,7 @@
 
   // ─── Config ─────────────────────────────────────────────────────────────────
 
-  var API_BASE = "https://onepaywall.com"; // replaced at build time for self-hosted
+  var API_BASE = "https://www.onepaywall.com";
   var LS_CLIENT_ID = "opw_cid";
   var LS_TOKEN_PREFIX = "opw_tok_";
   var SCRIPT_ATTR = "data-site-key";

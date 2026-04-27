@@ -8,7 +8,8 @@ import { copyText } from "@/lib/copy"
 export function CopyEmbedScript({ siteKey }: { siteKey: string }) {
   const [copied, setCopied] = useState(false)
 
-  const snippet = `<script src="https://onepaywall.com/embed/embed.js" data-site-key="${siteKey}" async></script>`
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.onepaywall.com").replace(/\/$/, "")
+  const snippet = `<script src="${appUrl}/embed/embed.js" data-site-key="${siteKey}" data-api-base="${appUrl}" async></script>`
 
   async function copy() {
     await copyText(snippet)
