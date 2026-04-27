@@ -1,6 +1,7 @@
 import { db } from "@/lib/db/client"
-import { publishers, publisherMembers, subscriptions } from "@/lib/db/schema"
+import { publishers, publisherMembers } from "@/lib/db/schema"
 import { createUser, getUserByEmail } from "@/lib/auth/users"
+import { createTrialSubscription, getPlan } from "@/lib/db/queries/billing"
 
 function toSlug(name: string): string {
   return name
@@ -43,10 +44,14 @@ export async function registerPublisher(opts: {
     role: "owner",
   })
 
-  await db.insert(subscriptions).values({
+  // Trial of Starter — 14 days. Trial length is sourced from the plans
+  // table so it can be tuned without redeploying.
+  const starter = await getPlan("starter")
+  const trialDays = starter?.trialDays ?? 14
+  await createTrialSubscription({
     publisherId: publisher.id,
-    planSlug: "trial",
-    status: "trialing",
+    planSlug:    "starter",
+    trialDays,
   })
 
   return { ok: true, userId: user.id, publisherId: publisher.id, email: user.email, name: user.name }

@@ -77,12 +77,21 @@ async function applyMigration(filename) {
   const fullPath = path.join(MIGRATIONS_DIR, filename)
   const stmt = readFileSync(fullPath, "utf-8")
 
-  // Each migration runs in a transaction. Tracking insert is part of the same
-  // tx so we never end up "applied in DB, untracked" or vice versa.
-  await sql.begin(async tx => {
-    await tx.unsafe(stmt)
-    await tx`INSERT INTO _migrations (filename) VALUES (${filename})`
-  })
+  // Migrations run inside a transaction by default so partial failures roll
+  // back. Some Postgres DDL (notably ALTER TYPE ... ADD VALUE) is forbidden
+  // inside transactions — those files opt out with `-- @no-transaction` near
+  // the top, and are then responsible for being individually idempotent.
+  const noTx = /^\s*--\s*@no-transaction\b/m.test(stmt)
+
+  if (noTx) {
+    await sql.unsafe(stmt)
+    await sql`INSERT INTO _migrations (filename) VALUES (${filename})`
+  } else {
+    await sql.begin(async tx => {
+      await tx.unsafe(stmt)
+      await tx`INSERT INTO _migrations (filename) VALUES (${filename})`
+    })
+  }
 }
 
 async function main() {

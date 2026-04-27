@@ -18,7 +18,7 @@ import { sql } from "drizzle-orm"
 export const userRoleEnum        = pgEnum("user_role",        ["superadmin", "publisher"])
 export const memberRoleEnum      = pgEnum("member_role",      ["owner", "admin", "member"])
 export const planSlugEnum        = pgEnum("plan_slug",        ["trial", "lite", "starter", "growth", "scale"])
-export const subStatusEnum       = pgEnum("sub_status",       ["trialing", "active", "past_due", "cancelled"])
+export const subStatusEnum       = pgEnum("sub_status",       ["trialing", "active", "past_due", "cancelled", "suspended"])
 export const domainStatusEnum    = pgEnum("domain_status",    ["active", "paused", "removed"])
 export const stepTypeEnum        = pgEnum("step_type",        ["ad", "subscription_cta", "one_time_unlock"])
 export const stepActionEnum      = pgEnum("step_action",      ["proceed", "next_step"])
@@ -156,6 +156,7 @@ export const plans = pgTable("plans", {
   maxGates:          integer("max_gates"),
   trialDays:         integer("trial_days").default(0),
   active:            boolean("active").notNull().default(true),
+  razorpayPlanId:    text("razorpay_plan_id"),
 })
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
@@ -169,6 +170,8 @@ export const subscriptions = pgTable("subscriptions", {
   currentPeriodStart: timestamp("current_period_start"),
   currentPeriodEnd:   timestamp("current_period_end"),
   cancelledAt:        timestamp("cancelled_at"),
+  cancelAtCycleEnd:   boolean("cancel_at_cycle_end").notNull().default(false),
+  dunningStartedAt:   timestamp("dunning_started_at"),
   createdAt:          timestamp("created_at").notNull().defaultNow(),
   updatedAt:          timestamp("updated_at").notNull().defaultNow(),
 }, t => [

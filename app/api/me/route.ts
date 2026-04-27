@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { db } from "@/lib/db/client"
-import { subscriptions } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { getCurrentSubscription } from "@/lib/db/queries/billing"
 
 export async function GET() {
   const session = await getSession()
@@ -18,16 +16,36 @@ export async function GET() {
     .join("")
     .slice(0, 2)
 
-  let plan: string | null = null
+  let subscription: {
+    planSlug:           string
+    status:             string
+    currentPeriodEnd:   string | null
+    daysUntilPeriodEnd: number | null
+    cancelAtCycleEnd:   boolean
+    isTrialing:         boolean
+    isPastDue:          boolean
+    isSuspended:        boolean
+  } | null = null
+
   if (session.publisherId) {
-    const [sub] = await db
-      .select({ planSlug: subscriptions.planSlug })
-      .from(subscriptions)
-      .where(eq(subscriptions.publisherId, session.publisherId))
-      .orderBy(desc(subscriptions.createdAt))
-      .limit(1)
-    plan = sub?.planSlug ?? null
+    const sub = await getCurrentSubscription(session.publisherId)
+    if (sub) {
+      const days = sub.currentPeriodEnd
+        ? Math.max(0, Math.ceil((sub.currentPeriodEnd.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+        : null
+      subscription = {
+        planSlug:           sub.planSlug,
+        status:             sub.status,
+        currentPeriodEnd:   sub.currentPeriodEnd?.toISOString() ?? null,
+        daysUntilPeriodEnd: days,
+        cancelAtCycleEnd:   sub.cancelAtCycleEnd,
+        isTrialing:         sub.status === "trialing",
+        isPastDue:          sub.status === "past_due",
+        isSuspended:        sub.status === "suspended",
+      }
+    }
   }
 
-  return NextResponse.json({ email, initials, plan })
+  // Backward-compat: existing topbar reads `plan` directly.
+  return NextResponse.json({ email, initials, plan: subscription?.planSlug ?? null, subscription })
 }
