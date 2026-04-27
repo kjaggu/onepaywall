@@ -1,4 +1,4 @@
-import { eq, and, isNull, sql } from "drizzle-orm"
+import { eq, and, isNull, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { domains } from "@/lib/db/schema"
 import { generateSiteKey } from "@/lib/embed/siteKey"
@@ -31,6 +31,22 @@ export async function createDomain({
 }) {
   const normalised = domain.toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "")
   const siteKey = generateSiteKey()
+
+  // If this publisher previously deleted this domain, restore it with a fresh siteKey
+  const [deleted] = await db
+    .select({ id: domains.id })
+    .from(domains)
+    .where(and(eq(domains.domain, normalised), eq(domains.publisherId, publisherId), isNotNull(domains.deletedAt)))
+    .limit(1)
+
+  if (deleted) {
+    const [restored] = await db
+      .update(domains)
+      .set({ name, siteKey, embedEnabled: false, status: "active", deletedAt: null, updatedAt: new Date() })
+      .where(eq(domains.id, deleted.id))
+      .returning()
+    return restored
+  }
 
   const [row] = await db
     .insert(domains)

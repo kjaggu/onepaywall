@@ -41,6 +41,8 @@ export function AddDomainSheet() {
       setName("")
       setDomain("")
       router.refresh()
+    } catch {
+      setError("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
