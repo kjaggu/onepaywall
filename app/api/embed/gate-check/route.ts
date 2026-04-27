@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   const deviceType = searchParams.get("device") ?? undefined
   const publishedAtParam = searchParams.get("publishedAt")
   const publishedAt = publishedAtParam ? new Date(publishedAtParam) : undefined
+  const preview = searchParams.get("preview") === "1"
 
   if (!siteKey || !clientId) {
     return NextResponse.json({ error: "siteKey and clientId are required" }, { status: 400 })
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
     pageUrl,
     deviceType,
     publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
+    preview,
   })
 
   // Resolve unlock prices server-side so the embed always shows what we'll actually charge.

@@ -53,8 +53,9 @@ export async function evaluateGate(opts: {
   pageUrl: string
   deviceType?: string
   publishedAt?: Date
+  preview?: boolean
 }): Promise<EvaluationResult> {
-  const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt } = opts
+  const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt, preview } = opts
   const urlPath = extractPath(pageUrl)
 
   // Load all enabled gates for domain with their rules, ordered by priority DESC
@@ -98,17 +99,21 @@ export async function evaluateGate(opts: {
   const sortedGates = [...domainGates].sort((a, b) => b.priority - a.priority)
 
   for (const gate of sortedGates) {
-    // Already unlocked — reader passes, skip this gate
-    if (unlockedGateIds.has(gate.id)) continue
+    // In preview mode skip unlock and trigger checks — always show the gate
+    if (!preview) {
+      if (unlockedGateIds.has(gate.id)) continue
+    }
 
     const rules = allRules.filter(r => r.gateId === gate.id)
 
     // URL doesn't match this gate's rules — skip
     if (!gateMatchesUrl(rules, urlPath)) continue
 
-    // Gate-level trigger conditions (basic ones — no profile required)
-    const conditions = (gate.triggerConditions ?? {}) as TriggerConditions
-    if (!conditionsMet(conditions, visitCount, deviceType, publishedAt)) continue
+    // Gate-level trigger conditions (skip in preview mode)
+    if (!preview) {
+      const conditions = (gate.triggerConditions ?? {}) as TriggerConditions
+      if (!conditionsMet(conditions, visitCount, deviceType, publishedAt)) continue
+    }
 
     // Gate applies — load its steps
     const steps = await db

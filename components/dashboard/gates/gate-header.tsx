@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2, AlertTriangle } from "lucide-react"
+import { Trash2, AlertTriangle, FlaskConical } from "lucide-react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
 
 type Gate = {
   id: string
@@ -19,6 +20,7 @@ type Domain = {
   id: string
   name: string
   domain: string
+  siteKey: string
   embedEnabled: boolean
   status: string
 }
@@ -125,6 +127,15 @@ export function GateHeader({ gate, domain }: { gate: Gate; domain: Domain }) {
               {saving ? "Saving…" : "Save"}
             </Button>
           )}
+          <a
+            href={`/embed/test?siteKey=${domain.siteKey}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            <FlaskConical size={13} />
+            Test
+          </a>
           <Button size="sm" variant="destructive" onClick={remove}>
             <Trash2 size={13} />
           </Button>

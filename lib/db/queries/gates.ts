@@ -62,6 +62,7 @@ export async function getGate(id: string, publisherId: string) {
         id: domains.id,
         name: domains.name,
         domain: domains.domain,
+        siteKey: domains.siteKey,
         embedEnabled: domains.embedEnabled,
         status: domains.status,
       },

@@ -318,6 +318,7 @@
     var token = getToken(siteKey);
     var base = script.getAttribute("data-api-base") || API_BASE;
     var publishedAt = script.getAttribute("data-published-at") || "";
+    var isPreview = script.getAttribute("data-preview") === "1";
 
     var startTime = Date.now();
 
@@ -328,6 +329,7 @@
       url: location.href,
       device: deviceType(),
       publishedAt: publishedAt,
+      preview: isPreview ? "1" : null,
     }), { credentials: "omit" })
       .then(function (r) { return r.json(); })
       .then(function (data) {
