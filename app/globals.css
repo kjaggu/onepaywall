@@ -46,10 +46,16 @@
 
   /* OnePaywall semantic tokens */
   --color-accent-teal: var(--accent-teal);
+  --color-brand: var(--brand);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-surface-subtle: var(--surface-subtle);
   --color-border-strong: var(--border-strong);
   --color-text-tertiary: var(--text-tertiary);
+  --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
 }
@@ -107,12 +113,18 @@
 
   /* OnePaywall extras */
   --accent-teal: oklch(0.655 0.093 194.4);
-  --surface-hover: oklch(0.963 0 0);   /* #f5f5f5 */
-  --surface-subtle: oklch(0.982 0 0);  /* #fafafa */
-  --border-strong: oklch(0.91 0 0);    /* #e5e5e5 */
-  --text-tertiary: oklch(0.8 0 0);     /* #ccc */
-  --warning: oklch(0.62 0.14 65);      /* #c4820a */
-  --danger: oklch(0.52 0.19 27);       /* #c0392b */
+  --brand: oklch(0.655 0.093 194.4);                       /* #27adb0 */
+  --brand-subtle: oklch(0.96 0.025 194.4);                 /* soft teal tint, ~#e8f5f5 */
+  --text: oklch(0.141 0 0);                                /* #111 */
+  --text-secondary: oklch(0.565 0 0);                      /* #888 */
+  --surface: oklch(0.982 0 0);                             /* #fafafa */
+  --surface-hover: oklch(0.963 0 0);                       /* #f5f5f5 */
+  --surface-subtle: oklch(0.982 0 0);                      /* #fafafa */
+  --border-strong: oklch(0.91 0 0);                        /* #e5e5e5 */
+  --text-tertiary: oklch(0.8 0 0);                         /* #ccc */
+  --success: oklch(0.71 0.16 145);                         /* #22c55e */
+  --warning: oklch(0.62 0.14 65);                          /* #c4820a */
+  --danger: oklch(0.52 0.19 27);                           /* #c0392b */
 }
 
 @layer base {
@@ -204,5 +216,73 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ── Reusable motion utilities ─────────────────────────────────────────────
+   Tasteful, fast (<200ms), and bypassed entirely under prefers-reduced-motion.
+   ----------------------------------------------------------------------- */
+@layer utilities {
+  /* Lift-on-hover: subtle Y translate + soft shadow. For clickable cards. */
+  .motion-lift {
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+  .motion-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+  .motion-lift:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition-duration: 0.06s;
+  }
+
+  /* Slide-down entrance — for banners / toasts that appear once per session. */
+  .motion-slide-down {
+    animation: slideDown 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Soft scale-pop entrance — for status pills / badges that appear async. */
+  .motion-pop {
+    animation: pop 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Page-enter: tiny fade for tab/page content swaps. */
+  .motion-page {
+    animation: pageEnter 0.18s ease both;
+  }
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Press feedback — for buttons that don't already have native feedback. */
+  .motion-press {
+    transition: transform 0.08s ease;
+  }
+  .motion-press:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Honour user preference: kill all decorative motion. */
+@media (prefers-reduced-motion: reduce) {
+  .motion-lift,
+  .motion-slide-down,
+  .motion-pop,
+  .motion-page,
+  .motion-press,
+  .fade-in {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

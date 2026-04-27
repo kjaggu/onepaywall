@@ -58,7 +58,7 @@ export function BillingBanner() {
 
   return (
     <div
-      className="border-b px-6 py-2.5 flex items-center justify-between gap-4 shrink-0"
+      className="motion-slide-down border-b px-6 py-2.5 flex items-center justify-between gap-4 shrink-0"
       style={{ background: styles.bg, borderColor: styles.border, color: styles.fg }}
     >
       <div className="flex items-center gap-2 min-w-0">

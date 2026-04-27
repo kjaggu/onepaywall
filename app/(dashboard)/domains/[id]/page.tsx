@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, ExternalLink, Globe, Code2, CheckCircle2 } from "lucide-react"
+import { ArrowRight, Code2, ShieldCheck, Settings as SettingsIcon } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getDomain } from "@/lib/db/queries/domains"
-import { Badge } from "@/components/ui/badge"
-import { CopyEmbedScript } from "@/components/dashboard/domains/copy-embed-script"
+import { listGatesForDomain } from "@/lib/db/queries/gates"
 
-export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DomainOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await getSession()
   if (!session?.publisherId) notFound()
@@ -14,168 +13,109 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
   const domain = await getDomain(id, session.publisherId)
   if (!domain) notFound()
 
-  return (
-    <div className="p-8 max-w-3xl">
-      {/* Back nav */}
-      <Link
-        href="/domains"
-        className="inline-flex items-center gap-1.5 text-body-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] mb-6"
-      >
-        <ArrowLeft size={14} />
-        All domains
-      </Link>
+  const gates = await listGatesForDomain(id, session.publisherId)
+  const whitelistCount = ((domain.whitelistedPaths ?? []) as string[]).length
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[var(--color-brand-subtle)] flex items-center justify-center shrink-0">
-            <Globe size={18} className="text-[var(--color-brand)]" />
-          </div>
-          <div>
-            <h1 className="text-h1 text-[var(--color-text)]">{domain.name}</h1>
-            <a
-              href={`https://${domain.domain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-body-sm text-[var(--color-text-secondary)] hover:text-[var(--color-brand)] mt-0.5"
-            >
-              {domain.domain}
-              <ExternalLink size={11} />
-            </a>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={domain.status === "active" ? "default" : "secondary"} className="capitalize">
-            {domain.status}
-          </Badge>
-          <Badge variant={domain.embedEnabled ? "default" : "outline"}>
-            Embed {domain.embedEnabled ? "on" : "off"}
-          </Badge>
-        </div>
+  const cards = [
+    {
+      label:    "Embed script",
+      detail:   "Copy + paste the snippet to install OnePaywall on your site.",
+      href:     `/domains/${id}/embed`,
+      icon:     Code2,
+      callout:  domain.embedEnabled ? "Embed is enabled" : "Embed is off",
+      tone:     domain.embedEnabled ? "ok" : "muted",
+    },
+    {
+      label:    "Free pages",
+      detail:   "URLs that should never trigger a gate (e.g. login, contact).",
+      href:     `/domains/${id}/free-pages`,
+      icon:     ShieldCheck,
+      callout:  whitelistCount === 0 ? "No URLs whitelisted" : `${whitelistCount} URL${whitelistCount === 1 ? "" : "s"} whitelisted`,
+      tone:     "muted",
+    },
+    {
+      label:    "Domain settings",
+      detail:   "Status, name, and removal.",
+      href:     `/domains/${id}/settings`,
+      icon:     SettingsIcon,
+      callout:  domain.status === "active" ? "Status: active" : `Status: ${domain.status}`,
+      tone:     domain.status === "active" ? "ok" : "muted",
+    },
+  ] as const
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <Stat label="Gates configured"   value={gates.length.toString()} />
+        <Stat label="Free pages"          value={whitelistCount.toString()} />
+        <Stat label="Embed status"        value={domain.embedEnabled ? "On" : "Off"} muted={!domain.embedEnabled} />
       </div>
 
-      {/* Embed script section */}
-      <div className="border border-[var(--color-border)] rounded-xl overflow-hidden">
-        {/* Section header */}
-        <div className="px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center gap-2">
-          <Code2 size={16} className="text-[var(--color-brand)]" />
-          <h2 className="text-body font-semibold text-[var(--color-text)]">Embed script</h2>
-        </div>
-
-        <div className="p-5 space-y-5">
-          {/* Script snippet */}
-          <div>
-            <p className="text-body-sm text-[var(--color-text-secondary)] mb-3">
-              Copy this snippet and paste it into every page on{" "}
-              <span className="font-medium text-[var(--color-text)]">{domain.domain}</span> where you want
-              OnePaywall gates to appear.
-            </p>
-            <CopyEmbedScript siteKey={domain.siteKey} />
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-[var(--color-border)]" />
-
-          {/* Installation instructions */}
-          <div>
-            <h3 className="text-body font-semibold text-[var(--color-text)] mb-3">How to install</h3>
-            <ol className="space-y-3">
-              {[
-                {
-                  step: "Copy the snippet above.",
-                },
-                {
-                  step: "Paste it inside the",
-                  code: "<head>",
-                  after: "tag of your site's HTML — or just before the closing",
-                  code2: "</body>",
-                  after2: "tag.",
-                },
-                {
-                  step: "Deploy the change — the script loads asynchronously so it won't slow your pages.",
-                },
-                {
-                  step: "Create and publish a gate in OnePaywall. The script will pick it up automatically — no further changes needed.",
-                },
-              ].map((item, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--color-brand-subtle)] text-[var(--color-brand)] text-xs font-semibold flex items-center justify-center mt-0.5">
-                    {i + 1}
-                  </span>
-                  <p className="text-body-sm text-[var(--color-text-secondary)]">
-                    {item.step}
-                    {item.code && (
-                      <>
-                        {" "}
-                        <code className="font-mono text-xs bg-[var(--color-surface)] border border-[var(--color-border)] px-1 py-0.5 rounded text-[var(--color-text)]">
-                          {item.code}
-                        </code>{" "}
-                        {item.after}{" "}
-                        <code className="font-mono text-xs bg-[var(--color-surface)] border border-[var(--color-border)] px-1 py-0.5 rounded text-[var(--color-text)]">
-                          {item.code2}
-                        </code>
-                        {item.after2}
-                      </>
-                    )}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-[var(--color-border)]" />
-
-          {/* Works with */}
-          <div>
-            <h3 className="text-body font-semibold text-[var(--color-text)] mb-3">Works with any platform</h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {["WordPress", "Webflow", "Ghost", "Wix", "Squarespace", "Custom HTML"].map((platform) => (
-                <div
-                  key={platform}
-                  className="flex items-center gap-2 text-body-sm text-[var(--color-text-secondary)]"
-                >
-                  <CheckCircle2 size={13} className="text-[var(--color-success)] shrink-0" />
-                  {platform}
-                </div>
-              ))}
+      {/* Action cards */}
+      <div className="grid grid-cols-1 gap-3">
+        {cards.map(c => (
+          <Link
+            key={c.href}
+            href={c.href}
+            className="motion-lift group border border-[var(--color-border)] rounded-xl p-4 flex items-center gap-4 hover:border-[var(--color-brand)]"
+          >
+            <div className="w-9 h-9 rounded-lg bg-[var(--color-brand-subtle)] flex items-center justify-center shrink-0">
+              <c.icon size={16} className="text-[var(--color-brand)]" />
             </div>
-            <p className="text-body-sm text-[var(--color-text-secondary)] mt-3">
-              The snippet is a plain JavaScript tag — it works anywhere you can add HTML to your page
-              template.
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-[var(--color-border)]" />
-
-          {/* Where to add */}
-          <div>
-            <h3 className="text-body font-semibold text-[var(--color-text)] mb-3">Where to add it</h3>
-            <div className="space-y-2.5">
-              {[
-                {
-                  label: "All pages",
-                  description:
-                    "Add to your global layout or template so it loads on every page. Gates only fire on pages that match a configured URL pattern.",
-                },
-                {
-                  label: "Specific pages only",
-                  description:
-                    "Add the snippet only to the pages or post types you want to monetise — leave it out of free pages.",
-                },
-              ].map(({ label, description }) => (
-                <div
-                  key={label}
-                  className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3"
-                >
-                  <p className="text-body-sm font-medium text-[var(--color-text)]">{label}</p>
-                  <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">{description}</p>
-                </div>
-              ))}
+            <div className="flex-1 min-w-0">
+              <p className="text-body font-medium text-[var(--color-text)]">{c.label}</p>
+              <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">{c.detail}</p>
             </div>
-          </div>
+            <span
+              className="text-body-sm shrink-0"
+              style={{ color: c.tone === "ok" ? "var(--color-brand)" : "var(--color-text-secondary)" }}
+            >
+              {c.callout}
+            </span>
+            <ArrowRight size={14} className="shrink-0 text-[var(--color-text-secondary)] group-hover:text-[var(--color-brand)] group-hover:translate-x-0.5 transition-all" />
+          </Link>
+        ))}
+      </div>
+
+      {/* Gates on this domain */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-body font-semibold text-[var(--color-text)]">Gates on this domain</h2>
+          <Link href="/gates" className="text-body-sm text-[var(--color-text-secondary)] hover:text-[var(--color-brand)]">Manage all gates →</Link>
         </div>
+        {gates.length === 0 ? (
+          <div className="border border-dashed border-[var(--color-border)] rounded-xl p-8 text-center text-body-sm text-[var(--color-text-secondary)]">
+            No gates yet. Create one from the Gates section.
+          </div>
+        ) : (
+          <div className="border border-[var(--color-border)] rounded-xl overflow-hidden">
+            {gates.map((g, i) => (
+              <Link
+                key={g.id}
+                href={`/gates/${g.id}`}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-[var(--muted)] transition-colors ${i < gates.length - 1 ? "border-b border-[var(--color-border)]" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-body-sm font-medium text-[var(--color-text)] truncate">{g.name}</p>
+                  <p className="text-label text-[var(--color-text-secondary)]">Priority {g.priority} · {g.enabled ? "Enabled" : "Paused"}</p>
+                </div>
+                <ArrowRight size={13} className="shrink-0 text-[var(--color-text-secondary)]" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="border border-[var(--color-border)] rounded-xl p-4">
+      <div className="text-label uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">{label}</div>
+      <div className="text-h2 font-semibold" style={{ color: muted ? "var(--color-text-secondary)" : "var(--color-text)" }}>
+        {value}
       </div>
     </div>
   )

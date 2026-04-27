@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, CreditCard } from "lucide-react"
+import { CreditCard } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
 import { PgConfigForm } from "@/components/dashboard/settings/pg-config-form"
@@ -13,14 +12,6 @@ export default async function PaymentGatewayPage() {
 
   return (
     <div className="p-8 max-w-2xl">
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-1.5 text-body-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] mb-6"
-      >
-        <ArrowLeft size={14} />
-        Settings
-      </Link>
-
       <div className="flex items-center gap-3 mb-8">
         <div className="w-9 h-9 rounded-lg bg-[var(--color-brand-subtle)] flex items-center justify-center shrink-0">
           <CreditCard size={18} className="text-[var(--color-brand)]" />

@@ -34,7 +34,13 @@ export async function listGatesForPublisher(publisherId: string) {
 
 export async function listGatesForDomain(domainId: string, publisherId: string) {
   return db
-    .select()
+    .select({
+      id:        gates.id,
+      name:      gates.name,
+      priority:  gates.priority,
+      enabled:   gates.enabled,
+      createdAt: gates.createdAt,
+    })
     .from(gates)
     .innerJoin(domains, eq(gates.domainId, domains.id))
     .where(

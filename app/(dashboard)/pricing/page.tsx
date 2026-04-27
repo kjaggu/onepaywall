@@ -128,8 +128,8 @@ export default function PlansPage() {
   return (
     <div style={{ padding: "28px 32px", maxWidth: 680 }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>Plans</h1>
-        <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Set up subscription pricing and article unlock prices for your readers.</p>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>Pricing</h1>
+        <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Set what readers pay you — subscriptions and per-article unlocks.</p>
       </div>
 
       {/* ── Subscriptions ── */}

@@ -1,12 +1,9 @@
 import Link from "next/link"
-import { Globe, ExternalLink, Code2, ShieldCheck } from "lucide-react"
+import { Globe } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { listDomains } from "@/lib/db/queries/domains"
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { AddDomainSheet } from "@/components/dashboard/domains/add-domain-sheet"
-import { DomainActions } from "@/components/dashboard/domains/domain-actions"
 
 export default async function DomainsPage() {
   const session = await getSession()
@@ -36,82 +33,42 @@ export default async function DomainsPage() {
           <AddDomainSheet />
         </div>
       ) : (
-        /* Domain list */
+        /* Domain list — entire row links to the domain overview. Per-domain
+           actions (pause / remove / embed script / free pages) live on the
+           detail page itself. */
         <div className="border border-[var(--border)] rounded-lg overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_auto_auto_28px] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
+          <div className="grid grid-cols-[2fr_auto_auto] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
             <span className="text-label text-[var(--muted-foreground)]">Name / Domain</span>
-            <span className="text-label text-[var(--muted-foreground)]">Embed script</span>
-            <span className="text-label text-[var(--muted-foreground)]">Free pages</span>
             <span className="text-label text-[var(--muted-foreground)]">Status</span>
             <span className="text-label text-[var(--muted-foreground)]">Embed</span>
-            <span />
           </div>
 
           {/* Rows */}
           {domains.map((d, i) => (
-            <div
+            <Link
               key={d.id}
-              className={`grid grid-cols-[2fr_1fr_1fr_auto_auto_28px] gap-4 px-4 py-3 items-center ${
+              href={`/domains/${d.id}`}
+              className={`grid grid-cols-[2fr_auto_auto] gap-4 px-4 py-3 items-center transition-colors hover:bg-[var(--muted)] ${
                 i < domains.length - 1 ? "border-b border-[var(--border)]" : ""
               }`}
             >
               {/* Name + domain */}
               <div className="min-w-0">
                 <p className="text-body font-medium text-[var(--color-text)] truncate">{d.name}</p>
-                <a
-                  href={`https://${d.domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-body-sm text-[var(--muted-foreground)] hover:text-[var(--primary)] truncate w-fit"
-                >
-                  {d.domain}
-                  <ExternalLink size={11} className="shrink-0" />
-                </a>
+                <p className="text-body-sm text-[var(--muted-foreground)] truncate">{d.domain}</p>
               </div>
 
-              {/* Embed script */}
-              <Link
-                href={`/domains/${d.id}`}
-                className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit gap-1.5")}
-              >
-                <Code2 size={12} />
-                Embed script
-              </Link>
-
-              {/* Free pages */}
-              <Link
-                href={`/domains/${d.id}/whitelist`}
-                className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit gap-1.5")}
-              >
-                <ShieldCheck size={12} />
-                Free pages
-                {((d.whitelistedPaths ?? []) as string[]).length > 0 && (
-                  <span className="font-semibold text-[var(--color-brand)]">
-                    ({((d.whitelistedPaths ?? []) as string[]).length})
-                  </span>
-                )}
-              </Link>
-
               {/* Status */}
-              <Badge
-                variant={d.status === "active" ? "default" : "secondary"}
-                className="w-fit capitalize"
-              >
+              <Badge variant={d.status === "active" ? "default" : "secondary"} className="w-fit capitalize">
                 {d.status}
               </Badge>
 
               {/* Embed */}
-              <Badge
-                variant={d.embedEnabled ? "default" : "outline"}
-                className="w-fit"
-              >
+              <Badge variant={d.embedEnabled ? "default" : "outline"} className="w-fit">
                 {d.embedEnabled ? "On" : "Off"}
               </Badge>
-
-              {/* Actions */}
-              <DomainActions id={d.id} status={d.status} />
-            </div>
+            </Link>
           ))}
         </div>
       )}

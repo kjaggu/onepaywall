@@ -333,7 +333,7 @@ export function BillingManager({ initialState }: Props) {
             return (
               <div
                 key={p.slug}
-                className="border rounded-xl p-5 flex flex-col gap-3 transition-colors"
+                className="motion-lift border rounded-xl p-5 flex flex-col gap-3"
                 style={{
                   background:   isCurrent ? "var(--color-brand-subtle)" : "var(--color-card, #fff)",
                   borderColor:  isCurrent ? "var(--color-brand)" : "var(--color-border)",

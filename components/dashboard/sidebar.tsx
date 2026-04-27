@@ -12,22 +12,58 @@ import {
   Megaphone,
   Package,
   Settings,
+  Users,
+  type LucideIcon,
 } from "lucide-react"
 import { useSidebarStore } from "@/lib/stores/sidebar"
 
-const NAV = [
-  { id: "overview",  label: "Overview",  href: "/overview",  icon: LayoutGrid },
-  { id: "gates",     label: "Gates",     href: "/gates",     icon: Lock       },
-  { id: "domains",   label: "Domains",   href: "/domains",   icon: Globe      },
-  { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart2  },
-  { id: "revenue",   label: "Revenue",   href: "/revenue",   icon: DollarSign },
-  { id: "plans",     label: "Plans",     href: "/plans",     icon: Package    },
-  { id: "ads",       label: "Ads",       href: "/ads",       icon: Megaphone  },
-  { id: "settings",  label: "Settings",  href: "/settings",  icon: Settings   },
+type NavItem = {
+  label: string
+  href:  string
+  icon:  LucideIcon
+}
+
+type NavGroup = {
+  // Optional uppercase group header. Items with no group label sit above the
+  // first labelled group (used for Overview).
+  label: string | null
+  items: NavItem[]
+}
+
+const NAV: NavGroup[] = [
+  {
+    label: null,
+    items: [
+      { label: "Overview", href: "/overview", icon: LayoutGrid },
+    ],
+  },
+  {
+    label: "Monetise",
+    items: [
+      { label: "Gates",   href: "/gates",   icon: Lock      },
+      { label: "Domains", href: "/domains", icon: Globe     },
+      { label: "Pricing", href: "/pricing", icon: Package   },
+      { label: "Ads",     href: "/ads",     icon: Megaphone },
+    ],
+  },
+  {
+    label: "Measure",
+    items: [
+      { label: "Analytics", href: "/analytics", icon: BarChart2  },
+      { label: "Revenue",   href: "/revenue",   icon: DollarSign },
+      { label: "Audience",  href: "/audience",  icon: Users      },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { label: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
 ]
 
 export function DashboardSidebar() {
-  const pathname = usePathname()
+  const pathname  = usePathname()
   const collapsed = useSidebarStore((s) => s.collapsed)
   const [orgName, setOrgName] = useState<string | null>(null)
 
@@ -39,12 +75,12 @@ export function DashboardSidebar() {
   }, [])
 
   function isActive(href: string) {
-    return pathname === href || (href !== "/overview" && pathname.startsWith(href))
+    return pathname === href || pathname.startsWith(href + "/")
   }
 
   return (
     <aside
-      style={{ width: collapsed ? 44 : 200, minWidth: collapsed ? 44 : 200, transition: "width 0.18s, min-width 0.18s" }}
+      style={{ width: collapsed ? 44 : 208, minWidth: collapsed ? 44 : 208, transition: "width 0.18s, min-width 0.18s" }}
       className="bg-white border-r border-[#ebebeb] flex flex-col h-screen overflow-hidden shrink-0"
     >
       {/* Logo */}
@@ -72,57 +108,63 @@ export function DashboardSidebar() {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto" style={{ padding: "8px 0" }}>
-        {collapsed ? (
-          NAV.map((item) => {
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="w-full flex items-center justify-center py-2"
-                style={{
-                  color: active ? "#111" : "#bbb",
-                  borderLeft: active ? "2px solid #111" : "2px solid transparent",
-                  transition: "color 0.12s, border-color 0.12s",
-                }}
-              >
-                <item.icon size={14} strokeWidth={active ? 1.9 : 1.5} />
-              </Link>
-            )
-          })
-        ) : (
-          <div style={{ borderLeft: "1px solid #e8e8e8", marginLeft: 20 }}>
-            {NAV.map((item) => {
+      <nav className="flex-1 overflow-y-auto" style={{ padding: collapsed ? "8px 0" : "8px 0 12px" }}>
+        {NAV.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? "mt-2.5" : ""}>
+            {/* Group header — only when expanded and label exists */}
+            {!collapsed && group.label && (
+              <div className="px-4 pt-2 pb-1 text-[10px] font-semibold text-[#bbb] tracking-[0.08em] uppercase">
+                {group.label}
+              </div>
+            )}
+
+            {/* Items */}
+            {group.items.map(item => {
               const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="w-full flex items-center"
-                  style={{
-                    borderLeft: active ? "2px solid #111" : "2px solid transparent",
-                    marginLeft: -1,
-                    transition: "border-color 0.12s",
-                  }}
-                >
-                  <span
-                    className="block whitespace-nowrap"
+              const Icon = item.icon
+
+              if (collapsed) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className="w-full flex items-center justify-center py-2"
                     style={{
-                      padding: "7px 14px",
-                      fontSize: 13,
-                      color: active ? "#111" : "#888",
-                      fontWeight: active ? 500 : 400,
-                      transition: "color 0.12s",
+                      color:      active ? "#111" : "#bbb",
+                      borderLeft: active ? "2px solid #111" : "2px solid transparent",
+                      transition: "color 0.12s, border-color 0.12s",
                     }}
                   >
-                    {item.label}
-                  </span>
+                    <Icon size={14} strokeWidth={active ? 1.9 : 1.5} />
+                  </Link>
+                )
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center"
+                  style={{
+                    padding:    "6px 14px 6px 16px",
+                    background: active ? "#f5f5f5" : "transparent",
+                    color:      active ? "#111"    : "#666",
+                    fontWeight: active ? 500 : 400,
+                    fontSize:   13,
+                    transition: "background 0.12s, color 0.12s",
+                    gap:        10,
+                  }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#fafafa" }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent" }}
+                >
+                  <Icon size={14} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? "#111" : "#999" }} />
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               )
             })}
           </div>
-        )}
+        ))}
       </nav>
     </aside>
   )
