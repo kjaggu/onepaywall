@@ -1,9 +1,11 @@
-import { Globe, ExternalLink } from "lucide-react"
+import Link from "next/link"
+import { Globe, ExternalLink, Code2, ShieldCheck } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { listDomains } from "@/lib/db/queries/domains"
 import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { AddDomainSheet } from "@/components/dashboard/domains/add-domain-sheet"
-import { CopySiteKey } from "@/components/dashboard/domains/copy-site-key"
 import { DomainActions } from "@/components/dashboard/domains/domain-actions"
 
 export default async function DomainsPage() {
@@ -37,9 +39,10 @@ export default async function DomainsPage() {
         /* Domain list */
         <div className="border border-[var(--border)] rounded-lg overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
+          <div className="grid grid-cols-[2fr_1fr_1fr_auto_auto_28px] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
             <span className="text-label text-[var(--muted-foreground)]">Name / Domain</span>
-            <span className="text-label text-[var(--muted-foreground)]">Site key</span>
+            <span className="text-label text-[var(--muted-foreground)]">Embed script</span>
+            <span className="text-label text-[var(--muted-foreground)]">Free pages</span>
             <span className="text-label text-[var(--muted-foreground)]">Status</span>
             <span className="text-label text-[var(--muted-foreground)]">Embed</span>
             <span />
@@ -49,7 +52,7 @@ export default async function DomainsPage() {
           {domains.map((d, i) => (
             <div
               key={d.id}
-              className={`grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-4 px-4 py-3 items-center ${
+              className={`grid grid-cols-[2fr_1fr_1fr_auto_auto_28px] gap-4 px-4 py-3 items-center ${
                 i < domains.length - 1 ? "border-b border-[var(--border)]" : ""
               }`}
             >
@@ -67,8 +70,28 @@ export default async function DomainsPage() {
                 </a>
               </div>
 
-              {/* Site key */}
-              <CopySiteKey siteKey={d.siteKey} />
+              {/* Embed script */}
+              <Link
+                href={`/domains/${d.id}`}
+                className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit gap-1.5")}
+              >
+                <Code2 size={12} />
+                Embed script
+              </Link>
+
+              {/* Free pages */}
+              <Link
+                href={`/domains/${d.id}/whitelist`}
+                className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit gap-1.5")}
+              >
+                <ShieldCheck size={12} />
+                Free pages
+                {((d.whitelistedPaths ?? []) as string[]).length > 0 && (
+                  <span className="font-semibold text-[var(--color-brand)]">
+                    ({((d.whitelistedPaths ?? []) as string[]).length})
+                  </span>
+                )}
+              </Link>
 
               {/* Status */}
               <Badge

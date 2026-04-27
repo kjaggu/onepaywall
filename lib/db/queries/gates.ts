@@ -50,7 +50,16 @@ export async function listGatesForDomain(domainId: string, publisherId: string) 
 
 export async function getGate(id: string, publisherId: string) {
   const [row] = await db
-    .select({ gate: gates, domain: { id: domains.id, name: domains.name, domain: domains.domain } })
+    .select({
+      gate: gates,
+      domain: {
+        id: domains.id,
+        name: domains.name,
+        domain: domains.domain,
+        embedEnabled: domains.embedEnabled,
+        status: domains.status,
+      },
+    })
     .from(gates)
     .innerJoin(domains, eq(gates.domainId, domains.id))
     .where(
@@ -70,11 +79,13 @@ export async function createGate({
   publisherId,
   name,
   priority = 0,
+  triggerConditions = {},
 }: {
   domainId: string
   publisherId: string
   name: string
   priority?: number
+  triggerConditions?: object
 }) {
   // Verify domain belongs to publisher
   const [domain] = await db
@@ -84,7 +95,7 @@ export async function createGate({
     .limit(1)
   if (!domain) return null
 
-  const [gate] = await db.insert(gates).values({ domainId, name, priority }).returning()
+  const [gate] = await db.insert(gates).values({ domainId, name, priority, triggerConditions }).returning()
   return gate
 }
 

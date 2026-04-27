@@ -56,7 +56,7 @@ export function AddDomainSheet() {
         <SheetHeader>
           <SheetTitle>Add domain</SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5 px-1">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 pb-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="name" className="text-label text-[var(--color-text)]">
               Display name

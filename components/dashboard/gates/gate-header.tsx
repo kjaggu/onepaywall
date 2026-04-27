@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2 } from "lucide-react"
+import { Trash2, AlertTriangle } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +15,13 @@ type Gate = {
   enabled: boolean
 }
 
-type Domain = { name: string; domain: string }
+type Domain = {
+  id: string
+  name: string
+  domain: string
+  embedEnabled: boolean
+  status: string
+}
 
 export function GateHeader({ gate, domain }: { gate: Gate; domain: Domain }) {
   const router = useRouter()
@@ -24,13 +31,18 @@ export function GateHeader({ gate, domain }: { gate: Gate; domain: Domain }) {
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
 
+  const canEnable = domain.embedEnabled && domain.status === "active"
+
   async function save() {
     setSaving(true)
-    await fetch(`/api/gates/${gate.id}`, {
+    const res = await fetch(`/api/gates/${gate.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, priority: Number(priority), enabled }),
     })
+    if (!res.ok && enabled) {
+      setEnabled(false)
+    }
     setSaving(false)
     setDirty(false)
     router.refresh()
@@ -71,20 +83,43 @@ export function GateHeader({ gate, domain }: { gate: Gate; domain: Domain }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-label text-[var(--muted-foreground)]">Status</label>
-              <button
-                onClick={() => handleChange(setEnabled)(!enabled)}
-                className="flex items-center gap-2 text-sm"
-              >
-                <Badge variant={enabled ? "default" : "secondary"}>
-                  {enabled ? "Enabled" : "Paused"}
-                </Badge>
-                <span className="text-[var(--muted-foreground)] text-xs">click to toggle</span>
-              </button>
+              {canEnable ? (
+                <button
+                  onClick={() => handleChange(setEnabled)(!enabled)}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Badge variant={enabled ? "default" : "secondary"}>
+                    {enabled ? "Enabled" : "Paused"}
+                  </Badge>
+                  <span className="text-[var(--muted-foreground)] text-xs">click to toggle</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">Paused</Badge>
+                  <span className="text-[var(--muted-foreground)] text-xs">disabled</span>
+                </div>
+              )}
             </div>
           </div>
           <p className="text-body-sm text-[var(--muted-foreground)]">
             Domain: <span className="font-medium">{domain.name}</span> — {domain.domain}
           </p>
+          {!canEnable && (
+            <div className="flex items-start gap-2 rounded-lg border border-[var(--color-warning)] bg-[var(--color-warning-subtle,#fffbeb)] px-3 py-2.5">
+              <AlertTriangle size={14} className="text-[var(--color-warning)] mt-0.5 shrink-0" />
+              <p className="text-body-sm text-[var(--color-text-secondary)]">
+                This gate cannot be enabled until{" "}
+                {domain.status !== "active" ? "the domain is active" : "the embed script is installed on the domain"}
+                .{" "}
+                <Link
+                  href={`/domains/${domain.id}`}
+                  className="font-medium text-[var(--color-brand)] hover:underline"
+                >
+                  Go to domain settings →
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {dirty && (

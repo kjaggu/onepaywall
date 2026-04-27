@@ -15,6 +15,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.name !== undefined) patch.name = String(body.name).trim()
   if (body.status !== undefined) patch.status = body.status
   if (body.embedEnabled !== undefined) patch.embedEnabled = Boolean(body.embedEnabled)
+  if (Array.isArray(body.whitelistedPaths)) {
+    patch.whitelistedPaths = body.whitelistedPaths.map(String).filter(Boolean)
+  }
 
   const updated = await updateDomain(id, session.publisherId, patch)
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 })

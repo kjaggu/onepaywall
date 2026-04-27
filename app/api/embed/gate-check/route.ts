@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client"
 import { domains } from "@/lib/db/schema"
 import { resolveReader } from "@/lib/embed/readerToken"
 import { evaluateGate } from "@/lib/gates/evaluate"
+import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -11,6 +12,8 @@ export async function GET(req: NextRequest) {
   const clientId = searchParams.get("clientId")
   const pageUrl = searchParams.get("url") ?? ""
   const deviceType = searchParams.get("device") ?? undefined
+  const publishedAtParam = searchParams.get("publishedAt")
+  const publishedAt = publishedAtParam ? new Date(publishedAtParam) : undefined
 
   if (!siteKey || !clientId) {
     return NextResponse.json({ error: "siteKey and clientId are required" }, { status: 400 })
@@ -30,6 +33,19 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // Check domain-level whitelist — whitelisted paths are never gated
+  const whitelisted = (domain.whitelistedPaths ?? []) as string[]
+  if (whitelisted.length > 0) {
+    try {
+      const pagePath = new URL(pageUrl).pathname
+      if (whitelisted.some(p => p === pagePath)) {
+        return NextResponse.json({ gate: null }, { headers: { "Cache-Control": "private, no-cache" } })
+      }
+    } catch {
+      // pageUrl malformed — proceed normally
+    }
+  }
+
   const ua = req.headers.get("user-agent") ?? ""
 
   // Resolve (or create) reader + token, increment visit count
@@ -42,7 +58,23 @@ export async function GET(req: NextRequest) {
     visitCount: reader.visitCount,
     pageUrl,
     deviceType,
+    publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
   })
+
+  // Resolve unlock prices server-side so the embed always shows what we'll actually charge.
+  // Pricing precedence is publisher_content_prices > publisher default > step config (see resolveUnlockPrice).
+  if (result.gate) {
+    for (const step of result.gate.steps) {
+      if (step.stepType !== "one_time_unlock") continue
+      const stepCfg = step.config as { priceInPaise?: number }
+      const resolved = await resolveUnlockPrice({
+        publisherId: domain.publisherId,
+        pageUrl,
+        stepConfigPriceInPaise: stepCfg.priceInPaise ?? null,
+      })
+      if (resolved) step.config = { ...stepCfg, priceInPaise: resolved.amountInPaise }
+    }
+  }
 
   return NextResponse.json(
     { token: reader.token, ...result },

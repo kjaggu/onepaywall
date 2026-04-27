@@ -117,6 +117,25 @@ npx shadcn@latest add <block-name>   # install a block
 
 ---
 
+## Database migrations
+
+One workflow, no exceptions.
+
+**To apply migrations:** `npm run db:migrate`
+**To check status:** `npm run db:migrate:status`
+
+Both commands are idempotent and safe to re-run. The runner ([scripts/migrate.mjs](scripts/migrate.mjs)) tracks applied migrations in a `_migrations` table inside the DB itself, so it works regardless of who/what generated each `.sql` file.
+
+**Authoring a new migration:**
+1. Either run `npm run db:generate` (drizzle-kit, for schema-derived changes) or hand-write a numbered `.sql` file in `db/migrations/` for non-schema work (indexes, backfills).
+2. Always use `IF NOT EXISTS` / `DO $$ ... EXCEPTION WHEN duplicate_object` so partial replays are safe.
+3. Run `npm run db:migrate` to apply.
+4. Commit the `.sql` file (and `meta/_journal.json` if drizzle-kit generated it).
+
+**Never** `psql` directly against the DB to apply schema. Never edit a migration file once it has been applied anywhere — write a new migration instead.
+
+---
+
 ## Session hygiene
 After every session that creates new files:
 1. Update `docs/progress.md` — mark completed items `done`

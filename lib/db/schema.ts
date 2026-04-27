@@ -62,6 +62,8 @@ export const publishers = pgTable("publishers", {
   name:      text("name").notNull(),
   slug:      text("slug").notNull(),
   logoUrl:   text("logo_url"),
+  currency:  text("currency").notNull().default("INR"),
+  timezone:  text("timezone").notNull().default("Asia/Kolkata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
@@ -84,16 +86,17 @@ export const publisherMembers = pgTable("publisher_members", {
 // ─── Domains ──────────────────────────────────────────────────────────────────
 
 export const domains = pgTable("domains", {
-  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
-  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
-  name:         text("name").notNull(),
-  domain:       text("domain").notNull(),
-  siteKey:      text("site_key").notNull(),
-  embedEnabled: boolean("embed_enabled").notNull().default(false),
-  status:       domainStatusEnum("status").notNull().default("active"),
-  createdAt:    timestamp("created_at").notNull().defaultNow(),
-  updatedAt:    timestamp("updated_at").notNull().defaultNow(),
-  deletedAt:    timestamp("deleted_at"),
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:      text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:             text("name").notNull(),
+  domain:           text("domain").notNull(),
+  siteKey:          text("site_key").notNull(),
+  embedEnabled:     boolean("embed_enabled").notNull().default(false),
+  status:           domainStatusEnum("status").notNull().default("active"),
+  whitelistedPaths: jsonb("whitelisted_paths").notNull().default(sql`'[]'::jsonb`),
+  createdAt:        timestamp("created_at").notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:        timestamp("deleted_at"),
 }, t => [
   uniqueIndex("domains_domain_idx").on(t.domain),
   uniqueIndex("domains_site_key_idx").on(t.siteKey),
@@ -363,6 +366,61 @@ export const analyticsRollups = pgTable("analytics_rollups", {
 }, t => [
   uniqueIndex("analytics_rollups_unique_idx").on(t.domainId, t.gateId, t.date),
   index("analytics_rollups_domain_idx").on(t.domainId),
+])
+
+// ─── Publisher reader plans (subscription + unlock pricing) ──────────────────
+
+export const publisherReaderPlans = pgTable("publisher_reader_plans", {
+  id:              text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:     text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  currency:        text("currency").notNull().default("INR"),
+  monthlyPrice:    integer("monthly_price"),
+  quarterlyPrice:  integer("quarterly_price"),
+  annualPrice:     integer("annual_price"),
+  subsEnabled:     boolean("subs_enabled").notNull().default(false),
+  defaultUnlockPrice: integer("default_unlock_price"),
+  unlockEnabled:   boolean("unlock_enabled").notNull().default(false),
+  createdAt:       timestamp("created_at").notNull().defaultNow(),
+  updatedAt:       timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("publisher_reader_plans_publisher_idx").on(t.publisherId),
+])
+
+export const publisherContentPrices = pgTable("publisher_content_prices", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  urlPattern:   text("url_pattern").notNull(),
+  price:        integer("price").notNull(),
+  label:        text("label"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("publisher_content_prices_publisher_idx").on(t.publisherId),
+])
+
+// ─── Reader transactions (revenue log) ───────────────────────────────────────
+
+export const transactionTypeEnum = pgEnum("transaction_type", ["subscription", "one_time_unlock"])
+export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "refunded", "failed"])
+
+export const readerTransactions = pgTable("reader_transactions", {
+  id:                  text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:         text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  domainId:            text("domain_id").references(() => domains.id, { onDelete: "set null" }),
+  readerId:            text("reader_id").references(() => readers.id, { onDelete: "set null" }),
+  type:                transactionTypeEnum("type").notNull(),
+  status:              transactionStatusEnum("status").notNull().default("completed"),
+  amount:              integer("amount").notNull(),
+  currency:            text("currency").notNull().default("INR"),
+  razorpayPaymentId:   text("razorpay_payment_id"),
+  razorpayOrderId:     text("razorpay_order_id"),
+  contentUrl:          text("content_url"),
+  metadata:            jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+  createdAt:           timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("reader_transactions_publisher_idx").on(t.publisherId),
+  index("reader_transactions_created_idx").on(t.createdAt),
+  index("reader_transactions_type_idx").on(t.type),
 ])
 
 // ─── Password reset tokens ────────────────────────────────────────────────────

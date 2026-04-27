@@ -2,6 +2,7 @@ import { eq, and, isNull, gt, or } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { gates, gateSteps, gateRules, gateUnlocks, domains } from "@/lib/db/schema"
 import { extractPath } from "@/lib/intelligence/sanitize"
+import { matchGlob } from "@/lib/embed/match"
 
 export type EvaluatedStep = {
   id: string
@@ -16,16 +17,6 @@ export type EvaluationResult =
   | { gate: null }
   | { gate: { id: string; name: string; steps: EvaluatedStep[] } }
 
-// Glob pattern matching — supports * (single segment) and ** (multi-segment)
-function matchGlob(pattern: string, path: string): boolean {
-  const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*/g, "§§")
-    .replace(/\*/g, "[^/]*")
-    .replace(/§§/g, ".*")
-  return new RegExp(`^${escaped}$`).test(path)
-}
-
 function gateMatchesUrl(rules: { pattern: string; matchType: string }[], urlPath: string): boolean {
   // No rules = applies to all content
   if (rules.length === 0) return true
@@ -36,12 +27,22 @@ type TriggerConditions = {
   minVisitCount?: number
   maxVisitCount?: number
   deviceType?: string
+  freeForHours?: number  // skip gate if article published within this many hours
 }
 
-function conditionsMet(conditions: TriggerConditions, visitCount: number, deviceType?: string): boolean {
+function conditionsMet(
+  conditions: TriggerConditions,
+  visitCount: number,
+  deviceType?: string,
+  publishedAt?: Date,
+): boolean {
   if (conditions.minVisitCount !== undefined && visitCount < conditions.minVisitCount) return false
   if (conditions.maxVisitCount !== undefined && visitCount > conditions.maxVisitCount) return false
   if (conditions.deviceType && conditions.deviceType !== "any" && deviceType && conditions.deviceType !== deviceType) return false
+  if (conditions.freeForHours && publishedAt) {
+    const ageMs = Date.now() - publishedAt.getTime()
+    if (ageMs < conditions.freeForHours * 60 * 60 * 1000) return false
+  }
   return true
 }
 
@@ -51,8 +52,9 @@ export async function evaluateGate(opts: {
   visitCount: number
   pageUrl: string
   deviceType?: string
+  publishedAt?: Date
 }): Promise<EvaluationResult> {
-  const { domainId, readerId, visitCount, pageUrl, deviceType } = opts
+  const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt } = opts
   const urlPath = extractPath(pageUrl)
 
   // Load all enabled gates for domain with their rules, ordered by priority DESC
@@ -106,7 +108,7 @@ export async function evaluateGate(opts: {
 
     // Gate-level trigger conditions (basic ones — no profile required)
     const conditions = (gate.triggerConditions ?? {}) as TriggerConditions
-    if (!conditionsMet(conditions, visitCount, deviceType)) continue
+    if (!conditionsMet(conditions, visitCount, deviceType, publishedAt)) continue
 
     // Gate applies — load its steps
     const steps = await db

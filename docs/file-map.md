@@ -37,10 +37,15 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Domain query helpers | `lib/db/queries/domains.ts` |
 | Publisher query helpers | `lib/db/queries/publishers.ts` |
 | Site key generation | `lib/embed/siteKey.ts` |
-| Domain dashboard page | `app/(dashboard)/domains/page.tsx` |
+| Domain list page | `app/(dashboard)/domains/page.tsx` |
+| Domain detail + embed setup | `app/(dashboard)/domains/[id]/page.tsx` |
+| Domain free-pages (whitelist) | `app/(dashboard)/domains/[id]/whitelist/page.tsx` |
 | Add domain sheet | `components/dashboard/domains/add-domain-sheet.tsx` |
 | Domain actions dropdown | `components/dashboard/domains/domain-actions.tsx` |
 | Copy site key button | `components/dashboard/domains/copy-site-key.tsx` |
+| Copy embed script snippet | `components/dashboard/domains/copy-embed-script.tsx` |
+| Whitelist manager component | `components/dashboard/domains/domain-whitelist.tsx` |
+| Copy-to-clipboard util | `lib/copy.ts` |
 | DB schema | `lib/db/schema.ts` → `domains` |
 | Data model reference | `docs/data-model/publishers.md` |
 
@@ -60,8 +65,8 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | URL rules manager | `components/dashboard/gates/gate-rules.tsx` |
 | Steps manager | `components/dashboard/gates/gate-steps.tsx` |
 | Create gate sheet | `components/dashboard/gates/create-gate-sheet.tsx` |
-| Gate evaluation logic | `lib/gates/evaluate.ts` (todo) |
-| Trigger condition evaluation | `lib/gates/conditions.ts` (todo) |
+| Gate evaluation logic | `lib/gates/evaluate.ts` |
+| Trigger condition evaluation | inline in `lib/gates/evaluate.ts` → `conditionsMet()` |
 | DB schema | `lib/db/schema.ts` → `gates`, `gate_steps`, `gate_rules` |
 | Data model reference | `docs/data-model/publishers.md` |
 
@@ -88,11 +93,36 @@ Check this before exploring the codebase. Find your feature area, then go direct
 |------|-------|
 | Ad unit CRUD | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts` |
 | Upload signed URL | `app/api/ads/upload-url/route.ts` |
+| Ad unit query helpers | `lib/db/queries/ads.ts` |
 | Ad network connection | `app/api/ads/networks/route.ts`, `lib/ads/networks/` |
 | Ad rotation + relevance | `lib/ads/rotate.ts` |
-| Ad management UI | `app/(dashboard)/ads/`, `components/dashboard/ad-builder/` |
+| Ad management page | `app/(dashboard)/ads/page.tsx` |
+| Create ad unit sheet | `components/dashboard/ads/create-ad-sheet.tsx` |
 | DB schema | `lib/db/schema.ts` → `ad_units`, `publisher_ad_networks` |
 | Data model reference | `docs/data-model/ads.md` |
+
+---
+
+## Revenue
+
+| Task | Files |
+|------|-------|
+| Revenue API (list + summary) | `app/api/revenue/route.ts` |
+| Transaction query helpers | `lib/db/queries/transactions.ts` |
+| Revenue page (filterable table + CSV export) | `app/(dashboard)/revenue/page.tsx` |
+| DB schema | `lib/db/schema.ts` → `reader_transactions` |
+
+---
+
+## Plans (reader monetization)
+
+| Task | Files |
+|------|-------|
+| Publisher plans API (GET/PUT subscriptions + unlock) | `app/api/publisher-plans/route.ts` |
+| Per-URL price delete | `app/api/publisher-plans/prices/[id]/route.ts` |
+| Plans query helpers | `lib/db/queries/publisher-plans.ts` |
+| Plans page (subscriptions + article unlock + per-URL overrides) | `app/(dashboard)/plans/page.tsx` |
+| DB schema | `lib/db/schema.ts` → `publisher_reader_plans`, `publisher_content_prices` |
 
 ---
 
@@ -112,10 +142,14 @@ Check this before exploring the codebase. Find your feature area, then go direct
 
 | Task | Files |
 |------|-------|
-| PG config (platform vs own) | `app/api/publishers/[id]/pg-config/route.ts`, `lib/payments/pgConfig.ts` |
+| PG config API (GET + PATCH) | `app/api/pg-config/route.ts` |
+| PG config query helpers | `lib/db/queries/pg-configs.ts` |
 | Credential resolution | `lib/payments/resolveConfig.ts` ← always use this |
-| One-time unlock payment | `app/api/embed/unlock/route.ts`, `lib/payments/oneTimeUnlock.ts` |
-| Publisher webhook handler | `app/api/webhooks/publisher/[publisherId]/route.ts` |
+| AES-256-GCM encrypt/decrypt | `lib/payments/encrypt.ts` |
+| Payment gateway settings UI | `app/(dashboard)/settings/payment-gateway/page.tsx` |
+| PG config form component | `components/dashboard/settings/pg-config-form.tsx` |
+| One-time unlock payment | `app/api/embed/unlock/route.ts` (todo), `lib/payments/oneTimeUnlock.ts` (todo) |
+| Publisher webhook handler | `app/api/webhooks/publisher/[publisherId]/route.ts` (todo) |
 | DB schema | `lib/db/schema.ts` → `publisher_pg_configs`, `pg_webhook_events` |
 | Data model reference | `docs/data-model/payments.md` |
 
@@ -138,10 +172,11 @@ Check this before exploring the codebase. Find your feature area, then go direct
 
 | Task | Files |
 |------|-------|
-| Event ingestion | `lib/analytics/ingest.ts` |
 | Rollup computation | `lib/analytics/rollup.ts` |
-| Dashboard charts API | `app/api/analytics/route.ts` |
-| Analytics dashboard UI | `app/(dashboard)/analytics/` |
+| Analytics query helpers | `lib/db/queries/analytics.ts` |
+| Analytics API | `app/api/analytics/route.ts` |
+| Analytics dashboard page | `app/(dashboard)/analytics/page.tsx` |
+| Analytics area chart | `components/dashboard/analytics/analytics-chart.tsx` |
 | DB schema | `lib/db/schema.ts` → `gate_events`, `analytics_rollups` |
 | Data model reference | `docs/data-model/analytics.md` |
 

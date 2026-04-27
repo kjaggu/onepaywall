@@ -21,7 +21,8 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Founding docs | `done` | CLAUDE.md, AGENTS.md, design-system, data-model (split), file-map, progress |
 | .env.example | `done` | |
 | Drizzle schema | `done` | All 22 tables defined — users, publishers, domains, gates, readers, ads, payments, analytics |
-| DB migrations | `done` | `0000` (foundation tables) + `0001` (gates, readers, ads, payments, analytics, schema additions) |
+| DB migrations | `done` | `0000`, `0001`, `0002` (whitelist), `0003` (publisher_plans + reader_transactions), `0004` (publisher currency/timezone), `0005` (unlock idempotency unique indexes) — applied via `npm run db:migrate` |
+| Migration runner | `done` | `scripts/migrate.mjs` — tracks state in `_migrations` table, handles drizzle + hand-written SQL, idempotent. `npm run db:migrate` / `db:migrate:status` |
 | CSS design tokens | `done` | Brand (indigo), semantic, surface, text tokens + typography utilities in `app/globals.css` |
 
 ---
@@ -52,7 +53,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Domain management
 | Area | Status | Notes |
 |------|--------|-------|
-| DB schema | `done` | domains in schema.ts — includes site_key, embed_enabled, soft-delete |
+| DB schema | `done` | domains in schema.ts — includes site_key, embed_enabled, whitelisted_paths, soft-delete |
 | Domain CRUD API | `done` | `app/api/domains/route.ts` (GET+POST) + `app/api/domains/[id]/route.ts` (PATCH+DELETE soft) |
 | Query helpers | `done` | `lib/db/queries/domains.ts` |
 | Site key generation | `done` | `lib/embed/siteKey.ts` — `opw_` prefixed hex, 44 chars |
@@ -60,6 +61,10 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Add domain sheet | `done` | `components/dashboard/domains/add-domain-sheet.tsx` |
 | Domain actions | `done` | `components/dashboard/domains/domain-actions.tsx` — pause/activate/remove dropdown |
 | Copy site key | `done` | `components/dashboard/domains/copy-site-key.tsx` |
+| Domain detail page | `done` | `app/(dashboard)/domains/[id]/page.tsx` — embed script snippet + install guide |
+| Copy embed script | `done` | `components/dashboard/domains/copy-embed-script.tsx` — syntax-highlighted snippet with copy button |
+| Whitelisted paths UI | `done` | `app/(dashboard)/domains/[id]/whitelist/page.tsx` + `components/dashboard/domains/domain-whitelist.tsx` |
+| Whitelist enforcement | `done` | `app/api/embed/gate-check/route.ts` — whitelisted paths skip gate evaluation entirely |
 
 ---
 
@@ -76,8 +81,8 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Gate header component | `done` | `components/dashboard/gates/gate-header.tsx` — name/priority/enabled editor |
 | URL rules component | `done` | `components/dashboard/gates/gate-rules.tsx` — add/remove glob patterns |
 | Steps component | `done` | `components/dashboard/gates/gate-steps.tsx` — add/reorder/delete + per-type config |
-| Gate evaluation engine | `todo` | `lib/gates/evaluate.ts` |
-| Trigger condition evaluator | `todo` | `lib/gates/conditions.ts` |
+| Gate evaluation engine | `done` | `lib/gates/evaluate.ts` — priority ordering, URL glob matching, unlock check, trigger conditions |
+| Trigger condition evaluator | `done` | Inline in `lib/gates/evaluate.ts` — minVisitCount, maxVisitCount, deviceType |
 
 ---
 
@@ -113,11 +118,15 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | publisher_pg_configs, plans, subscriptions, pg_webhook_events in schema.ts |
-| PG config API | `todo` | |
-| Credential resolver | `todo` | `lib/payments/resolveConfig.ts` |
+| AES-256-GCM encrypt/decrypt | `done` | `lib/payments/encrypt.ts` — iv+tag+ciphertext hex, keyed from PG_ENCRYPTION_KEY env |
+| PG config query helpers | `done` | `lib/db/queries/pg-configs.ts` — getOrCreate, update (encrypts secrets), resolveDecrypted |
+| Credential resolver | `done` | `lib/payments/resolveConfig.ts` — always call this; returns platform or own keys decrypted |
+| PG config API | `done` | `app/api/pg-config/route.ts` — GET (never returns secrets) + PATCH |
+| Payment gateway settings UI | `done` | `app/(dashboard)/settings/payment-gateway/page.tsx` + `components/dashboard/settings/pg-config-form.tsx` |
 | OnePaywall billing | `todo` | |
-| One-time unlock flow | `todo` | |
-| Webhook handler | `todo` | |
+| One-time unlock flow | `done` | `app/api/embed/unlock/route.ts` create+verify; embed checkout; price resolution via `lib/payments/resolveUnlockPrice.ts` (URL override → publisher default → step config); revenue + unlock recorded atomically via `lib/payments/recordUnlock.ts`, idempotent on `razorpay_payment_id` |
+| Webhook handler | `done` | `app/api/webhooks/publisher/[publisherId]/route.ts` — signature verified, replay-protected via `pg_webhook_events`, writes both `gate_unlocks` and `reader_transactions` |
+| Revenue ledger | `done` | `reader_transactions` written on every successful one-time unlock (verify route + webhook); surfaced in Revenue page and Analytics summary stat |
 
 ---
 
@@ -125,9 +134,9 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | reader_page_visits, content_classifications, reader_profiles in schema.ts |
-| Signal collection | `todo` | |
-| Content classification | `todo` | |
-| URL sanitisation | `todo` | `lib/intelligence/sanitize.ts` |
+| Signal collection | `done` | `app/api/embed/signal/route.ts` — writes reader_page_visits (readTime, scrollDepth, device, referrer origin) |
+| URL sanitisation | `done` | `lib/intelligence/sanitize.ts` — strips PII query params, normalises |
+| Content classification | `todo` | `lib/intelligence/classifyContent.ts` |
 | Profile computation | `todo` | `lib/intelligence/computeProfile.ts` |
 
 ---
@@ -136,9 +145,11 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | gate_events, analytics_rollups in schema.ts |
-| Event ingestion | `todo` | `lib/analytics/ingest.ts` |
-| Rollup computation | `todo` | `lib/analytics/rollup.ts` |
-| Analytics dashboard | `partial` | Placeholder page at `app/(dashboard)/analytics/page.tsx` |
+| Gate event recording | `done` | `app/api/embed/event/route.ts` — writes gate_events (gate_shown, step_shown, gate_passed, ad_*, unlock_*, subscription_cta_*) |
+| Rollup computation | `done` | `lib/analytics/rollup.ts` — lazy upsert from gate_events per domain+gate+day |
+| Analytics queries | `done` | `lib/db/queries/analytics.ts` — getSummary (gate_events direct), getDailySeries (rollups) |
+| Analytics API | `done` | `app/api/analytics/route.ts` — GET, refreshes rollups then serves summary + daily series |
+| Analytics dashboard | `done` | `app/(dashboard)/analytics/page.tsx` + `components/dashboard/analytics/analytics-chart.tsx` — real stats + area chart (recharts) |
 
 ---
 

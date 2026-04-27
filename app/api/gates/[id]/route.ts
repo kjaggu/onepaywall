@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
 import { getGate, updateGate, deleteGate } from "@/lib/db/queries/gates"
 
+const EMBED_REQUIRED_MSG =
+  "Gate cannot be enabled until the domain is active and the embed script is installed. Enable embed in the domain settings first."
+
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -27,6 +30,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.priority !== undefined) patch.priority = Number(body.priority)
   if (body.enabled !== undefined) patch.enabled = Boolean(body.enabled)
   if (body.triggerConditions !== undefined) patch.triggerConditions = body.triggerConditions
+
+  if (patch.enabled === true) {
+    const row = await getGate(id, session.publisherId)
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    if (!row.domain.embedEnabled || row.domain.status !== "active") {
+      return NextResponse.json({ error: EMBED_REQUIRED_MSG }, { status: 422 })
+    }
+  }
 
   const updated = await updateGate(id, session.publisherId, patch)
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 })

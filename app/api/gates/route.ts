@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
   if (!session.publisherId) return NextResponse.json({ error: "No publisher found" }, { status: 403 })
 
-  const { domainId, name, priority } = await req.json()
+  const { domainId, name, priority, triggerConditions } = await req.json()
   if (!domainId?.trim()) return NextResponse.json({ error: "domainId is required" }, { status: 400 })
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 })
 
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     publisherId: session.publisherId,
     name: name.trim(),
     priority: typeof priority === "number" ? priority : 0,
+    triggerConditions: triggerConditions ?? {},
   })
   if (!gate) return NextResponse.json({ error: "Domain not found or access denied" }, { status: 404 })
 

@@ -146,8 +146,65 @@
       pay.textContent = "Pay ₹" + rupees;
       pay.onclick = function () {
         sendEvent(token, gateId, step.id, "one_time_unlock_start");
-        // Razorpay integration wired in Phase 2 — placeholder for now
-        alert("Payment flow coming soon.");
+        pay.disabled = true;
+        pay.textContent = "Opening payment…";
+        var base = (typeof OPW_API_BASE !== "undefined" ? OPW_API_BASE : API_BASE);
+        fetch(base + "/api/embed/unlock?action=create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token, gateId: gateId, stepId: step.id, url: location.href }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (order) {
+            if (order.error) { pay.disabled = false; pay.textContent = "Pay ₹" + rupees; return; }
+            function loadRazorpay(cb) {
+              if (window.Razorpay) return cb();
+              var s = document.createElement("script");
+              s.src = "https://checkout.razorpay.com/v1/checkout.js";
+              s.onload = cb;
+              document.head.appendChild(s);
+            }
+            loadRazorpay(function () {
+              var rzp = new window.Razorpay({
+                key: order.keyId,
+                amount: order.amount,
+                currency: order.currency,
+                order_id: order.orderId,
+                name: "OnePaywall",
+                description: cfg2.label || "Article unlock",
+                handler: function (response) {
+                  fetch(base + "/api/embed/unlock?action=verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      token: token,
+                      gateId: gateId,
+                      orderId: response.razorpay_order_id,
+                      paymentId: response.razorpay_payment_id,
+                      signature: response.razorpay_signature,
+                    }),
+                  })
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                      if (result.ok) {
+                        sendEvent(token, gateId, step.id, "one_time_unlock_complete");
+                        removeOverlay();
+                        onComplete();
+                      }
+                    })
+                    .catch(function () {});
+                },
+                modal: {
+                  ondismiss: function () {
+                    pay.disabled = false;
+                    pay.textContent = "Pay ₹" + rupees;
+                  },
+                },
+              });
+              rzp.open();
+            });
+          })
+          .catch(function () { pay.disabled = false; pay.textContent = "Pay ₹" + rupees; });
       };
       card.appendChild(pay);
 
@@ -260,6 +317,7 @@
     var clientId = getClientId();
     var token = getToken(siteKey);
     var base = script.getAttribute("data-api-base") || API_BASE;
+    var publishedAt = script.getAttribute("data-published-at") || "";
 
     var startTime = Date.now();
 
@@ -269,6 +327,7 @@
       clientId: clientId,
       url: location.href,
       device: deviceType(),
+      publishedAt: publishedAt,
     }), { credentials: "omit" })
       .then(function (r) { return r.json(); })
       .then(function (data) {

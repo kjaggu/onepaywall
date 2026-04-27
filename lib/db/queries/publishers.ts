@@ -46,3 +46,16 @@ export async function createPublisher({
 
   return publisher
 }
+
+export async function updatePublisher(publisherId: string, data: Partial<{
+  name: string
+  currency: string
+  timezone: string
+}>) {
+  const [row] = await db
+    .update(publishers)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(publishers.id, publisherId))
+    .returning()
+  return row
+}

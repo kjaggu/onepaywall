@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { copyText } from "@/lib/copy"
 
 export function CopySiteKey({ siteKey }: { siteKey: string }) {
   const [copied, setCopied] = useState(false)
 
   async function copy() {
-    await navigator.clipboard.writeText(siteKey)
+    await copyText(siteKey)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

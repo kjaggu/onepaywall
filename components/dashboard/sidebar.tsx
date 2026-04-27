@@ -2,30 +2,41 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   BarChart2,
+  DollarSign,
   Globe,
-  Layers,
   LayoutGrid,
   Lock,
-  Menu,
+  Megaphone,
+  Package,
   Settings,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useSidebarStore } from "@/lib/stores/sidebar"
 
 const NAV = [
   { id: "overview",  label: "Overview",  href: "/overview",  icon: LayoutGrid },
   { id: "gates",     label: "Gates",     href: "/gates",     icon: Lock       },
   { id: "domains",   label: "Domains",   href: "/domains",   icon: Globe      },
-  { id: "revenue",   label: "Revenue",   href: "/revenue",   icon: BarChart2  },
-  { id: "audience",  label: "Audience",  href: "/audience",  icon: Layers     },
+  { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart2  },
+  { id: "revenue",   label: "Revenue",   href: "/revenue",   icon: DollarSign },
+  { id: "plans",     label: "Plans",     href: "/plans",     icon: Package    },
+  { id: "ads",       label: "Ads",       href: "/ads",       icon: Megaphone  },
   { id: "settings",  label: "Settings",  href: "/settings",  icon: Settings   },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const collapsed = useSidebarStore((s) => s.collapsed)
+  const [orgName, setOrgName] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch("/api/publisher-settings")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.publisher?.name) setOrgName(d.publisher.name) })
+      .catch(() => {})
+  }, [])
 
   function isActive(href: string) {
     return pathname === href || (href !== "/overview" && pathname.startsWith(href))
@@ -55,15 +66,14 @@ export function DashboardSidebar() {
 
       {/* Org label */}
       {!collapsed && (
-        <div className="px-4 pt-3 pb-1 text-[10px] font-semibold text-[#aaa] tracking-[0.06em] uppercase">
-          Organization
+        <div className="px-4 pt-3 pb-1 text-[10px] font-semibold text-[#aaa] tracking-[0.06em] uppercase truncate">
+          {orgName ?? "Organization"}
         </div>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto" style={{ padding: collapsed ? "8px 0" : "8px 0" }}>
+      <nav className="flex-1 overflow-y-auto" style={{ padding: "8px 0" }}>
         {collapsed ? (
-          // Icon-only mode
           NAV.map((item) => {
             const active = isActive(item.href)
             return (
@@ -82,7 +92,6 @@ export function DashboardSidebar() {
             )
           })
         ) : (
-          // Full label nav with left-rule
           <div style={{ borderLeft: "1px solid #e8e8e8", marginLeft: 20 }}>
             {NAV.map((item) => {
               const active = isActive(item.href)
@@ -115,24 +124,6 @@ export function DashboardSidebar() {
           </div>
         )}
       </nav>
-
-      {/* Collapse toggle */}
-      <div className="border-t border-[#ebebeb] p-[6px]">
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="w-full flex items-center rounded-[5px] text-[#888] text-[13px] whitespace-nowrap cursor-pointer hover:bg-[#f5f5f5] transition-colors duration-100"
-          style={{
-            gap: 8,
-            padding: collapsed ? "7px 0" : "7px 10px",
-            justifyContent: collapsed ? "center" : "flex-start",
-            background: "transparent",
-            border: "none",
-          }}
-        >
-          <Menu size={14} strokeWidth={1.5} />
-          {!collapsed && "Collapse menu"}
-        </button>
-      </div>
     </aside>
   )
 }
