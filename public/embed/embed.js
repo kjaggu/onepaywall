@@ -76,9 +76,18 @@
     document.head.appendChild(el);
   }
 
+  function lockScroll() {
+    document.body.style.overflow = "hidden";
+  }
+
+  function unlockScroll() {
+    document.body.style.overflow = "";
+  }
+
   function removeOverlay() {
     var el = document.getElementById("opw-overlay");
     if (el) el.remove();
+    unlockScroll();
   }
 
   // ─── Step renderers ──────────────────────────────────────────────────────────
@@ -254,6 +263,7 @@
   function showGate(gate, token) {
     injectStyles();
     removeOverlay();
+    lockScroll();
 
     var overlay = document.createElement("div");
     overlay.className = "opw-overlay";
