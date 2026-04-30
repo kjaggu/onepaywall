@@ -87,15 +87,15 @@ async function handleCreate(req: NextRequest) {
   const selected = getEnabledSyncedIntervals(plan, pgConfig.mode).find(i => i.interval === interval)
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
-  const subscriber = await getOrCreateSubscriber(context.publisherId, email)
-  const customerId = await createOrReuseReaderCustomer({
-    publisherId: context.publisherId,
-    email,
-    existingCustomerId: subscriber.razorpayCustomerId,
-  })
-  if (!subscriber.razorpayCustomerId) await setSubscriberCustomerId(subscriber.id, customerId)
-
   try {
+    const subscriber = await getOrCreateSubscriber(context.publisherId, email)
+    const customerId = await createOrReuseReaderCustomer({
+      publisherId: context.publisherId,
+      email,
+      existingCustomerId: subscriber.razorpayCustomerId,
+    })
+    if (!subscriber.razorpayCustomerId) await setSubscriberCustomerId(subscriber.id, customerId)
+
     const created = await createReaderSubscription({
       publisherId: context.publisherId,
       subscriberId: subscriber.id,

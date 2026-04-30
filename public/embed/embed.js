@@ -164,6 +164,45 @@
           cta.disabled = true;
           cta.textContent = "Opening checkout…";
 
+          function showCtaError(msg) {
+            cta.disabled = false;
+            cta.textContent = cfg.ctaLabel || "Subscribe";
+            var existing = card.querySelector(".opw-cta-error");
+            if (existing) existing.remove();
+            var err = document.createElement("div");
+            err.className = "opw-cta-error";
+            err.style.cssText = "color:#c0392b;font-size:13px;margin-top:6px;text-align:center;";
+            err.textContent = msg || "Something went wrong. Please try again.";
+            cta.parentNode.insertBefore(err, cta.nextSibling);
+            setTimeout(function () { if (err.parentNode) err.parentNode.removeChild(err); }, 5000);
+          }
+
+          // Open popup synchronously in the click handler so popup blockers don't fire.
+          // We redirect it to the full checkout URL once we have the subscription ID.
+          var checkoutWin = window.open(
+            _base + "/checkout",
+            "opw-checkout",
+            "width=500,height=680,scrollbars=no,resizable=no"
+          );
+          if (!checkoutWin) {
+            cta.disabled = false;
+            cta.textContent = cfg.ctaLabel || "Subscribe";
+            showCtaError("Allow popups on this page to open the payment window.");
+            return;
+          }
+
+          window.addEventListener("message", function onMsg(e) {
+            if (!e.data || e.data.type !== "opw-checkout") return;
+            window.removeEventListener("message", onMsg);
+            if (e.data.status === "success") {
+              removeOverlay();
+              onComplete();
+            } else {
+              cta.disabled = false;
+              cta.textContent = cfg.ctaLabel || "Subscribe";
+            }
+          });
+
           fetch(_base + "/api/embed/subscription?action=create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -171,54 +210,19 @@
           })
             .then(function (r) { return r.json(); })
             .then(function (created) {
-              if (created.error) { cta.disabled = false; cta.textContent = cfg.ctaLabel || "Subscribe"; return; }
-              loadRazorpay(function () {
-                try {
-                  var rzp = new window.Razorpay({
-                    key: created.keyId,
-                    subscription_id: created.subscriptionId,
-                    name: "OnePaywall",
-                    description: "Reader membership",
-                    prefill: { email: email.value },
-                    handler: function (response) {
-                      fetch(_base + "/api/embed/subscription?action=verify", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          token: token,
-                          gateId: gateId,
-                          razorpaySubscriptionId: response.razorpay_subscription_id,
-                          razorpayPaymentId: response.razorpay_payment_id,
-                          razorpaySignature: response.razorpay_signature,
-                        }),
-                      })
-                        .then(function (r) { return r.json(); })
-                        .then(function (result) {
-                          if (result.ok) {
-                            removeOverlay();
-                            onComplete();
-                          }
-                        })
-                        .catch(function () {});
-                    },
-                    modal: {
-                      ondismiss: function () {
-                        cta.disabled = false;
-                        cta.textContent = cfg.ctaLabel || "Subscribe";
-                      },
-                    },
-                  });
-                  rzp.open();
-                } catch (e) {
-                  cta.disabled = false;
-                  cta.textContent = cfg.ctaLabel || "Subscribe";
-                }
-              }, function () {
-                cta.disabled = false;
-                cta.textContent = cfg.ctaLabel || "Subscribe";
-              });
+              if (created.error) {
+                checkoutWin.close();
+                showCtaError("Could not start checkout. Please try again.");
+                return;
+              }
+              checkoutWin.location.replace(
+                _base + "/checkout?" + qs({ sid: created.subscriptionId, kid: created.keyId, email: email.value, rt: token, gid: gateId, base: _base })
+              );
             })
-            .catch(function () { cta.disabled = false; cta.textContent = cfg.ctaLabel || "Subscribe"; });
+            .catch(function () {
+              checkoutWin.close();
+              showCtaError("Network error. Please check your connection and try again.");
+            });
         };
         card.appendChild(cta);
 
