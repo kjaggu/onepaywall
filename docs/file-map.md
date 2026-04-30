@@ -4,6 +4,28 @@ Check this before exploring the codebase. Find your feature area, then go direct
 
 ---
 
+## Landing page (marketing)
+
+| Task | Files |
+|------|-------|
+| Root page (imports all sections) | `app/page.tsx` |
+| Nav | `components/landing/nav.tsx` |
+| Hero (3D mockup + mouse parallax) | `components/landing/hero.tsx` |
+| Stats bar (count-up animation) | `components/landing/stats-bar.tsx` |
+| Intelligence / problem-solution section | `components/landing/intelligence.tsx` |
+| Feature cards (3D hover tilt) | `components/landing/features.tsx` |
+| Embed section (code block) | `components/landing/embed-section.tsx` |
+| BYOK gateway section | `components/landing/gateway-section.tsx` |
+| Privacy / data ownership section | `components/landing/privacy-section.tsx` |
+| Pricing section | `components/landing/pricing-section.tsx` |
+| Final CTA section | `components/landing/cta-section.tsx` |
+| Footer | `components/landing/footer.tsx` |
+| Dashboard mockups (dummy data) | `components/landing/mockups/analytics-mockup.tsx`, `intelligence-mockup.tsx`, `revenue-mockup.tsx` |
+| Animation hooks | `components/landing/hooks/use-scroll-reveal.ts`, `use-counter.ts`, `use-mouse-parallax.ts` |
+| Landing CSS (keyframes, lp-* classes) | `app/globals.css` (lp-* section at bottom) |
+
+---
+
 ## Auth & session
 
 | Task | Files |

@@ -177,6 +177,16 @@ Updated at the end of every meaningful session. Read this before starting work t
 
 ---
 
+## Landing page
+| Area | Status | Notes |
+|------|--------|-------|
+| Marketing landing page | `done` | `app/page.tsx` + `components/landing/` — full dark-theme page with Nav, Hero (3D mockup), StatsBar, Intelligence, Features, EmbedSection, GatewaySection, PrivacySection, PricingSection, CTA, Footer |
+| Dashboard mockup components | `done` | `components/landing/mockups/` — AnalyticsMockup, IntelligenceMockup, RevenueMockup with dummy data |
+| Motion system | `done` | CSS keyframes + scroll-reveal hook (IntersectionObserver) + counter hook (rAF) + mouse-parallax hook; 3D CSS perspective on hero mockup, tilt on feature cards |
+| Landing CSS utilities | `done` | `app/globals.css` — lp-* keyframes, scroll reveal classes, stagger utilities, gradient text, btn-primary/ghost classes |
+
+---
+
 ## Dev tooling
 | Area | Status | Notes |
 |------|--------|-------|
