@@ -116,6 +116,11 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
   const displayName = brand[0]?.name ? `${brand[0].name} | ${publisherName}` : publisherName
   const currentPgMode = pgConfig.mode
 
+  // Snapshot the display name before the loop — after the first interval syncs,
+  // latest.syncedDisplayName gets updated and would cause subsequent intervals to
+  // appear already-synced even when they haven't been re-created yet.
+  const preSyncDisplayName = plan.syncedDisplayName
+
   let latest = plan
   for (const i of INTERVALS) {
     const price = latest[i.priceField]
@@ -126,7 +131,7 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
       latest[i.syncedPriceField] === price &&
       latest[i.syncedCurrencyField] === latest.currency &&
       latest[i.syncedModeField] === currentPgMode &&
-      latest.syncedDisplayName === displayName
+      preSyncDisplayName === displayName
 
     if (alreadySynced) continue
 
