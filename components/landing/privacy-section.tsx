@@ -39,8 +39,8 @@ export function PrivacySection() {
   const mockupRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section style={{ background: "#080a0b", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
+    <section className="lp-section" style={{ background: "#080a0b" }}>
+      <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 60 }}>
           <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
@@ -56,7 +56,7 @@ export function PrivacySection() {
         </div>
 
         {/* Cards */}
-        <div ref={cardsRef} className="lp-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 72 }}>
+        <div ref={cardsRef} className="lp-stagger lp-grid-2-tight" style={{ marginBottom: 72 }}>
           {CARDS.map(card => (
             <div
               key={card.title}

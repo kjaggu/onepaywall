@@ -35,9 +35,8 @@ export function StatsBar() {
       style={{ background: "rgba(255,255,255,0.03)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
     >
       <div
-        className="lp-stagger"
+        className="lp-stagger lp-stats-grid"
         ref={(el) => {
-          // attach useScrollReveal ref
           ;(gridRef as React.MutableRefObject<HTMLDivElement | null>).current = el
           if (el && !active) {
             const obs = new IntersectionObserver(([entry]) => {
@@ -50,7 +49,6 @@ export function StatsBar() {
             obs.observe(el)
           }
         }}
-        style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", padding: "0 32px" }}
       >
         {STATS.map((s, i) => (
           <div key={s.label} style={{ borderRight: i < STATS.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>

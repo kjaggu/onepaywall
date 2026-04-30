@@ -13,9 +13,9 @@ export function GatewaySection() {
   const pointsRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section style={{ background: "#06080a", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+    <section className="lp-section" style={{ background: "#06080a" }}>
+      <div className="lp-container">
+        <div className="lp-gateway-grid">
           {/* Left: diagram */}
           <div ref={diagramRef} className="lp-reveal-scale">
             <div style={{ position: "relative" }}>

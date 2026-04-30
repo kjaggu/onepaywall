@@ -6,7 +6,7 @@ export function CtaSection() {
   const ref = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section style={{ background: "#080a0b", padding: "140px 0" }}>
+    <section className="lp-section" style={{ background: "#080a0b" }}>
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 32px", textAlign: "center" }}>
         <div ref={ref} className="lp-reveal" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
           {/* Glowing orb behind */}

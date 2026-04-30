@@ -440,3 +440,116 @@
   .lp-gradient-text { animation: none !important; }
   .lp-btn-primary, .lp-btn-ghost { transition: none !important; }
 }
+
+/* ─── Responsive layout utilities ─────────────────────────────── */
+
+.lp-section { padding: 120px 0; }
+.lp-container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+
+/* Hero: 2-col text + mockup */
+.lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  padding: 60px 32px;
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Stats: 4-col */
+.lp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* Intelligence: before | arrow | after */
+.lp-intelligence-grid {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr;
+  gap: 0;
+  margin-bottom: 80px;
+  align-items: start;
+}
+
+/* 2-col grid (privacy, embed, gateway) */
+.lp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+.lp-grid-2-tight { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* 3-col grid (features, pricing) */
+.lp-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+/* gateway: 2-col with larger gap */
+.lp-gateway-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+
+/* Hero mockup column */
+.lp-hero-mockup { display: flex; justify-content: center; }
+
+/* Nav links group */
+.lp-nav-links { display: flex; align-items: center; gap: 10px; }
+
+/* ─── Tablet (≤900px) ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .lp-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─── Mobile (≤768px) ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .lp-section { padding: 72px 0; }
+  .lp-container { padding: 0 20px; }
+
+  .lp-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 40px 20px;
+  }
+  .lp-hero-mockup { display: none; }
+
+  .lp-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 20px;
+  }
+
+  .lp-intelligence-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .lp-intelligence-arrow { display: none; }
+
+  .lp-grid-2 { grid-template-columns: 1fr; gap: 40px; }
+  .lp-grid-2-tight { grid-template-columns: 1fr; gap: 16px; }
+  .lp-grid-3 { grid-template-columns: 1fr; gap: 16px; }
+  .lp-gateway-grid { grid-template-columns: 1fr; gap: 40px; }
+
+  .lp-nav-links .lp-nav-signin { display: none; }
+}
+
+/* Nav + footer inner containers */
+.lp-nav-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 32px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+}
+.lp-footer-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ─── Small phone (≤480px) ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  .lp-section { padding: 56px 0; }
+  .lp-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .lp-nav-inner { padding: 0 20px; }
+  .lp-footer-inner {
+    flex-direction: column; gap: 24px; padding: 0 20px; text-align: center;
+  }
+  .lp-footer-links { justify-content: center; flex-wrap: wrap; gap: 16px !important; }
+}

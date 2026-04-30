@@ -12,7 +12,7 @@ const LINKS = [
 export function LandingFooter() {
   return (
     <footer style={{ background: "#06080a", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "40px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="lp-footer-inner">
         {/* Logo + tagline */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 26, height: 26, background: "rgba(255,255,255,0.08)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -26,7 +26,7 @@ export function LandingFooter() {
         </div>
 
         {/* Links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+        <div className="lp-footer-links" style={{ display: "flex", alignItems: "center", gap: 28 }}>
           {LINKS.map(link => (
             <Link
               key={link.label}

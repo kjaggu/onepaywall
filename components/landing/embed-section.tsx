@@ -29,8 +29,8 @@ export function EmbedSection() {
   }
 
   return (
-    <section style={{ background: "#080a0b", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
+    <section className="lp-section" style={{ background: "#080a0b" }}>
+      <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 72 }}>
           <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
@@ -52,7 +52,7 @@ export function EmbedSection() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
+        <div className="lp-grid-2">
           {/* Steps */}
           <div ref={stepsRef} className="lp-stagger" style={{ display: "flex", flexDirection: "column", gap: 32 }}>
             {STEPS.map(s => (

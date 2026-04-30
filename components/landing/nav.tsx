@@ -26,7 +26,7 @@ export function LandingNav() {
         transition: "background 0.3s ease, border-color 0.3s ease",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="lp-nav-inner">
         {/* Logo */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
           <div style={{ width: 30, height: 30, background: "#fff", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -39,10 +39,10 @@ export function LandingNav() {
         </Link>
 
         {/* CTAs */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="lp-nav-links">
           <Link
             href="/login"
-            className="lp-btn-ghost"
+            className="lp-btn-ghost lp-nav-signin"
             style={{ padding: "8px 18px", fontSize: 13, textDecoration: "none", display: "inline-block" }}
           >
             Sign in

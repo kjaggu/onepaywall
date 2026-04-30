@@ -44,7 +44,7 @@ export function Hero() {
       <div style={{ position: "absolute", top: "15%", left: "30%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,173,176,0.18) 0%, transparent 70%)", animation: "lp-orb-drift 18s ease-in-out infinite", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: "10%", right: "25%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,173,176,0.12) 0%, transparent 70%)", animation: "lp-orb-drift 24s ease-in-out infinite reverse", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 32px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", position: "relative", width: "100%" }}>
+      <div className="lp-hero-grid">
         {/* Left: text */}
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {/* Trial badge */}
@@ -102,10 +102,9 @@ export function Hero() {
 
         {/* Right: 3D mockup */}
         <div
+          className="lp-hero-mockup"
           style={{
             position: "relative",
-            display: "flex",
-            justifyContent: "center",
             animation: "lp-slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.35s both",
           }}
         >

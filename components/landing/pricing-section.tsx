@@ -56,8 +56,8 @@ export function PricingSection() {
   const cardsRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section style={{ background: "#06080a", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px" }}>
+    <section className="lp-section" style={{ background: "#06080a" }}>
+      <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
@@ -93,7 +93,7 @@ export function PricingSection() {
         </div>
 
         {/* Plan cards */}
-        <div ref={cardsRef} className="lp-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+        <div ref={cardsRef} className="lp-stagger lp-grid-3">
           {PLANS.map(plan => (
             <div
               key={plan.name}

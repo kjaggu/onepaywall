@@ -93,8 +93,8 @@ export function FeaturesSection() {
   const gridRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section style={{ background: "#06080a", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
+    <section className="lp-section" style={{ background: "#06080a" }}>
+      <div className="lp-container">
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 60 }}>
           <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
             Built for publishers
@@ -105,7 +105,7 @@ export function FeaturesSection() {
           </h2>
         </div>
 
-        <div ref={gridRef} className="lp-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+        <div ref={gridRef} className="lp-stagger lp-grid-3">
           {FEATURES.map(f => <FeatureCard key={f.title} feature={f} />)}
         </div>
       </div>

@@ -33,8 +33,8 @@ export function IntelligenceSection() {
   const mockupRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section id="features" style={{ background: "#080a0b", padding: "120px 0" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
+    <section id="features" className="lp-section" style={{ background: "#080a0b" }}>
+      <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 64 }}>
           <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
@@ -49,7 +49,7 @@ export function IntelligenceSection() {
         </div>
 
         {/* Before / After cards */}
-        <div ref={cardsRef} className="lp-stagger" style={{ display: "grid", gridTemplateColumns: "1fr 48px 1fr", gap: 0, marginBottom: 80, alignItems: "start" }}>
+        <div ref={cardsRef} className="lp-stagger lp-intelligence-grid" style={{ marginBottom: 80 }}>
           {/* Before */}
           <div style={{ background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.18)", borderRadius: 16, padding: "28px 28px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#c0392b", marginBottom: 20 }}>Before OnePaywall</div>
@@ -66,7 +66,7 @@ export function IntelligenceSection() {
           </div>
 
           {/* Arrow divider */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
+          <div className="lp-intelligence-arrow" style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 60 }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#27adb0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
