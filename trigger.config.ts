@@ -7,7 +7,7 @@ import { defineConfig } from "@trigger.dev/sdk/v3"
 //            npx trigger.dev@latest deploy (to push to production)
 
 export default defineConfig({
-  project: "proj_REPLACE_WITH_YOUR_PROJECT_REF",
+  project: "proj_itztobxqfhruppvwwzkh",
   logLevel: "log",
   // Maximum seconds a single task run is allowed to execute (hard cap on Trigger.dev infra)
   maxDuration: 300,
