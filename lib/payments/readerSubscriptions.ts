@@ -126,7 +126,7 @@ export async function createReaderSubscription(input: {
     plan_id: input.razorpayPlanId,
     customer_id: input.razorpayCustomerId,
     total_count: cadence.totalCount,
-    customer_notify: 0,
+    customer_notify: 1,
     notes: {
       publisherId: input.publisherId,
       publisherName: input.publisherName,

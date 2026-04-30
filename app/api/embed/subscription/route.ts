@@ -240,13 +240,17 @@ async function handleVerify(req: NextRequest) {
   Promise.all([
     getSubscriberById(ours.subscriberId),
     db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
-  ]).then(([subscriber, pubRow]) => {
+    context.brandId !== context.publisherId
+      ? db.select({ name: brands.name }).from(brands).where(eq(brands.id, context.brandId)).limit(1)
+      : Promise.resolve([] as { name: string }[]),
+  ]).then(([subscriber, pubRow, brandRow]) => {
     if (!subscriber || !payment) return
     const email = getSubscriberEmail(subscriber)
     const publisherName = pubRow[0]?.name ?? "OnePaywall"
+    const displayName = brandRow[0]?.name ? `${brandRow[0].name} | ${publisherName}` : publisherName
     return sendReaderSubscriptionConfirmation({
       to: email,
-      publisherName,
+      publisherName: displayName,
       interval: ours.interval,
       amountPaise: payment.amount,
       currency: payment.currency,

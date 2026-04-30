@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/client"
-import { publisherReaderPlans, publisherContentPrices, publishers } from "@/lib/db/schema"
+import { publisherReaderPlans, publisherContentPrices, publishers, brands } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import { createReaderRazorpayPlan } from "@/lib/payments/readerSubscriptions"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
@@ -105,13 +105,16 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
   const plan = await getPublisherReaderPlan(brandId)
   if (!plan || !plan.subsEnabled) return plan
 
-  const [publisher] = await db
-    .select({ name: publishers.name })
-    .from(publishers)
-    .where(eq(publishers.id, publisherId))
-    .limit(1)
-  const publisherName = publisher?.name ?? "Publisher"
-  const currentPgMode = (await getOrCreatePgConfig(brandId, publisherId)).mode
+  const [publisher, brand, pgConfig] = await Promise.all([
+    db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, publisherId)).limit(1),
+    brandId !== publisherId
+      ? db.select({ name: brands.name }).from(brands).where(eq(brands.id, brandId)).limit(1)
+      : Promise.resolve([] as { name: string }[]),
+    getOrCreatePgConfig(brandId, publisherId),
+  ])
+  const publisherName = publisher[0]?.name ?? "Publisher"
+  const displayName = brand[0]?.name ? `${brand[0].name} | ${publisherName}` : publisherName
+  const currentPgMode = pgConfig.mode
 
   let latest = plan
   for (const i of INTERVALS) {
@@ -129,7 +132,7 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
     try {
       const synced = await createReaderRazorpayPlan({
         publisherId,
-        publisherName,
+        publisherName: displayName,
         interval: i.key,
         amount: price,
         currency: latest.currency,
