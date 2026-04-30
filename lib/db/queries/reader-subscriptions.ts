@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "crypto"
-import { and, eq, gt, inArray, isNull, or } from "drizzle-orm"
+import { and, desc, eq, gt, inArray, isNull, or } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import {
   readerSubscribers,
@@ -232,6 +232,51 @@ export async function consumeSubscriptionMagicLink(token: string) {
     .where(eq(readerSubscriptionMagicLinks.token, token))
 
   return row
+}
+
+export async function listSubscribers(publisherId: string, options?: { status?: string }) {
+  const conditions = [eq(readerSubscriptions.publisherId, publisherId)]
+  if (options?.status) conditions.push(eq(readerSubscriptions.status, options.status))
+
+  const rows = await db
+    .select({
+      subscriberId: readerSubscribers.id,
+      encryptedEmail: readerSubscribers.encryptedEmail,
+      interval: readerSubscriptions.interval,
+      status: readerSubscriptions.status,
+      since: readerSubscribers.createdAt,
+      currentPeriodEnd: readerSubscriptions.currentPeriodEnd,
+      cancelledAt: readerSubscriptions.cancelledAt,
+      dunningStartedAt: readerSubscriptions.dunningStartedAt,
+      razorpaySubscriptionId: readerSubscriptions.razorpaySubscriptionId,
+    })
+    .from(readerSubscriptions)
+    .innerJoin(readerSubscribers, eq(readerSubscriptions.subscriberId, readerSubscribers.id))
+    .where(and(...conditions))
+    .orderBy(desc(readerSubscriptions.createdAt))
+    .limit(500)
+
+  return rows.map(({ encryptedEmail, ...row }) => ({
+    ...row,
+    email: decrypt(encryptedEmail),
+  }))
+}
+
+export async function getSubscriberStats(publisherId: string) {
+  const rows = await db
+    .select({ status: readerSubscriptions.status })
+    .from(readerSubscriptions)
+    .where(eq(readerSubscriptions.publisherId, publisherId))
+
+  const stats = { total: 0, active: 0, past_due: 0, paused: 0, cancelled: 0 }
+  for (const r of rows) {
+    stats.total++
+    if (r.status === "active" || r.status === "authenticated") stats.active++
+    else if (r.status === "past_due") stats.past_due++
+    else if (r.status === "paused") stats.paused++
+    else if (r.status === "cancelled") stats.cancelled++
+  }
+  return stats
 }
 
 export async function recordReaderSubscriptionPayment(input: {

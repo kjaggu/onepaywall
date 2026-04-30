@@ -13,6 +13,7 @@ import {
   Package,
   Settings,
   Users,
+  Users2,
   type LucideIcon,
 } from "lucide-react"
 import { useSidebarStore } from "@/lib/stores/sidebar"
@@ -49,9 +50,10 @@ const NAV: NavGroup[] = [
   {
     label: "Measure",
     items: [
-      { label: "Analytics", href: "/analytics", icon: BarChart2  },
-      { label: "Revenue",   href: "/revenue",   icon: DollarSign },
-      { label: "Audience",  href: "/audience",  icon: Users      },
+      { label: "Analytics",   href: "/analytics",   icon: BarChart2  },
+      { label: "Revenue",     href: "/revenue",     icon: DollarSign },
+      { label: "Subscribers", href: "/subscribers", icon: Users2     },
+      { label: "Audience",    href: "/audience",    icon: Users      },
     ],
   },
   {
