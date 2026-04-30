@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { buttonVariants } from "@/components/ui/button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserPlus } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const INTERVALS = [
   { value: "monthly",   label: "Monthly" },
@@ -74,19 +76,15 @@ export function AddSubscriberSheet({ onAdded }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger>
-        <span style={{ display: "none" }} />
-      </SheetTrigger>
-      {/* Trigger is controlled via open state — button is outside */}
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+      <SheetTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
         <UserPlus size={14} />
         Add subscriber
-      </Button>
-      <SheetContent className="w-[400px] sm:w-[440px]">
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Add subscriber</SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit} style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 16, padding: "0 16px 16px" }}>
           <div style={fieldStyle}>
             <label style={labelStyle}>Email</label>
             <Input type="email" placeholder="reader@example.com" value={email} onChange={e => setEmail(e.target.value)} required />

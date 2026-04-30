@@ -1,9 +1,11 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { buttonVariants } from "@/components/ui/button"
 import { Button } from "@/components/ui/button"
 import { Upload, CheckCircle2, AlertTriangle } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type ParsedRow = {
   email: string
@@ -99,17 +101,17 @@ export function ImportSubscribersSheet({ onImported }: Props) {
   }
 
   return (
-    <>
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+    <Sheet open={open} onOpenChange={v => { setOpen(v); if (!v) reset() }}>
+      <SheetTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
         <Upload size={14} />
         Import CSV
-      </Button>
-      <Sheet open={open} onOpenChange={v => { setOpen(v); if (!v) reset() }}>
-        <SheetContent className="w-[520px] sm:w-[560px]" style={{ overflowY: "auto" }}>
-          <SheetHeader>
-            <SheetTitle>Import subscribers</SheetTitle>
-          </SheetHeader>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Import subscribers</SheetTitle>
+        </SheetHeader>
 
+        <div style={{ padding: "0 16px 16px" }}>
           <div style={{ marginTop: 16, fontSize: 13, color: "#666", display: "flex", flexDirection: "column", gap: 6 }}>
             <p>CSV columns (header row optional):</p>
             <code style={{ display: "block", background: "#f5f5f5", borderRadius: 6, padding: "8px 12px", fontSize: 12, fontFamily: "monospace" }}>
@@ -226,8 +228,8 @@ export function ImportSubscribersSheet({ onImported }: Props) {
               {result ? "Close" : "Cancel"}
             </Button>
           </div>
-        </SheetContent>
-      </Sheet>
-    </>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
