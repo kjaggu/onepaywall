@@ -90,6 +90,82 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   })
 }
 
+export async function sendReaderSubscriptionConfirmation(input: {
+  to: string
+  publisherName: string
+  interval: string
+  amountPaise: number
+  currency: string
+  razorpayPaymentId: string
+  currentPeriodEnd: Date | null
+}) {
+  const { to, publisherName, interval, amountPaise, currency, razorpayPaymentId, currentPeriodEnd } = input
+  const amount = (amountPaise / 100).toLocaleString("en-IN", { style: "currency", currency: currency || "INR", maximumFractionDigits: 0 })
+  const intervalLabel = interval === "monthly" ? "Monthly" : interval === "quarterly" ? "Quarterly" : "Annual"
+  const renewalLabel = currentPeriodEnd
+    ? currentPeriodEnd.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+    : null
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your ${publisherName} subscription is confirmed`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:40px 24px;color:#111">
+
+        <div style="margin-bottom:28px">
+          <span style="font-weight:700;font-size:16px;color:#111">${publisherName}</span>
+        </div>
+
+        <h1 style="font-size:22px;font-weight:600;color:#111;margin:0 0 8px;line-height:1.3">
+          Subscription confirmed
+        </h1>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px">
+          Thank you for subscribing to <strong>${publisherName}</strong>. You now have full access.
+        </p>
+
+        <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;margin-bottom:32px">
+          <tr style="background:#f9f9f9">
+            <td colspan="2" style="padding:12px 16px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em">
+              Receipt
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:13px;color:#555;border-top:1px solid #e8e8e8">Plan</td>
+            <td style="padding:12px 16px;font-size:13px;color:#111;font-weight:600;text-align:right;border-top:1px solid #e8e8e8">${intervalLabel} membership</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:13px;color:#555;border-top:1px solid #e8e8e8">Amount paid</td>
+            <td style="padding:12px 16px;font-size:13px;color:#111;font-weight:600;text-align:right;border-top:1px solid #e8e8e8">${amount}</td>
+          </tr>
+          ${renewalLabel ? `
+          <tr>
+            <td style="padding:12px 16px;font-size:13px;color:#555;border-top:1px solid #e8e8e8">Next renewal</td>
+            <td style="padding:12px 16px;font-size:13px;color:#111;font-weight:600;text-align:right;border-top:1px solid #e8e8e8">${renewalLabel}</td>
+          </tr>` : ""}
+          <tr>
+            <td style="padding:12px 16px;font-size:13px;color:#555;border-top:1px solid #e8e8e8">Payment ID</td>
+            <td style="padding:12px 16px;font-size:12px;color:#888;font-family:monospace;text-align:right;border-top:1px solid #e8e8e8">${razorpayPaymentId}</td>
+          </tr>
+        </table>
+
+        <p style="font-size:13px;color:#555;line-height:1.6;margin:0 0 28px">
+          To read on a different device, use the <strong>Already subscribed?</strong> option
+          on any gated article and enter this email address.
+        </p>
+
+        <div style="margin-top:40px;padding-top:24px;border-top:1px solid #ebebeb">
+          <p style="font-size:11px;color:#bbb;margin:0;line-height:1.6">
+            Powered by <a href="https://www.onepaywall.com" style="color:#bbb">OnePaywall</a> ·
+            Sent to ${to}
+          </p>
+        </div>
+
+      </div>
+    `,
+  })
+}
+
 export async function sendReaderSubscriptionMagicLink(to: string, publicationName: string, restoreUrl: string) {
   await resend.emails.send({
     from: FROM,

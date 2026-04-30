@@ -60,6 +60,15 @@ export function getSubscriberEmail(row: typeof readerSubscribers.$inferSelect): 
   return decrypt(row.encryptedEmail)
 }
 
+export async function getSubscriberById(subscriberId: string) {
+  const [row] = await db
+    .select()
+    .from(readerSubscribers)
+    .where(eq(readerSubscribers.id, subscriberId))
+    .limit(1)
+  return row ?? null
+}
+
 export async function setSubscriberCustomerId(subscriberId: string, customerId: string) {
   const [row] = await db
     .update(readerSubscribers)

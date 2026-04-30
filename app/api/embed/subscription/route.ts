@@ -10,6 +10,7 @@ import {
   createSubscriptionMagicLink,
   getOrCreateSubscriber,
   getSubscriberByEmail,
+  getSubscriberById,
   getSubscriberEmail,
   linkReaderToSubscriber,
   recordReaderSubscriptionPayment,
@@ -26,7 +27,7 @@ import {
   fetchReaderSubscription,
   verifyReaderSubscriptionSignature,
 } from "@/lib/payments/readerSubscriptions"
-import { sendReaderSubscriptionMagicLink } from "@/lib/auth/email"
+import { sendReaderSubscriptionMagicLink, sendReaderSubscriptionConfirmation } from "@/lib/auth/email"
 import { createPendingReaderTransaction, markReaderTransactionFailed } from "@/lib/db/queries/transactions"
 
 const VALID_INTERVALS = new Set(["monthly", "quarterly", "annual"])
@@ -214,6 +215,25 @@ async function handleVerify(req: NextRequest) {
       readerEmail: null,
     })
   }
+
+  // Send confirmation email — fire-and-forget, never blocks the response
+  Promise.all([
+    getSubscriberById(ours.subscriberId),
+    db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
+  ]).then(([subscriber, pubRow]) => {
+    if (!subscriber || !payment) return
+    const email = getSubscriberEmail(subscriber)
+    const publisherName = pubRow[0]?.name ?? "OnePaywall"
+    return sendReaderSubscriptionConfirmation({
+      to: email,
+      publisherName,
+      interval: ours.interval,
+      amountPaise: payment.amount,
+      currency: payment.currency,
+      razorpayPaymentId,
+      currentPeriodEnd: remote.currentEnd,
+    })
+  }).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }
