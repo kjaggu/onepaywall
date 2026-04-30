@@ -2,12 +2,6 @@
 import { Suspense, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open(): void }
-  }
-}
-
 function CheckoutInner() {
   const params = useSearchParams()
   const subscriptionId = params.get("sid")
@@ -25,7 +19,8 @@ function CheckoutInner() {
     const script = document.createElement("script")
     script.src = "https://checkout.razorpay.com/v1/checkout.js"
     script.onload = () => {
-      const rzp = new window.Razorpay({
+      const Win = window as typeof window & { Razorpay: new (o: Record<string, unknown>) => { open(): void } }
+      const rzp = new Win.Razorpay({
         key: keyId,
         subscription_id: subscriptionId,
         name: "OnePaywall",
