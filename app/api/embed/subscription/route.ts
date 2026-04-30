@@ -91,6 +91,11 @@ async function handleCreate(req: NextRequest) {
 
   try {
     const subscriber = await getOrCreateSubscriber(context.publisherId, email)
+
+    if (await subscriberHasActiveSubscription(context.publisherId, subscriber.id)) {
+      return NextResponse.json({ error: "already_subscribed" }, { status: 409 })
+    }
+
     const customerId = await createOrReuseReaderCustomer({
       publisherId: context.publisherId,
       email,

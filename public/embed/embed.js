@@ -210,6 +210,11 @@
           })
             .then(function (r) { return r.json(); })
             .then(function (created) {
+              if (created.error === "already_subscribed") {
+                checkoutWin.close();
+                showCtaError("This email already has an active subscription. Use \"Already subscribed?\" to restore access.");
+                return;
+              }
               if (created.error) {
                 checkoutWin.close();
                 showCtaError("Could not start checkout. Please try again.");
