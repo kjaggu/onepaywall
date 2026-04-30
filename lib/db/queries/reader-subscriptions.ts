@@ -85,8 +85,8 @@ export async function upsertReaderSubscription(input: {
   subscriberId: string
   interval: ReaderBillingInterval
   pgMode: "platform" | "own"
-  razorpaySubscriptionId: string
-  razorpayPlanId: string
+  razorpaySubscriptionId?: string | null
+  razorpayPlanId?: string | null
   status: string
   currentPeriodStart?: Date | null
   currentPeriodEnd?: Date | null
@@ -94,15 +94,17 @@ export async function upsertReaderSubscription(input: {
   cancelAtCycleEnd?: boolean
   dunningStartedAt?: Date | null
 }) {
-  const existing = await getReaderSubscriptionByRazorpayId(input.razorpaySubscriptionId)
+  const existing = input.razorpaySubscriptionId
+    ? await getReaderSubscriptionByRazorpayId(input.razorpaySubscriptionId)
+    : null
   const values = {
     publisherId: input.publisherId,
     brandId: input.brandId,
     subscriberId: input.subscriberId,
     interval: input.interval,
     pgMode: input.pgMode,
-    razorpaySubscriptionId: input.razorpaySubscriptionId,
-    razorpayPlanId: input.razorpayPlanId,
+    razorpaySubscriptionId: input.razorpaySubscriptionId ?? null,
+    razorpayPlanId: input.razorpayPlanId ?? null,
     status: input.status,
     currentPeriodStart: input.currentPeriodStart ?? null,
     currentPeriodEnd: input.currentPeriodEnd ?? null,
@@ -247,16 +249,20 @@ export async function listSubscribers(publisherId: string, options?: { status?: 
 
   const rows = await db
     .select({
+      id: readerSubscriptions.id,
       subscriberId: readerSubscribers.id,
       brandId: readerSubscriptions.brandId,
       encryptedEmail: readerSubscribers.encryptedEmail,
       interval: readerSubscriptions.interval,
       status: readerSubscriptions.status,
+      source: readerSubscriptions.source,
       since: readerSubscribers.createdAt,
       currentPeriodEnd: readerSubscriptions.currentPeriodEnd,
       cancelledAt: readerSubscriptions.cancelledAt,
       dunningStartedAt: readerSubscriptions.dunningStartedAt,
       razorpaySubscriptionId: readerSubscriptions.razorpaySubscriptionId,
+      paymentMethod: readerSubscriptions.paymentMethod,
+      notes: readerSubscriptions.notes,
     })
     .from(readerSubscriptions)
     .innerJoin(readerSubscribers, eq(readerSubscriptions.subscriberId, readerSubscribers.id))
@@ -324,4 +330,93 @@ export async function recordReaderSubscriptionPayment(input: {
   })
 
   return { alreadyRecorded: result.alreadyRecorded }
+}
+
+export async function createManualSubscription(input: {
+  publisherId: string
+  brandId: string
+  email: string
+  interval: string
+  currentPeriodStart?: Date | null
+  expiresAt?: Date | null
+  paymentMethod?: string | null
+  notes?: string | null
+}) {
+  const subscriber = await getOrCreateSubscriber(input.brandId, input.publisherId, input.email)
+
+  const alreadyActive = await subscriberHasActiveSubscription(input.brandId, subscriber.id)
+  if (alreadyActive) return { subscriber, subscription: null, alreadyActive: true }
+
+  const [sub] = await db
+    .insert(readerSubscriptions)
+    .values({
+      publisherId: input.publisherId,
+      brandId: input.brandId,
+      subscriberId: subscriber.id,
+      interval: input.interval,
+      status: "active",
+      pgMode: "manual",
+      razorpaySubscriptionId: null,
+      razorpayPlanId: null,
+      source: "manual",
+      paymentMethod: input.paymentMethod ?? null,
+      notes: input.notes ?? null,
+      currentPeriodStart: input.currentPeriodStart ?? new Date(),
+      currentPeriodEnd: input.expiresAt ?? null,
+    })
+    .returning()
+  return { subscriber, subscription: sub, alreadyActive: false }
+}
+
+export async function updateManualSubscriptionStatus(
+  subscriptionId: string,
+  publisherId: string,
+  status: "active" | "cancelled" | "paused",
+) {
+  const [row] = await db
+    .update(readerSubscriptions)
+    .set({
+      status,
+      cancelledAt: status === "cancelled" ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(and(
+      eq(readerSubscriptions.id, subscriptionId),
+      eq(readerSubscriptions.publisherId, publisherId),
+    ))
+    .returning()
+  return row ?? null
+}
+
+export async function bulkUpdateSubscriptionStatus(
+  subscriptionIds: string[],
+  publisherId: string,
+  status: "active" | "cancelled" | "paused",
+) {
+  if (subscriptionIds.length === 0) return []
+  const rows = await db
+    .update(readerSubscriptions)
+    .set({
+      status,
+      cancelledAt: status === "cancelled" ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(and(
+      inArray(readerSubscriptions.id, subscriptionIds),
+      eq(readerSubscriptions.publisherId, publisherId),
+    ))
+    .returning()
+  return rows
+}
+
+export async function getSubscriptionById(subscriptionId: string, publisherId: string) {
+  const [row] = await db
+    .select()
+    .from(readerSubscriptions)
+    .where(and(
+      eq(readerSubscriptions.id, subscriptionId),
+      eq(readerSubscriptions.publisherId, publisherId),
+    ))
+    .limit(1)
+  return row ?? null
 }

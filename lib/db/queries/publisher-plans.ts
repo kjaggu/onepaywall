@@ -84,7 +84,7 @@ export async function upsertPublisherReaderPlan(brandId: string, publisherId: st
   }
 }
 
-export function getReaderPlanSyncStatus(plan: Awaited<ReturnType<typeof getPublisherReaderPlan>>, currentPgMode?: "platform" | "own") {
+export function getReaderPlanSyncStatus(plan: Awaited<ReturnType<typeof getPublisherReaderPlan>>, currentPgMode?: "platform" | "own" | "manual") {
   if (!plan) return { monthly: "not_configured", quarterly: "not_configured", annual: "not_configured" } satisfies ReaderPlanSyncStatus
   return Object.fromEntries(INTERVALS.map(i => {
     const price = plan[i.priceField]
@@ -165,7 +165,7 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
   return latest
 }
 
-export function getEnabledSyncedIntervals(plan: Awaited<ReturnType<typeof getPublisherReaderPlan>>, currentPgMode?: "platform" | "own") {
+export function getEnabledSyncedIntervals(plan: Awaited<ReturnType<typeof getPublisherReaderPlan>>, currentPgMode?: "platform" | "own" | "manual") {
   if (!plan?.subsEnabled) return []
   return INTERVALS.flatMap(i => {
     const price = plan[i.priceField]

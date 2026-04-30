@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     brandId,
     plan,
     contentPrices,
-    syncStatus: getReaderPlanSyncStatus(plan, pgConfig.mode),
+    syncStatus: getReaderPlanSyncStatus(plan, pgConfig.mode as "platform" | "own"),
     paymentGateway: {
       mode: pgConfig.mode,
       keyIdSet: !!pgConfig.keyId,

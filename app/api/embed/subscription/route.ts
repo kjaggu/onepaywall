@@ -87,7 +87,7 @@ async function handleCreate(req: NextRequest) {
     db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
   ])
   const publisherName = pubRow[0]?.name ?? "OnePaywall"
-  const selected = getEnabledSyncedIntervals(plan, pgConfig.mode).find(i => i.interval === interval)
+  const selected = getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own").find(i => i.interval === interval)
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
   try {
@@ -117,7 +117,7 @@ async function handleCreate(req: NextRequest) {
       brandId: context.brandId,
       subscriberId: subscriber.id,
       interval: interval as ReaderBillingInterval,
-      pgMode: selected.pgMode ?? "platform",
+      pgMode: (selected.pgMode ?? "platform") as "platform" | "own",
       razorpaySubscriptionId: created.subscriptionId,
       razorpayPlanId: selected.razorpayPlanId,
       status: created.status,
@@ -196,7 +196,7 @@ async function handleVerify(req: NextRequest) {
     brandId: context.brandId,
     subscriberId: ours.subscriberId,
     interval: ours.interval as ReaderBillingInterval,
-    pgMode: ours.pgMode,
+    pgMode: ours.pgMode as "platform" | "own",
     razorpaySubscriptionId,
     razorpayPlanId: remote.planId,
     status: remote.status === "authenticated" ? "active" : remote.status,

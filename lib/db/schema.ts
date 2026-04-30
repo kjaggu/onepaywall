@@ -30,7 +30,7 @@ export const visitFrequencyEnum  = pgEnum("visit_frequency",  ["unknown", "one_t
 export const adProviderEnum      = pgEnum("ad_provider",      ["google_adsense", "google_ad_manager"])
 export const adSourceTypeEnum    = pgEnum("ad_source_type",   ["direct", "network"])
 export const mediaTypeEnum       = pgEnum("media_type",       ["image", "video"])
-export const pgModeEnum          = pgEnum("pg_mode",          ["platform", "own"])
+export const pgModeEnum          = pgEnum("pg_mode",          ["platform", "own", "manual"])
 export const pgProviderEnum      = pgEnum("pg_provider",      ["razorpay"])
 export const gateEventTypeEnum   = pgEnum("gate_event_type",  [
   "gate_shown", "step_shown", "gate_passed",
@@ -504,17 +504,20 @@ export const readerSubscriptions = pgTable("reader_subscriptions", {
   interval:              text("interval").notNull(),
   status:                text("status").notNull().default("created"),
   pgMode:                pgModeEnum("pg_mode").notNull(),
-  razorpaySubscriptionId:text("razorpay_subscription_id").notNull(),
-  razorpayPlanId:        text("razorpay_plan_id").notNull(),
+  razorpaySubscriptionId:text("razorpay_subscription_id"),
+  razorpayPlanId:        text("razorpay_plan_id"),
   currentPeriodStart:    timestamp("current_period_start"),
   currentPeriodEnd:      timestamp("current_period_end"),
   cancelledAt:           timestamp("cancelled_at"),
   cancelAtCycleEnd:      boolean("cancel_at_cycle_end").notNull().default(false),
   dunningStartedAt:      timestamp("dunning_started_at"),
+  source:                text("source").notNull().default("razorpay"),
+  paymentMethod:         text("payment_method"),
+  notes:                 text("notes"),
   createdAt:             timestamp("created_at").notNull().defaultNow(),
   updatedAt:             timestamp("updated_at").notNull().defaultNow(),
 }, t => [
-  uniqueIndex("reader_subscriptions_razorpay_idx").on(t.razorpaySubscriptionId),
+  uniqueIndex("reader_subscriptions_razorpay_unique_idx").on(t.razorpaySubscriptionId),
   index("reader_subscriptions_publisher_idx").on(t.publisherId),
   index("reader_subscriptions_brand_idx").on(t.brandId),
   index("reader_subscriptions_subscriber_idx").on(t.subscriberId),

@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       ? await Promise.all([
           getPublisherReaderPlan(domain.brandId ?? domain.publisherId),
           getOrCreatePgConfig(domain.brandId ?? domain.publisherId, domain.publisherId),
-        ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode))
+        ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own"))
       : []
 
     for (const step of result.gate.steps) {

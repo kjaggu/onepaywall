@@ -31,7 +31,7 @@ export default async function PaymentGatewayPage() {
       <div className="border border-[var(--color-border)] rounded-xl p-6">
         <PgConfigForm
           initial={{
-            mode: config.mode,
+            mode: config.mode as "platform" | "own",
             keyId: config.keyId ?? "",
             keySecretSet: !!config.keySecret,
             webhookSecretSet: !!config.webhookSecret,
