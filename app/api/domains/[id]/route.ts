@@ -18,6 +18,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (Array.isArray(body.whitelistedPaths)) {
     patch.whitelistedPaths = body.whitelistedPaths.map(String).filter(Boolean)
   }
+  if (body.logoutWidgetEnabled !== undefined) patch.logoutWidgetEnabled = Boolean(body.logoutWidgetEnabled)
+  if (body.logoutWidgetPosition !== undefined && ["top", "bottom", "float"].includes(body.logoutWidgetPosition)) {
+    patch.logoutWidgetPosition = body.logoutWidgetPosition
+  }
 
   const updated = await updateDomain(id, session.publisherId, patch)
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 })

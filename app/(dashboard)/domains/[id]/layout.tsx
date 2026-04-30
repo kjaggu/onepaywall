@@ -24,6 +24,7 @@ export default async function DomainLayout({
     { label: "Overview",   href: `/domains/${id}`,           exact: true },
     { label: "Embed",      href: `/domains/${id}/embed` },
     { label: "Free pages", href: `/domains/${id}/free-pages` },
+    { label: "Logout",     href: `/domains/${id}/logout` },
     { label: "Settings",   href: `/domains/${id}/settings` },
   ]
 

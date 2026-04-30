@@ -7,7 +7,7 @@ import { evaluateGate } from "@/lib/gates/evaluate"
 import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
 import { isPublisherActive } from "@/lib/db/queries/billing"
 import { markEmbedVerified } from "@/lib/db/queries/domains"
-import { readerHasActiveBrandSubscription } from "@/lib/db/queries/reader-subscriptions"
+import { getReaderActiveSubscriptionInfo } from "@/lib/db/queries/reader-subscriptions"
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
 import { makeCache } from "@/lib/cache"
@@ -135,8 +135,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const [hasActiveSub, result] = await Promise.all([
-    preview ? Promise.resolve(false) : readerHasActiveBrandSubscription(domain.brandId ?? domain.publisherId, reader.readerId),
+  const [subInfo, result] = await Promise.all([
+    preview ? Promise.resolve(null) : getReaderActiveSubscriptionInfo(domain.brandId ?? domain.publisherId, reader.readerId),
     evaluateGate({
       domainId: domain.id,
       readerId: reader.readerId,
@@ -148,9 +148,17 @@ export async function GET(req: NextRequest) {
     }),
   ])
 
-  if (hasActiveSub) {
+  if (subInfo) {
     return NextResponse.json(
-      { token: reader.token, gate: null, isSubscriber: true },
+      {
+        token: reader.token,
+        gate: null,
+        isSubscriber: true,
+        ...(domain.logoutWidgetEnabled && {
+          widget: { position: domain.logoutWidgetPosition },
+          subscribedSince: subInfo.since.toISOString(),
+        }),
+      },
       { headers: { "Cache-Control": "private, no-cache" } },
     )
   }

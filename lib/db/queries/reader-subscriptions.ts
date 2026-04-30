@@ -186,6 +186,24 @@ export async function readerHasActiveBrandSubscription(brandId: string, readerId
   return rows.length > 0
 }
 
+export async function getReaderActiveSubscriptionInfo(brandId: string, readerId: string) {
+  const now = new Date()
+  const rows = await db
+    .select({ since: readerSubscribers.createdAt })
+    .from(readerSubscriptionLinks)
+    .innerJoin(readerSubscriptions, eq(readerSubscriptionLinks.subscriberId, readerSubscriptions.subscriberId))
+    .innerJoin(readerSubscribers, eq(readerSubscriptionLinks.subscriberId, readerSubscribers.id))
+    .where(and(
+      eq(readerSubscriptionLinks.brandId, brandId),
+      eq(readerSubscriptionLinks.readerId, readerId),
+      eq(readerSubscriptions.brandId, brandId),
+      inArray(readerSubscriptions.status, [...ACTIVE_STATUSES]),
+      or(isNull(readerSubscriptions.currentPeriodEnd), gt(readerSubscriptions.currentPeriodEnd, now)),
+    ))
+    .limit(1)
+  return rows.length > 0 ? { since: rows[0].since } : null
+}
+
 export async function subscriberHasActiveSubscription(brandId: string, subscriberId: string) {
   const now = new Date()
   const rows = await db

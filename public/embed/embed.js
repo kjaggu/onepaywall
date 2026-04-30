@@ -56,6 +56,56 @@
 
   // ─── Overlay ─────────────────────────────────────────────────────────────────
 
+  // ─── Logout helpers ──────────────────────────────────────────────────────────
+
+  function clearReaderIdentity() {
+    try {
+      localStorage.removeItem(LS_CLIENT_ID);
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(LS_TOKEN_PREFIX) === 0) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
+  // ─── Subscriber widget ───────────────────────────────────────────────────────
+
+  function renderSubscriberWidget(data) {
+    if (!data.widget || !data.subscribedSince) return;
+    if (document.getElementById("opw-widget")) return;
+    var pos = data.widget.position || "bottom";
+    var since = new Date(data.subscribedSince);
+    var sinceLabel = since.toLocaleDateString("en", { month: "long", year: "numeric" });
+    var isTop = pos === "top";
+
+    var wrap = document.createElement("div");
+    wrap.id = "opw-widget";
+    wrap.className = "opw-widget opw-widget-" + pos;
+
+    var panel = document.createElement("div");
+    panel.className = "opw-widget-panel" + (isTop ? " opw-widget-panel-top" : "") + " opw-widget-hidden";
+    panel.innerHTML =
+      "<p class=\"opw-widget-title\">✓ You’re subscribed</p>" +
+      "<p class=\"opw-widget-since\">Since " + sinceLabel + "</p>" +
+      "<button class=\"opw-btn opw-btn-secondary\" style=\"width:100%;margin:0;font-size:13px;padding:8px 14px\" id=\"opw-signout-btn\">Sign out</button>";
+
+    var badge = document.createElement("button");
+    badge.className = "opw-widget-badge";
+    badge.innerHTML = "✓ Subscribed";
+    badge.onclick = function () { panel.classList.toggle("opw-widget-hidden"); };
+
+    if (isTop) { wrap.appendChild(badge); wrap.appendChild(panel); }
+    else { wrap.appendChild(panel); wrap.appendChild(badge); }
+
+    document.body.appendChild(wrap);
+
+    document.getElementById("opw-signout-btn").onclick = function () {
+      window.OnePaywall && window.OnePaywall.logout();
+    };
+  }
+
   var styles = [
     ".opw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif}",
     ".opw-card{background:#fff;border-radius:12px;padding:32px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2);text-align:center}",
@@ -72,6 +122,17 @@
     ".opw-plan{border:1px solid #ddd;background:#fff;border-radius:8px;padding:9px 6px;cursor:pointer;color:#333;font-size:12px;font-weight:700}",
     ".opw-plan-active{border-color:#27adb0;background:#eefafa;color:#13777a}",
     ".opw-note{font-size:12px;color:#888;line-height:1.45;margin:8px 0 0}",
+    ".opw-widget{position:fixed;z-index:2147483646;right:16px;font-family:system-ui,sans-serif;font-size:0}",
+    ".opw-widget-bottom{bottom:0;border-radius:8px 8px 0 0}",
+    ".opw-widget-top{top:0;border-radius:0 0 8px 8px}",
+    ".opw-widget-float{bottom:16px;border-radius:99px}",
+    ".opw-widget-badge{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#27adb0;color:#fff;font-size:13px;font-weight:600;cursor:pointer;border:none;width:100%;border-radius:inherit;white-space:nowrap}",
+    ".opw-widget-badge:hover{background:#1f9598}",
+    ".opw-widget-panel{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:14px 16px;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-bottom:2px}",
+    ".opw-widget-panel-top{margin-top:2px;margin-bottom:0}",
+    ".opw-widget-title{font-size:13px;font-weight:600;color:#111;margin:0 0 2px}",
+    ".opw-widget-since{font-size:12px;color:#666;margin:0 0 10px}",
+    ".opw-widget-hidden{display:none!important}",
   ].join("");
 
   function injectStyles() {
@@ -487,6 +548,26 @@
     var restoreToken = "";
     try { restoreToken = new URLSearchParams(location.search).get("opw_restore_token") || ""; } catch (e) {}
 
+    // Logout via URL param
+    var logoutParam = "";
+    try { logoutParam = new URLSearchParams(location.search).get("opw_logout") || ""; } catch (e) {}
+    if (logoutParam === "1") {
+      clearReaderIdentity();
+      var cleanUrl = new URL(location.href);
+      var redirectTo = cleanUrl.searchParams.get("opw_redirect") || "";
+      cleanUrl.searchParams.delete("opw_logout");
+      cleanUrl.searchParams.delete("opw_redirect");
+      if (redirectTo) {
+        try {
+          var dest = new URL(redirectTo, location.origin);
+          if (dest.origin === location.origin) { location.replace(dest.href); return; }
+        } catch (e) {}
+      }
+      history.replaceState(null, "", cleanUrl.toString());
+      location.reload();
+      return;
+    }
+
     var startTime = Date.now();
     var isSubscriber = false;
     var gateShown = false;
@@ -505,6 +586,16 @@
         if (data.token) { setToken(siteKey, data.token); token = data.token; }
         isSubscriber = !!data.isSubscriber;
         gateShown = !!data.gate;
+        if (isSubscriber) {
+          if (restoreToken) {
+            var cleanSub = new URL(location.href);
+            cleanSub.searchParams.delete("opw_restore_token");
+            history.replaceState(null, "", cleanSub.toString());
+          }
+          injectStyles();
+          renderSubscriberWidget(data);
+          return;
+        }
         if (restoreToken && token) {
           fetch(_base + "/api/embed/subscription?action=restore-confirm", {
             method: "POST",
@@ -545,6 +636,21 @@
       });
     });
   }
+
+  // ─── Public API ──────────────────────────────────────────────────────────────
+
+  window.OnePaywall = window.OnePaywall || {};
+  window.OnePaywall.logout = function (opts) {
+    clearReaderIdentity();
+    var ret = opts && opts.returnUrl ? opts.returnUrl : null;
+    if (ret) {
+      try {
+        var u = new URL(ret, location.origin);
+        if (u.origin === location.origin) { location.replace(u.href); return; }
+      } catch (e) {}
+    }
+    location.reload();
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

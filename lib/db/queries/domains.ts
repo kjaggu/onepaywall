@@ -94,7 +94,7 @@ export async function createDomain({
 export async function updateDomain(
   id: string,
   publisherId: string,
-  patch: Partial<{ name: string; status: "active" | "paused" | "removed"; embedEnabled: boolean; whitelistedPaths: string[] }>,
+  patch: Partial<{ name: string; status: "active" | "paused" | "removed"; embedEnabled: boolean; whitelistedPaths: string[]; logoutWidgetEnabled: boolean; logoutWidgetPosition: string }>,
 ) {
   const [row] = await db
     .update(domains)
