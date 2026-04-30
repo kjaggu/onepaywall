@@ -10,27 +10,30 @@ export type ResolvedPrice = {
   matchedPattern?: string
 }
 
+type ContentPrice = typeof publisherContentPrices.$inferSelect
+
 // Pricing precedence for one-time unlocks:
 //   1. publisher_content_prices URL pattern match (most specific wins on tie — longest pattern)
 //   2. publisher_reader_plans.default_unlock_price (only if unlock_enabled)
 //   3. step.config.priceInPaise (legacy fallback so existing gates don't break)
+//
+// cachedContentPrices: pass pre-loaded prices from cache to avoid a DB query.
+// If omitted, prices are fetched from the DB (backward-compatible).
 export async function resolveUnlockPrice(opts: {
   publisherId: string
   pageUrl: string | null
   stepConfigPriceInPaise?: number | null
+  cachedContentPrices?: ContentPrice[]
 }): Promise<ResolvedPrice | null> {
-  const { publisherId, pageUrl, stepConfigPriceInPaise } = opts
+  const { publisherId, pageUrl, stepConfigPriceInPaise, cachedContentPrices } = opts
 
   if (pageUrl) {
     const path = extractPath(pageUrl)
-    const overrides = await db
-      .select()
-      .from(publisherContentPrices)
-      .where(eq(publisherContentPrices.publisherId, publisherId))
+    const overrides = cachedContentPrices
+      ?? await db.select().from(publisherContentPrices).where(eq(publisherContentPrices.publisherId, publisherId))
 
     const matches = overrides.filter(o => matchGlob(o.urlPattern, path))
     if (matches.length > 0) {
-      // Prefer the longest pattern (most specific) when multiple match.
       const best = matches.reduce((a, b) => (b.urlPattern.length > a.urlPattern.length ? b : a))
       return { amountInPaise: best.price, source: "url_override", matchedPattern: best.urlPattern }
     }

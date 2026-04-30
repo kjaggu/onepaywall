@@ -10,6 +10,77 @@ import { markEmbedVerified } from "@/lib/db/queries/domains"
 import { readerHasActiveBrandSubscription } from "@/lib/db/queries/reader-subscriptions"
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
+import { makeCache } from "@/lib/cache"
+
+// ─── Module-level caches ──────────────────────────────────────────────────────
+// These persist across requests on warm Vercel instances. Cold starts begin
+// empty and fill on the first request — no correctness impact, only latency.
+
+const TTL = {
+  DOMAIN:  5 * 60 * 1000,  // domain config changes only on publisher edits
+  BILLING: 5 * 60 * 1000,  // billing status changes only on payment events
+  PLAN:    5 * 60 * 1000,  // reader plan changes only on publisher pricing edits
+  PG:      5 * 60 * 1000,  // PG config changes only on publisher settings edits
+  PRICES:  5 * 60 * 1000,  // content prices change only on publisher edits
+}
+
+type DomainRow = typeof domains.$inferSelect
+
+const domainCache  = makeCache<string, DomainRow | null>()           // key: siteKey
+const billingCache = makeCache<string, boolean>()                     // key: publisherId
+const planCache    = makeCache<string, Awaited<ReturnType<typeof getPublisherReaderPlan>>>()  // key: brandId
+const pgCache      = makeCache<string, Awaited<ReturnType<typeof getOrCreatePgConfig>>>()    // key: brandId
+const pricesCache  = makeCache<string, Awaited<ReturnType<typeof import("@/lib/db/queries/publisher-plans").listContentPrices>>>() // key: publisherId
+
+// ─── Cached loaders ───────────────────────────────────────────────────────────
+
+async function getCachedDomain(siteKey: string): Promise<DomainRow | null> {
+  const hit = domainCache.get(siteKey)
+  if (hit !== undefined) return hit
+  const [row] = await db
+    .select()
+    .from(domains)
+    .where(and(eq(domains.siteKey, siteKey), eq(domains.status, "active"), isNull(domains.deletedAt)))
+    .limit(1)
+  const value = row ?? null
+  domainCache.set(siteKey, value, TTL.DOMAIN)
+  return value
+}
+
+async function getCachedBilling(publisherId: string): Promise<boolean> {
+  const hit = billingCache.get(publisherId)
+  if (hit !== undefined) return hit
+  const active = await isPublisherActive(publisherId)
+  billingCache.set(publisherId, active, TTL.BILLING)
+  return active
+}
+
+async function getCachedPlan(brandId: string) {
+  const hit = planCache.get(brandId)
+  if (hit !== undefined) return hit
+  const plan = await getPublisherReaderPlan(brandId)
+  planCache.set(brandId, plan, TTL.PLAN)
+  return plan
+}
+
+async function getCachedPgConfig(brandId: string, publisherId: string) {
+  const hit = pgCache.get(brandId)
+  if (hit !== undefined) return hit
+  const config = await getOrCreatePgConfig(brandId, publisherId)
+  pgCache.set(brandId, config, TTL.PG)
+  return config
+}
+
+async function getCachedContentPrices(publisherId: string) {
+  const hit = pricesCache.get(publisherId)
+  if (hit !== undefined) return hit
+  const { listContentPrices } = await import("@/lib/db/queries/publisher-plans")
+  const prices = await listContentPrices(publisherId)
+  pricesCache.set(publisherId, prices, TTL.PRICES)
+  return prices
+}
+
+// ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -25,30 +96,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "siteKey and clientId are required" }, { status: 400 })
   }
 
-  // Look up domain by site key — no embedEnabled filter so we can auto-verify on first hit
-  const [domain] = await db
-    .select()
-    .from(domains)
-    .where(and(eq(domains.siteKey, siteKey), eq(domains.status, "active"), isNull(domains.deletedAt)))
-    .limit(1)
+  const domain = await getCachedDomain(siteKey)
 
   if (!domain) {
-    // Return pass-through — don't reveal whether domain exists
     return NextResponse.json({ gate: null }, {
       headers: { "Cache-Control": "private, no-cache" },
     })
   }
 
-  // Fire-and-forget: auto-verify embed on first hit
+  // Fire-and-forget: auto-verify embed on first hit (doesn't affect cache)
   if (!domain.embedEnabled) {
     markEmbedVerified(siteKey).catch(() => {})
   }
 
   const ua = req.headers.get("user-agent") ?? ""
 
-  // Parallelize billing check and reader resolution — both only need domain info
   const [billingActive, reader] = await Promise.all([
-    isPublisherActive(domain.publisherId),
+    getCachedBilling(domain.publisherId),
     resolveReader(clientId, ua, domain.id),
   ])
 
@@ -58,7 +122,7 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Check domain-level whitelist — whitelisted paths are never gated
+  // Domain-level whitelist check (pure CPU — no DB)
   const whitelisted = (domain.whitelistedPaths ?? []) as string[]
   if (whitelisted.length > 0) {
     try {
@@ -71,7 +135,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Parallelize subscription check and gate evaluation — both need readerId
   const [hasActiveSub, result] = await Promise.all([
     preview ? Promise.resolve(false) : readerHasActiveBrandSubscription(domain.brandId ?? domain.publisherId, reader.readerId),
     evaluateGate({
@@ -92,15 +155,13 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // Resolve unlock prices server-side so the embed always shows what we'll actually charge.
-  // Pricing precedence is publisher_content_prices > publisher default > step config (see resolveUnlockPrice).
   if (result.gate) {
     const hasSubscriptionStep = result.gate.steps.some(step => step.stepType === "subscription_cta")
 
     const subscriptionIntervals = hasSubscriptionStep
       ? await Promise.all([
-          getPublisherReaderPlan(domain.brandId ?? domain.publisherId),
-          getOrCreatePgConfig(domain.brandId ?? domain.publisherId, domain.publisherId),
+          getCachedPlan(domain.brandId ?? domain.publisherId),
+          getCachedPgConfig(domain.brandId ?? domain.publisherId, domain.publisherId),
         ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own"))
       : []
 
@@ -116,11 +177,14 @@ export async function GET(req: NextRequest) {
         }
       }
       if (step.stepType !== "one_time_unlock") continue
+
+      // Resolve unlock price using cached content prices + plan
       const stepCfg = step.config as { priceInPaise?: number }
       const resolved = await resolveUnlockPrice({
         publisherId: domain.publisherId,
         pageUrl,
         stepConfigPriceInPaise: stepCfg.priceInPaise ?? null,
+        cachedContentPrices: await getCachedContentPrices(domain.publisherId),
       })
       if (resolved) step.config = { ...stepCfg, priceInPaise: resolved.amountInPaise }
     }
