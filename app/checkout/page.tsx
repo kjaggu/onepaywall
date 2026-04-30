@@ -25,7 +25,7 @@ function CheckoutInner() {
         key: keyId,
         subscription_id: subscriptionId,
         name: publisherName,
-        description: `Subscribe to ${publisherName} · Powered by OnePaywall`,
+        description: `Subscribe to ${publisherName}`,
         prefill: { email },
         handler: async (response: {
           razorpay_payment_id: string

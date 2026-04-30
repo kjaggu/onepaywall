@@ -69,7 +69,7 @@ export async function createReaderRazorpayPlan(input: {
       name: `${input.publisherName} ${label} Membership`,
       amount: input.amount,
       currency: input.currency,
-      description: `OnePaywall reader membership for ${input.publisherName}`,
+      description: `${input.publisherName} reader membership`,
     },
     notes: {
       publisherId: input.publisherId,
