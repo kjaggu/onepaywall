@@ -488,6 +488,8 @@
     try { restoreToken = new URLSearchParams(location.search).get("opw_restore_token") || ""; } catch (e) {}
 
     var startTime = Date.now();
+    var isSubscriber = false;
+    var gateShown = false;
 
     // Gate check
     fetch(_base + "/api/embed/gate-check?" + qs({
@@ -501,6 +503,8 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.token) { setToken(siteKey, data.token); token = data.token; }
+        isSubscriber = !!data.isSubscriber;
+        gateShown = !!data.gate;
         if (restoreToken && token) {
           fetch(_base + "/api/embed/subscription?action=restore-confirm", {
             method: "POST",
@@ -536,6 +540,8 @@
       sendSignal(token, {
         readTimeSeconds: Math.round((Date.now() - startTime) / 1000),
         scrollDepthPct: maxScroll,
+        isSubscriber: isSubscriber,
+        gateShown: gateShown,
       });
     });
   }

@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 
   if (hasActiveSub) {
     return NextResponse.json(
-      { token: reader.token, gate: null },
+      { token: reader.token, gate: null, isSubscriber: true },
       { headers: { "Cache-Control": "private, no-cache" } },
     )
   }
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(
-    { token: reader.token, ...result },
+    { token: reader.token, ...result, isSubscriber: false },
     { headers: { "Cache-Control": "private, no-cache" } },
   )
 }

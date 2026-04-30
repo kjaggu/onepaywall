@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
   const validDevice = ["mobile", "desktop", "tablet"] as const
   const deviceType = validDevice.find(d => d === body.deviceType) ?? undefined
 
+  const isSubscriber = typeof body.isSubscriber === "boolean" ? body.isSubscriber : null
+  const gateShown = typeof body.gateShown === "boolean" ? body.gateShown : null
+
   // Fire-and-forget — don't await in critical path, just queue it
   void db.insert(readerPageVisits).values({
     readerId: reader.readerId,
@@ -33,6 +36,8 @@ export async function POST(req: NextRequest) {
     scrollDepthPct: typeof body.scrollDepthPct === "number" ? Math.min(Math.max(body.scrollDepthPct, 0), 100) : undefined,
     deviceType,
     referrer,
+    isSubscriber,
+    gateShown,
   })
 
   return new NextResponse(null, { status: 204 })

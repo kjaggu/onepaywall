@@ -1,10 +1,11 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ExternalLink } from "lucide-react"
+import { ArrowLeft, ExternalLink, Users } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getDomain } from "@/lib/db/queries/domains"
 import { getSummary, getGateBreakdown, getDailySeries } from "@/lib/db/queries/analytics"
 import { getRevenueForPeriod } from "@/lib/db/queries/transactions"
+import { getAudienceStats, getIntentTierDistribution, TIER_META, fmtReadTime } from "@/lib/db/queries/reader-intelligence"
 import { refreshRollups } from "@/lib/analytics/rollup"
 import { AnalyticsChart } from "@/components/dashboard/analytics/analytics-chart"
 import { RangeFilter } from "@/components/dashboard/analytics/range-filter"
@@ -43,11 +44,13 @@ export default async function DomainAnalyticsPage({
   const from = since(days)
   await refreshRollups([domainId], from)
 
-  const [summary, gateStats, daily, revenue] = await Promise.all([
+  const [summary, gateStats, daily, revenue, audience, tiers] = await Promise.all([
     getSummary([domainId], from),
     getGateBreakdown(domainId, from),
     getDailySeries([domainId], from, gateParam || undefined),
     getRevenueForPeriod(session.publisherId, from, domainId),
+    getAudienceStats([domainId], from),
+    getIntentTierDistribution([domainId], from),
   ])
 
   // Validate gateParam is actually one of this domain's gates
@@ -156,6 +159,76 @@ export default async function DomainAnalyticsPage({
         </div>
       </div>
 
+      {/* Subscriber composition */}
+      {audience.totalReaders > 0 && (
+        <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb", display: "flex", alignItems: "center", gap: 8 }}>
+            <Users size={14} color="#888" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Reader composition</span>
+          </div>
+
+          {/* Subscriber vs Visitor two-column */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid #ebebeb" }}>
+            <div style={{ padding: "16px 20px", borderRight: "1px solid #ebebeb" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#27adb0" }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>Subscribers</span>
+                <span style={{ fontSize: 11, color: "#aaa", marginLeft: "auto" }}>{audience.subscriberPageviews.toLocaleString()} PVs</span>
+              </div>
+              <div style={{ display: "flex", gap: 20 }}>
+                <SmallMetric label="Readers" value={audience.subscriberReaders.toLocaleString()} />
+                <SmallMetric label="Avg read time" value={fmtReadTime(audience.subscriberAvgReadTime)} />
+                <SmallMetric label="Avg scroll" value={audience.subscriberAvgScroll != null ? `${audience.subscriberAvgScroll}%` : "—"} />
+              </div>
+            </div>
+            <div style={{ padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e5e7eb" }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#111" }}>Visitors</span>
+                <span style={{ fontSize: 11, color: "#aaa", marginLeft: "auto" }}>{audience.visitorPageviews.toLocaleString()} PVs</span>
+              </div>
+              <div style={{ display: "flex", gap: 20 }}>
+                <SmallMetric label="Readers" value={audience.visitorReaders.toLocaleString()} />
+                <SmallMetric label="Avg read time" value={fmtReadTime(audience.visitorAvgReadTime)} />
+                <SmallMetric label="Avg scroll" value={audience.visitorAvgScroll != null ? `${audience.visitorAvgScroll}%` : "—"} />
+                <SmallMetric
+                  label="Gate exposed"
+                  value={`${audience.gateExposureRatePct}%`}
+                  highlight={audience.gateExposureRatePct > 0}
+                  sub={`${audience.conversionOpportunity.toLocaleString()} readers`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Intent tiers inline */}
+          <div style={{ display: "flex", gap: 0 }}>
+            {tiers.filter(t => t.readerCount > 0).map((t, i, arr) => (
+              <div
+                key={t.tier}
+                style={{
+                  flex: 1,
+                  padding: "12px 16px",
+                  borderRight: i < arr.length - 1 ? "1px solid #f5f5f5" : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: TIER_META[t.tier].color }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#555" }}>{t.label}</span>
+                  <span style={{ fontSize: 11, color: "#bbb", marginLeft: "auto" }}>{t.pct}%</span>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>{t.readerCount.toLocaleString()}</div>
+                <div style={{ fontSize: 10, color: "#ccc", marginTop: 1 }}>
+                  {t.avgScrollDepth != null ? `${t.avgScrollDepth}% scroll` : ""}
+                  {t.avgScrollDepth != null && t.avgReadTimeSeconds != null ? " · " : ""}
+                  {t.avgReadTimeSeconds != null ? fmtReadTime(t.avgReadTimeSeconds) : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Per-gate breakdown */}
       <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden" }}>
         <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -209,6 +282,21 @@ export default async function DomainAnalyticsPage({
           ))
         )}
       </div>
+    </div>
+  )
+}
+
+function SmallMetric({ label, value, sub, highlight }: {
+  label: string
+  value: string
+  sub?: string
+  highlight?: boolean
+}) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: highlight ? "#27adb0" : "#111" }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: "#ccc", marginTop: 1 }}>{sub}</div>}
     </div>
   )
 }

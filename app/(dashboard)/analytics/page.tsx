@@ -1,9 +1,10 @@
 import Link from "next/link"
-import { ArrowRight, BarChart2 } from "lucide-react"
+import { ArrowRight, BarChart2, Users } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { listDomains } from "@/lib/db/queries/domains"
 import { getSummary, getDomainBreakdown, getDailySeries } from "@/lib/db/queries/analytics"
 import { getRevenueForPeriod } from "@/lib/db/queries/transactions"
+import { getAudienceStats, fmtReadTime } from "@/lib/db/queries/reader-intelligence"
 import { refreshRollups } from "@/lib/analytics/rollup"
 import { AnalyticsChart } from "@/components/dashboard/analytics/analytics-chart"
 import { RangeFilter } from "@/components/dashboard/analytics/range-filter"
@@ -37,13 +38,14 @@ export default async function AnalyticsPage({
 
   await refreshRollups(domainIds, from)
 
-  const [summary, domainStats, daily, revenue] = await Promise.all([
+  const [summary, domainStats, daily, revenue, audience] = await Promise.all([
     getSummary(domainIds, from),
     getDomainBreakdown(domainIds, from),
     getDailySeries(domainIds, from),
     session?.publisherId
       ? getRevenueForPeriod(session.publisherId, from)
       : Promise.resolve({ total: 0, currency: "INR", count: 0 }),
+    getAudienceStats(domainIds, from),
   ])
 
   const hasData = summary.impressions > 0
@@ -118,6 +120,46 @@ export default async function AnalyticsPage({
         </div>
       </div>
 
+      {/* Subscriber composition strip */}
+      {audience.totalReaders > 0 && (
+        <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb", display: "flex", alignItems: "center", gap: 8 }}>
+            <Users size={14} color="#888" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Reader composition</span>
+            <span style={{ fontSize: 11, color: "#aaa", marginLeft: 4 }}>({days}d)</span>
+            <Link href="/audience" style={{ fontSize: 12, color: "#aaa", textDecoration: "none", marginLeft: "auto" }}>
+              Full audience →
+            </Link>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)" }}>
+            {[
+              { label: "Total readers",     value: audience.totalReaders.toLocaleString() },
+              { label: "Subscribers",        value: audience.subscriberReaders.toLocaleString(),
+                sub: audience.totalReaders > 0 ? `${Math.round((audience.subscriberReaders / audience.totalReaders) * 100)}% of readers` : undefined },
+              { label: "Visitors",           value: audience.visitorReaders.toLocaleString(),
+                sub: audience.totalReaders > 0 ? `${Math.round((audience.visitorReaders / audience.totalReaders) * 100)}% of readers` : undefined },
+              { label: "Conversion oppty",   value: audience.conversionOpportunity.toLocaleString(),
+                sub: "visitors who hit a gate", highlight: true },
+              { label: "Gate exposure rate", value: `${audience.gateExposureRatePct}%`,
+                sub: "of visitor pageviews" },
+            ].map((s, i) => (
+              <div key={s.label} style={{ padding: "14px 18px", borderRight: i < 4 ? "1px solid #f5f5f5" : "none" }}>
+                <div style={{ fontSize: 10, color: "#bbb", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{s.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 600, color: s.highlight ? "#27adb0" : "#111", letterSpacing: "-0.02em" }}>{s.value}</div>
+                {s.sub && <div style={{ fontSize: 10, color: "#ccc", marginTop: 2 }}>{s.sub}</div>}
+              </div>
+            ))}
+          </div>
+          {/* Engagement comparison row */}
+          <div style={{ padding: "10px 18px", background: "#fafafa", borderTop: "1px solid #f0f0f0", display: "flex", gap: 32 }}>
+            <CompareRow label="Avg read time" subVal={fmtReadTime(audience.visitorAvgReadTime)} subriVal={fmtReadTime(audience.subscriberAvgReadTime)} />
+            <CompareRow label="Avg scroll depth"
+              subVal={audience.visitorAvgScroll != null ? `${audience.visitorAvgScroll}%` : "—"}
+              subriVal={audience.subscriberAvgScroll != null ? `${audience.subscriberAvgScroll}%` : "—"} />
+          </div>
+        </div>
+      )}
+
       {/* Per-domain breakdown */}
       <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden" }}>
         <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb" }}>
@@ -174,6 +216,21 @@ export default async function AnalyticsPage({
           })
         )}
       </div>
+    </div>
+  )
+}
+
+function CompareRow({ label, subVal, subriVal }: { label: string; subVal: string; subriVal: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 11, color: "#aaa", minWidth: 100 }}>{label}</span>
+      <span style={{ fontSize: 11, color: "#888" }}>
+        <span style={{ color: "#bbb" }}>Visitors</span> {subVal}
+      </span>
+      <span style={{ fontSize: 11, color: "#bbb" }}>·</span>
+      <span style={{ fontSize: 11, color: "#888" }}>
+        <span style={{ color: "#27adb0" }}>Subscribers</span> {subriVal}
+      </span>
     </div>
   )
 }

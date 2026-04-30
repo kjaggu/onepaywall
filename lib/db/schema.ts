@@ -247,6 +247,8 @@ export const readerPageVisits = pgTable("reader_page_visits", {
   scrollDepthPct:   integer("scroll_depth_pct"),
   deviceType:       deviceTypeEnum("device_type"),
   referrer:         text("referrer"),
+  isSubscriber:     boolean("is_subscriber"),   // null = pre-feature; true/false = subscriber status at time of visit
+  gateShown:        boolean("gate_shown"),       // true = a gate was triggered on this pageview
   occurredAt:       timestamp("occurred_at").notNull().defaultNow(),
 }, t => [
   index("reader_page_visits_reader_idx").on(t.readerId),
