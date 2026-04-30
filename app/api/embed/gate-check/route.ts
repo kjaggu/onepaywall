@@ -10,6 +10,7 @@ import { markEmbedVerified } from "@/lib/db/queries/domains"
 import { getReaderActiveSubscriptionInfo } from "@/lib/db/queries/reader-subscriptions"
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
+import { getReaderProfile } from "@/lib/db/queries/reader-intelligence"
 import { makeCache } from "@/lib/cache"
 
 // ─── Module-level caches ──────────────────────────────────────────────────────
@@ -26,11 +27,12 @@ const TTL = {
 
 type DomainRow = typeof domains.$inferSelect
 
-const domainCache  = makeCache<string, DomainRow | null>()           // key: siteKey
-const billingCache = makeCache<string, boolean>()                     // key: publisherId
-const planCache    = makeCache<string, Awaited<ReturnType<typeof getPublisherReaderPlan>>>()  // key: brandId
-const pgCache      = makeCache<string, Awaited<ReturnType<typeof getOrCreatePgConfig>>>()    // key: brandId
-const pricesCache  = makeCache<string, Awaited<ReturnType<typeof import("@/lib/db/queries/publisher-plans").listContentPrices>>>() // key: publisherId
+const domainCache   = makeCache<string, DomainRow | null>()           // key: siteKey
+const billingCache  = makeCache<string, boolean>()                    // key: publisherId
+const planCache     = makeCache<string, Awaited<ReturnType<typeof getPublisherReaderPlan>>>()  // key: brandId
+const pgCache       = makeCache<string, Awaited<ReturnType<typeof getOrCreatePgConfig>>>()    // key: brandId
+const pricesCache   = makeCache<string, Awaited<ReturnType<typeof import("@/lib/db/queries/publisher-plans").listContentPrices>>>() // key: publisherId
+const profileCache  = makeCache<string, Awaited<ReturnType<typeof getReaderProfile>>>()       // key: readerId
 
 // ─── Cached loaders ───────────────────────────────────────────────────────────
 
@@ -78,6 +80,18 @@ async function getCachedContentPrices(publisherId: string) {
   const prices = await listContentPrices(publisherId)
   pricesCache.set(publisherId, prices, TTL.PRICES)
   return prices
+}
+
+// Reader profiles are precomputed; 5-minute cache is fine — profile changes
+// only from background computation, not inline during this request.
+const PROFILE_TTL = 5 * 60 * 1000
+
+async function getCachedReaderProfile(readerId: string) {
+  const hit = profileCache.get(readerId)
+  if (hit !== undefined) return hit
+  const profile = await getReaderProfile(readerId)
+  profileCache.set(readerId, profile, PROFILE_TTL)
+  return profile
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -135,18 +149,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const [subInfo, result] = await Promise.all([
+  // Fetch subscription state and reader profile in parallel (both are reader-specific,
+  // never cached at the gate level), then evaluate gates once with full context.
+  const [subInfo, readerProfile] = await Promise.all([
     preview ? Promise.resolve(null) : getReaderActiveSubscriptionInfo(domain.brandId ?? domain.publisherId, reader.readerId),
-    evaluateGate({
-      domainId: domain.id,
-      readerId: reader.readerId,
-      visitCount: reader.visitCount,
-      pageUrl,
-      deviceType,
-      publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
-      preview,
-    }),
+    preview ? Promise.resolve(null) : getCachedReaderProfile(reader.readerId),
   ])
+
+  const finalResult = await evaluateGate({
+    domainId: domain.id,
+    readerId: reader.readerId,
+    visitCount: reader.visitCount,
+    pageUrl,
+    deviceType,
+    publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
+    preview,
+    readerProfile: readerProfile
+      ? { segment: readerProfile.segment, monetizationProbability: readerProfile.monetizationProbability }
+      : null,
+  })
 
   if (subInfo) {
     return NextResponse.json(
@@ -163,8 +184,8 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  if (result.gate) {
-    const hasSubscriptionStep = result.gate.steps.some(step => step.stepType === "subscription_cta")
+  if (finalResult.gate) {
+    const hasSubscriptionStep = finalResult.gate.steps.some(step => step.stepType === "subscription_cta")
 
     const subscriptionIntervals = hasSubscriptionStep
       ? await Promise.all([
@@ -173,7 +194,7 @@ export async function GET(req: NextRequest) {
         ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own"))
       : []
 
-    for (const step of result.gate.steps) {
+    for (const step of finalResult.gate.steps) {
       if (step.stepType === "subscription_cta") {
         step.config = {
           ...step.config,
@@ -199,7 +220,16 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(
-    { token: reader.token, ...result, isSubscriber: false },
+    {
+      token: reader.token,
+      ...finalResult,
+      isSubscriber: false,
+      // Reader segment is useful for publisher analytics + future embed personalisation
+      ...(readerProfile && {
+        readerSegment: readerProfile.segment,
+        monetizationProbability: readerProfile.monetizationProbability,
+      }),
+    },
     { headers: { "Cache-Control": "private, no-cache" } },
   )
 }

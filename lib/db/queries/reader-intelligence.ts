@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { readerPageVisits } from "@/lib/db/schema"
+import { readerPageVisits, readerProfiles } from "@/lib/db/schema"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -172,6 +172,41 @@ function buildTierStats(
       avgReadTimeSeconds: b.count > 0 ? Math.round(b.readTimeSum / b.count) : null,
     }
   })
+}
+
+// ─── Reader profile queries ───────────────────────────────────────────────────
+
+export type ReaderProfile = typeof readerProfiles.$inferSelect
+
+// Returns the computed profile for a reader, or null if not yet computed.
+export async function getReaderProfile(readerId: string): Promise<ReaderProfile | null> {
+  const [row] = await db
+    .select()
+    .from(readerProfiles)
+    .where(eq(readerProfiles.readerId, readerId))
+    .limit(1)
+  return row ?? null
+}
+
+// Returns reader IDs whose profile is stale or missing.
+// "Stale" means: last_computed_at is older than lastSeenAt in readers table,
+// i.e. there are new visits since the last computation.
+// The cron job calls this to find work to do.
+export async function getStalePotentialProfileReaderIds(limit: number): Promise<string[]> {
+  // Find reader_ids in reader_page_visits that either:
+  // (a) have no reader_profiles row yet, OR
+  // (b) have visits newer than last_computed_at
+  const rows = await db.execute<{ reader_id: string }>(
+    sql`
+      SELECT DISTINCT rpv.reader_id
+      FROM reader_page_visits rpv
+      LEFT JOIN reader_profiles rp ON rp.reader_id = rpv.reader_id
+      WHERE rp.reader_id IS NULL
+         OR rpv.occurred_at > rp.last_computed_at
+      LIMIT ${limit}
+    `
+  )
+  return rows.rows.map(r => r.reader_id)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

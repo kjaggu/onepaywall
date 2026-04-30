@@ -28,13 +28,22 @@ type TriggerConditions = {
   maxVisitCount?: number
   deviceType?: string
   freeForHours?: number
+  // Reader intelligence conditions — only applied when profile is available
+  minMonetizationProbability?: number
+  readerSegments?: string[]   // e.g. ["regular", "power_user"] — gate only shows to these segments
 }
+
+type ReaderProfileContext = {
+  segment: string
+  monetizationProbability: number
+} | null
 
 function conditionsMet(
   conditions: TriggerConditions,
   visitCount: number,
   deviceType?: string,
   publishedAt?: Date,
+  readerProfile?: ReaderProfileContext,
 ): boolean {
   if (conditions.minVisitCount !== undefined && visitCount < conditions.minVisitCount) return false
   if (conditions.maxVisitCount !== undefined && visitCount > conditions.maxVisitCount) return false
@@ -42,6 +51,13 @@ function conditionsMet(
   if (conditions.freeForHours && publishedAt) {
     const ageMs = Date.now() - publishedAt.getTime()
     if (ageMs < conditions.freeForHours * 60 * 60 * 1000) return false
+  }
+  // Intelligence conditions — skip if profile not yet computed (new readers still see gates)
+  if (readerProfile) {
+    if (conditions.minMonetizationProbability !== undefined &&
+        readerProfile.monetizationProbability < conditions.minMonetizationProbability) return false
+    if (conditions.readerSegments && conditions.readerSegments.length > 0 &&
+        !conditions.readerSegments.includes(readerProfile.segment)) return false
   }
   return true
 }
@@ -105,8 +121,9 @@ export async function evaluateGate(opts: {
   deviceType?: string
   publishedAt?: Date
   preview?: boolean
+  readerProfile?: ReaderProfileContext
 }): Promise<EvaluationResult> {
-  const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt, preview } = opts
+  const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt, preview, readerProfile } = opts
   const urlPath = extractPath(pageUrl)
 
   const { gates: domainGates, rules: allRules, steps: allSteps } = await loadGateDomainConfig(domainId)
@@ -141,7 +158,7 @@ export async function evaluateGate(opts: {
 
     if (!preview) {
       const conditions = (gate.triggerConditions ?? {}) as TriggerConditions
-      if (!conditionsMet(conditions, visitCount, deviceType, publishedAt)) continue
+      if (!conditionsMet(conditions, visitCount, deviceType, publishedAt, readerProfile)) continue
     }
 
     const steps = allSteps.filter(s => s.gateId === gate.id)

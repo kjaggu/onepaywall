@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
+import { eq, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { readerPageVisits } from "@/lib/db/schema"
+import { readerPageVisits, readerTokens } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
 import { sanitizeUrl } from "@/lib/intelligence/sanitize"
+import { scheduleProfileCompute } from "@/lib/intelligence/computeProfile"
 
 export async function POST(req: NextRequest) {
   const body = await req.text().then(t => JSON.parse(t)).catch(() => null)
@@ -27,18 +29,32 @@ export async function POST(req: NextRequest) {
   const isSubscriber = typeof body.isSubscriber === "boolean" ? body.isSubscriber : null
   const gateShown = typeof body.gateShown === "boolean" ? body.gateShown : null
 
-  // Fire-and-forget — don't await in critical path, just queue it
-  void db.insert(readerPageVisits).values({
-    readerId: reader.readerId,
-    domainId: reader.domainId,
-    url,
-    readTimeSeconds: typeof body.readTimeSeconds === "number" ? Math.min(body.readTimeSeconds, 3600) : undefined,
-    scrollDepthPct: typeof body.scrollDepthPct === "number" ? Math.min(Math.max(body.scrollDepthPct, 0), 100) : undefined,
-    deviceType,
-    referrer,
-    isSubscriber,
-    gateShown,
-  })
+  // Fire-and-forget — don't await in critical path
+  void (async () => {
+    await db.insert(readerPageVisits).values({
+      readerId: reader.readerId,
+      domainId: reader.domainId,
+      url,
+      readTimeSeconds: typeof body.readTimeSeconds === "number" ? Math.min(body.readTimeSeconds, 3600) : undefined,
+      scrollDepthPct: typeof body.scrollDepthPct === "number" ? Math.min(Math.max(body.scrollDepthPct, 0), 100) : undefined,
+      deviceType,
+      referrer,
+      isSubscriber,
+      gateShown,
+    })
+
+    // Recompute profile every 5th visit for this reader across all domains.
+    // visitCount from the token is already incremented by resolveReader on gate-check;
+    // here we get the actual total across all domains for the trigger decision.
+    const [countRow] = await db
+      .select({ total: sql<number>`COUNT(*)::int` })
+      .from(readerPageVisits)
+      .where(eq(readerPageVisits.readerId, reader.readerId))
+    const totalVisits = Number(countRow?.total ?? 0)
+    if (totalVisits > 0 && totalVisits % 5 === 0) {
+      scheduleProfileCompute(reader.readerId)
+    }
+  })()
 
   return new NextResponse(null, { status: 204 })
 }
