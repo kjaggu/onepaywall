@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { eq, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { readerPageVisits } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
@@ -43,18 +42,10 @@ export async function POST(req: NextRequest) {
       gateShown,
     })
 
-    // Recompute profile every 5th visit for this reader across all domains.
-    // visitCount from the token is already incremented by resolveReader on gate-check;
-    // here we get the actual total across all domains for the trigger decision.
-    const [countRow] = await db
-      .select({ total: sql<number>`COUNT(*)::int` })
-      .from(readerPageVisits)
-      .where(eq(readerPageVisits.readerId, reader.readerId))
-    const totalVisits = Number(countRow?.total ?? 0)
-    if (totalVisits > 0 && totalVisits % 5 === 0) {
-      // Enqueue via Trigger.dev — retries on failure, full run history in dashboard
-      await computeProfileForReader.trigger({ readerId: reader.readerId }).catch(() => {})
-    }
+    // Enqueue a profile recompute on every signal. The task guards itself with a
+    // 30-minute freshness check and exits early if the profile is already fresh —
+    // so triggering here is cheap and new readers get a profile on their first visit.
+    await computeProfileForReader.trigger({ readerId: reader.readerId }).catch(() => {})
   })()
 
   return new NextResponse(null, { status: 204 })
