@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eq, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { readerPageVisits, readerTokens } from "@/lib/db/schema"
+import { readerPageVisits } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
 import { sanitizeUrl } from "@/lib/intelligence/sanitize"
-import { scheduleProfileCompute } from "@/lib/intelligence/computeProfile"
+import { computeProfileForReader } from "@/trigger/compute-profiles"
 
 export async function POST(req: NextRequest) {
   const body = await req.text().then(t => JSON.parse(t)).catch(() => null)
@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
       .where(eq(readerPageVisits.readerId, reader.readerId))
     const totalVisits = Number(countRow?.total ?? 0)
     if (totalVisits > 0 && totalVisits % 5 === 0) {
-      scheduleProfileCompute(reader.readerId)
+      // Enqueue via Trigger.dev — retries on failure, full run history in dashboard
+      await computeProfileForReader.trigger({ readerId: reader.readerId }).catch(() => {})
     }
   })()
 

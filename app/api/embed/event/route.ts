@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { gateEvents, gates } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
-import { scheduleProfileCompute } from "@/lib/intelligence/computeProfile"
+import { computeProfileForReader } from "@/trigger/compute-profiles"
 
 const VALID_EVENT_TYPES = new Set([
   "gate_shown", "step_shown", "gate_passed",
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
     metadata: typeof body.metadata === "object" ? body.metadata : {},
   })
 
-  // These events signal meaningful monetization intent — recompute immediately
+  // These events signal meaningful monetization intent — enqueue a profile recompute
   if (body.eventType === "gate_passed" || body.eventType === "ad_complete") {
-    scheduleProfileCompute(reader.readerId)
+    void computeProfileForReader.trigger({ readerId: reader.readerId }).catch(() => {})
   }
 
   return new NextResponse(null, { status: 204 })

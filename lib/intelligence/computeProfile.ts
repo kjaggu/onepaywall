@@ -213,11 +213,3 @@ export async function computeProfile(readerId: string): Promise<void> {
     })
 }
 
-// Trigger a profile recompute in the background (fire-and-forget).
-// Call from signal/event routes where we don't want to block the response.
-export function scheduleProfileCompute(readerId: string): void {
-  void computeProfile(readerId).catch(() => {
-    // Profile computation failures are non-critical — gate-check still works
-    // without a profile; it just won't use reader-segment conditions.
-  })
-}
