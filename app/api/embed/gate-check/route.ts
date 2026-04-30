@@ -39,16 +39,19 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Auto-verify embed on first hit — flips embedEnabled so the publisher can enable gates
+  // Fire-and-forget: auto-verify embed on first hit
   if (!domain.embedEnabled) {
-    await markEmbedVerified(siteKey)
+    markEmbedVerified(siteKey).catch(() => {})
   }
 
-  // Billing gate: stop serving if the publisher's subscription is suspended,
-  // their trial has expired without converting, or a cancelled sub is past
-  // its period end. Same fail-open shape as a missing domain — the embed
-  // never sees why; the publisher dashboard is loud about it via the banner.
-  const billingActive = await isPublisherActive(domain.publisherId)
+  const ua = req.headers.get("user-agent") ?? ""
+
+  // Parallelize billing check and reader resolution — both only need domain info
+  const [billingActive, reader] = await Promise.all([
+    isPublisherActive(domain.publisherId),
+    resolveReader(clientId, ua, domain.id),
+  ])
+
   if (!billingActive) {
     return NextResponse.json({ gate: null }, {
       headers: { "Cache-Control": "private, no-cache" },
@@ -68,39 +71,37 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const ua = req.headers.get("user-agent") ?? ""
+  // Parallelize subscription check and gate evaluation — both need readerId
+  const [hasActiveSub, result] = await Promise.all([
+    preview ? Promise.resolve(false) : readerHasActivePublisherSubscription(domain.publisherId, reader.readerId),
+    evaluateGate({
+      domainId: domain.id,
+      readerId: reader.readerId,
+      visitCount: reader.visitCount,
+      pageUrl,
+      deviceType,
+      publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
+      preview,
+    }),
+  ])
 
-  // Resolve (or create) reader + token, increment visit count
-  const reader = await resolveReader(clientId, ua, domain.id)
-
-  // Publisher-wide reader subscriptions bypass all gates for this publisher.
-  if (!preview && await readerHasActivePublisherSubscription(domain.publisherId, reader.readerId)) {
+  if (hasActiveSub) {
     return NextResponse.json(
       { token: reader.token, gate: null },
       { headers: { "Cache-Control": "private, no-cache" } },
     )
   }
 
-  // Evaluate gate
-  const result = await evaluateGate({
-    domainId: domain.id,
-    readerId: reader.readerId,
-    visitCount: reader.visitCount,
-    pageUrl,
-    deviceType,
-    publishedAt: publishedAt && !isNaN(publishedAt.getTime()) ? publishedAt : undefined,
-    preview,
-  })
-
   // Resolve unlock prices server-side so the embed always shows what we'll actually charge.
   // Pricing precedence is publisher_content_prices > publisher default > step config (see resolveUnlockPrice).
   if (result.gate) {
     const hasSubscriptionStep = result.gate.steps.some(step => step.stepType === "subscription_cta")
+
     const subscriptionIntervals = hasSubscriptionStep
-      ? getEnabledSyncedIntervals(
-          await getPublisherReaderPlan(domain.publisherId),
-          (await getOrCreatePgConfig(domain.publisherId)).mode,
-        )
+      ? await Promise.all([
+          getPublisherReaderPlan(domain.publisherId),
+          getOrCreatePgConfig(domain.publisherId),
+        ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode))
       : []
 
     for (const step of result.gate.steps) {

@@ -15,6 +15,8 @@ import {
   sendReaderPaymentReceived,
   sendReaderSubscriptionCancelled,
   sendReaderSubscriptionHalted,
+  sendReaderSubscriptionPaused,
+  sendReaderSubscriptionResumed,
 } from "@/lib/auth/email"
 
 type RazorpayWebhookPayload = Record<string, unknown>
@@ -47,6 +49,8 @@ function mapSubscriptionStatus(status: string, previousStatus: string) {
     case "pending":
     case "halted":
       return "past_due"
+    case "paused":
+      return "paused"
     case "cancelled":
     case "completed":
     case "expired":
@@ -161,6 +165,23 @@ export async function processReaderSubscriptionWebhook(input: {
         publisherName: ctx.publisherName,
         interval: ours.interval,
         currentPeriodEnd: remote?.currentEnd ?? null,
+      })
+    }
+
+    if (input.eventType === "subscription.paused") {
+      return sendReaderSubscriptionPaused({
+        to: ctx.email,
+        publisherName: ctx.publisherName,
+        interval: ours.interval,
+      })
+    }
+
+    if (input.eventType === "subscription.resumed") {
+      return sendReaderSubscriptionResumed({
+        to: ctx.email,
+        publisherName: ctx.publisherName,
+        interval: ours.interval,
+        nextRenewal: remote?.currentEnd ?? null,
       })
     }
   }).catch(() => {})

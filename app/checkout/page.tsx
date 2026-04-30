@@ -79,12 +79,31 @@ function CheckoutInner() {
       alignItems: "center",
       justifyContent: "center",
       height: "100vh",
-      fontFamily: "system-ui, sans-serif",
-      background: "#f9fafa",
-      color: "#666",
-      fontSize: "14px",
+      margin: 0,
+      background: "#0f0f0f",
+      fontFamily: "system-ui, -apple-system, sans-serif",
     }}>
-      Opening payment window…
+      <div style={{
+        textAlign: "center",
+        color: "#fff",
+      }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          border: "3px solid rgba(255,255,255,0.15)",
+          borderTopColor: "#27adb0",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+          margin: "0 auto 16px",
+        }} />
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>
+          Opening secure payment…
+        </p>
+      </div>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        body { margin: 0; }
+      `}</style>
     </div>
   )
 }

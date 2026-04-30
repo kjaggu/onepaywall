@@ -352,6 +352,68 @@ export async function sendReaderSubscriptionCancelled(input: {
   })
 }
 
+export async function sendReaderSubscriptionPaused(input: {
+  to: string
+  publisherName: string
+  interval: string
+}) {
+  const { to, publisherName, interval } = input
+  const intervalLabel = interval === "monthly" ? "monthly" : interval === "quarterly" ? "quarterly" : "annual"
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your ${publisherName} subscription has been paused`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:40px 24px;color:#111">
+        <div style="margin-bottom:28px"><span style="font-weight:700;font-size:16px">${publisherName}</span></div>
+        <h1 style="font-size:22px;font-weight:600;margin:0 0 8px">Subscription paused</h1>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px">
+          Your <strong>${publisherName}</strong> ${intervalLabel} membership has been paused.
+          Your access to premium content is suspended until the subscription is resumed.
+        </p>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 28px">
+          To resume, update your payment method in your UPI app or bank and contact the publication.
+        </p>
+        <div style="margin-top:40px;padding-top:24px;border-top:1px solid #ebebeb">
+          <p style="font-size:11px;color:#bbb;margin:0">Powered by <a href="https://www.onepaywall.com" style="color:#bbb">OnePaywall</a> · Sent to ${to}</p>
+        </div>
+      </div>
+    `,
+  })
+}
+
+export async function sendReaderSubscriptionResumed(input: {
+  to: string
+  publisherName: string
+  interval: string
+  nextRenewal: Date | null
+}) {
+  const { to, publisherName, interval, nextRenewal } = input
+  const intervalLabel = interval === "monthly" ? "monthly" : interval === "quarterly" ? "quarterly" : "annual"
+  const nextLabel = nextRenewal
+    ? nextRenewal.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+    : null
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your ${publisherName} subscription has been resumed`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:40px 24px;color:#111">
+        <div style="margin-bottom:28px"><span style="font-weight:700;font-size:16px">${publisherName}</span></div>
+        <h1 style="font-size:22px;font-weight:600;margin:0 0 8px">Subscription resumed</h1>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 24px">
+          Great news — your <strong>${publisherName}</strong> ${intervalLabel} membership is active again.
+          You have full access to premium content.
+          ${nextLabel ? `Your next renewal is on <strong>${nextLabel}</strong>.` : ""}
+        </p>
+        <div style="margin-top:40px;padding-top:24px;border-top:1px solid #ebebeb">
+          <p style="font-size:11px;color:#bbb;margin:0">Powered by <a href="https://www.onepaywall.com" style="color:#bbb">OnePaywall</a> · Sent to ${to}</p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendReaderSubscriptionMagicLink(to: string, publicationName: string, restoreUrl: string) {
   await resend.emails.send({
     from: FROM,

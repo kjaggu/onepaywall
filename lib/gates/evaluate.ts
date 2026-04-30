@@ -58,7 +58,7 @@ export async function evaluateGate(opts: {
   const { domainId, readerId, visitCount, pageUrl, deviceType, publishedAt, preview } = opts
   const urlPath = extractPath(pageUrl)
 
-  // Load all enabled gates for domain with their rules, ordered by priority DESC
+  // Load all enabled gates for domain first — needed to know gate IDs
   const domainGates = await db
     .select()
     .from(gates)
@@ -67,61 +67,47 @@ export async function evaluateGate(opts: {
 
   if (domainGates.length === 0) return { gate: null }
 
-  // Load all rules for these gates in one query
   const gateIds = domainGates.map(g => g.id)
-  const allRules = await db
-    .select()
-    .from(gateRules)
-    .where(
-      gateIds.length === 1
-        ? eq(gateRules.gateId, gateIds[0])
-        : or(...gateIds.map(id => eq(gateRules.gateId, id)))!,
-    )
+  const gateIdFilter = gateIds.length === 1
+    ? eq(gateRules.gateId, gateIds[0])
+    : or(...gateIds.map(id => eq(gateRules.gateId, id)))!
 
-  // Load valid unexpired unlocks for this reader across all gates
   const now = new Date()
-  const existingUnlocks = await db
-    .select({ gateId: gateUnlocks.gateId })
-    .from(gateUnlocks)
-    .where(
-      and(
+
+  // Load rules, unlocks, and steps all in parallel
+  const [allRules, existingUnlocks, allSteps] = await Promise.all([
+    db.select().from(gateRules).where(gateIdFilter),
+    db.select({ gateId: gateUnlocks.gateId })
+      .from(gateUnlocks)
+      .where(and(
         eq(gateUnlocks.readerId, readerId),
         gateIds.length === 1
           ? eq(gateUnlocks.gateId, gateIds[0])
           : or(...gateIds.map(id => eq(gateUnlocks.gateId, id))),
         or(isNull(gateUnlocks.expiresAt), gt(gateUnlocks.expiresAt, now)),
-      ),
-    )
+      )),
+    db.select().from(gateSteps)
+      .where(gateIds.length === 1
+        ? eq(gateSteps.gateId, gateIds[0])
+        : or(...gateIds.map(id => eq(gateSteps.gateId, id)))!)
+      .orderBy(gateSteps.stepOrder),
+  ])
 
   const unlockedGateIds = new Set(existingUnlocks.map(u => u.gateId))
-
-  // Evaluate gates in priority order (higher priority = evaluated first)
   const sortedGates = [...domainGates].sort((a, b) => b.priority - a.priority)
 
   for (const gate of sortedGates) {
-    // In preview mode skip unlock and trigger checks — always show the gate
-    if (!preview) {
-      if (unlockedGateIds.has(gate.id)) continue
-    }
+    if (!preview && unlockedGateIds.has(gate.id)) continue
 
     const rules = allRules.filter(r => r.gateId === gate.id)
-
-    // URL doesn't match this gate's rules — skip (not enforced in preview mode)
     if (!preview && !gateMatchesUrl(rules, urlPath)) continue
 
-    // Gate-level trigger conditions (skip in preview mode)
     if (!preview) {
       const conditions = (gate.triggerConditions ?? {}) as TriggerConditions
       if (!conditionsMet(conditions, visitCount, deviceType, publishedAt)) continue
     }
 
-    // Gate applies — load its steps
-    const steps = await db
-      .select()
-      .from(gateSteps)
-      .where(eq(gateSteps.gateId, gate.id))
-      .orderBy(gateSteps.stepOrder)
-
+    const steps = allSteps.filter(s => s.gateId === gate.id)
     return {
       gate: {
         id: gate.id,

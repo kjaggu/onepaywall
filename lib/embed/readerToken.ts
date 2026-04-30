@@ -16,20 +16,15 @@ export async function resolveReader(
 ): Promise<ReaderContext> {
   const fingerprint = computeFingerprint(clientId, userAgent)
 
-  // Upsert reader (update last_seen_at on conflict)
-  await db
+  // Upsert reader and get ID back in one round trip
+  const [reader] = await db
     .insert(readers)
     .values({ fingerprint, lastSeenAt: new Date() })
     .onConflictDoUpdate({ target: readers.fingerprint, set: { lastSeenAt: new Date() } })
+    .returning({ id: readers.id })
 
-  const [reader] = await db
-    .select({ id: readers.id })
-    .from(readers)
-    .where(eq(readers.fingerprint, fingerprint))
-    .limit(1)
-
-  // Upsert reader token — create on first visit, increment count on repeat
-  await db
+  // Upsert reader token and get token + visitCount back in one round trip
+  const [rt] = await db
     .insert(readerTokens)
     .values({ readerId: reader.id, domainId, token: generateToken(), visitCount: 1 })
     .onConflictDoUpdate({
@@ -39,12 +34,7 @@ export async function resolveReader(
         updatedAt: new Date(),
       },
     })
-
-  const [rt] = await db
-    .select({ token: readerTokens.token, visitCount: readerTokens.visitCount })
-    .from(readerTokens)
-    .where(and(eq(readerTokens.readerId, reader.id), eq(readerTokens.domainId, domainId)))
-    .limit(1)
+    .returning({ token: readerTokens.token, visitCount: readerTokens.visitCount })
 
   return { readerId: reader.id, token: rt.token, visitCount: rt.visitCount }
 }

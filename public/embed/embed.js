@@ -179,10 +179,13 @@
 
           // Open popup synchronously in the click handler so popup blockers don't fire.
           // We redirect it to the full checkout URL once we have the subscription ID.
+          var pw = 480, ph = 640;
+          var pl = Math.round(window.screenX + (window.outerWidth - pw) / 2);
+          var pt = Math.round(window.screenY + (window.outerHeight - ph) / 2);
           var checkoutWin = window.open(
             _base + "/checkout",
             "opw-checkout",
-            "width=500,height=680,scrollbars=no,resizable=no"
+            "width=" + pw + ",height=" + ph + ",left=" + pl + ",top=" + pt + ",scrollbars=no,resizable=no,toolbar=no,menubar=no,location=no,status=no"
           );
           if (!checkoutWin) {
             cta.disabled = false;
