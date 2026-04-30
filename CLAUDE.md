@@ -9,19 +9,19 @@
 |------|-----|
 | `superadmin` | OnePaywall team — manages publishers, plans, platform |
 | `publisher` | Website/app owner + team — manages domains, gates, ads, analytics |
-| Reader | End user of publisher sites — never logs in, identified anonymously |
+| Reader | End user of publisher sites — anonymous by default; subscription restore uses email magic links |
 
 ---
 
 ## Tech stack
 | Layer | Choice |
 |-------|--------|
-| Framework | Next.js 15 App Router, TypeScript strict |
+| Framework | Next.js 16 App Router, TypeScript strict |
 | Database | Neon serverless Postgres + Drizzle ORM (HTTP driver) |
 | UI | Tailwind CSS + shadcn/ui |
 | Client state | Zustand (UI only) + URL state (navigation) |
 | Auth | JWT HTTP-only cookie — `jose` + `bcryptjs` |
-| Payments | Razorpay (platform keys for OnePaywall billing; publisher own keys for reader monetization) |
+| Payments | Razorpay (separate platform keys for OnePaywall billing; platform or publisher-owned keys for reader monetization) |
 | Storage | Cloudflare R2 — ad creative uploads |
 | Testing | Node.js native `node --test` |
 
@@ -29,11 +29,12 @@
 
 ## Folder structure
 ```
-app/(auth)          login, signup
+app/(auth)          login, register, forgot/reset password
 app/(dashboard)     publisher workspace — layout-level session guard
-app/(admin)         superadmin panel — layout-level session guard
+app/admin           superadmin panel — layout-level session guard
 app/api/            API route handlers — thin, delegate to /lib
-app/embed/          public embed endpoints — no auth, domain-verified, stateless
+app/api/embed/      public embed endpoints — no auth, domain-verified, stateless
+app/embed/          embed test/debug pages
 components/ui/      shadcn primitives only
 components/shared/  reusable app components
 components/dashboard/ components/admin/
@@ -70,7 +71,7 @@ Components never touch DB. API routes never contain business logic. `/lib` is pu
 
 **Product constraint** — every feature must: increase revenue per reader without increasing dropoff.
 
-**Privacy** — all reader data tied to anonymous fingerprint only, never PII. Raw signals hard-deleted after 90 days.
+**Privacy** — reader behavior data is tied to anonymous fingerprint only; raw signals hard-deleted after 90 days. Paid reader subscriptions are the only PII exception: store normalized email hash + encrypted email for magic-link restore and support.
 
 **Payments** — two separate flows: OnePaywall billing (platform keys) vs reader monetization (publisher's own or platform keys). Always call `lib/payments/resolveConfig(publisherId)` — never hardcode which keys to use.
 

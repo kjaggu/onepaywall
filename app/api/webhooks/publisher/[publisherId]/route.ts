@@ -6,6 +6,8 @@ import { domains, pgWebhookEvents, readerTokens } from "@/lib/db/schema"
 import { resolveConfig } from "@/lib/payments/resolveConfig"
 import { fetchOrder } from "@/lib/payments/oneTimeUnlock"
 import { recordSuccessfulUnlock } from "@/lib/payments/recordUnlock"
+import { processReaderSubscriptionWebhook } from "@/lib/payments/readerSubscriptionWebhooks"
+import { markReaderTransactionFailed } from "@/lib/db/queries/transactions"
 
 // POST /api/webhooks/publisher/[publisherId]
 // Razorpay sends payment events here. Register this URL in the publisher's Razorpay dashboard.
@@ -55,6 +57,12 @@ export async function POST(
   if (eventType === "payment.captured") {
     await handlePaymentCaptured(publisherId, event.payload ?? {})
   }
+  if (eventType === "payment.failed") {
+    await handlePaymentFailed(publisherId, event.payload ?? {})
+  }
+  if (eventType?.startsWith("subscription.") || eventType === "payment.captured") {
+    await processReaderSubscriptionWebhook({ publisherId, eventType, payload: event.payload ?? {} })
+  }
 
   if (eventId && eventType) {
     await db.insert(pgWebhookEvents).values({
@@ -67,6 +75,63 @@ export async function POST(
   }
 
   return NextResponse.json({ ok: true })
+}
+
+async function handlePaymentFailed(publisherId: string, payload: Record<string, unknown>) {
+  const payment = (payload as { payment?: { entity?: Record<string, unknown> } }).payment?.entity
+  if (!payment) return
+
+  const notes = payment.notes as Record<string, string> | undefined
+  const readerToken = notes?.readerToken
+  const orderId = typeof payment.order_id === "string" ? payment.order_id : null
+  const paymentId = typeof payment.id === "string" ? payment.id : null
+  const subscriptionId = typeof payment.subscription_id === "string" ? payment.subscription_id : null
+  const reason = String(payment.error_description ?? payment.error_reason ?? "Payment failed")
+
+  let readerId: string | null = null
+  let domainId: string | null = null
+  if (readerToken) {
+    const [rt] = await db
+      .select({
+        readerId: readerTokens.readerId,
+        domainId: readerTokens.domainId,
+        domainPublisherId: domains.publisherId,
+      })
+      .from(readerTokens)
+      .leftJoin(domains, eq(readerTokens.domainId, domains.id))
+      .where(eq(readerTokens.token, readerToken))
+      .limit(1)
+    if (rt?.domainPublisherId === publisherId) {
+      readerId = rt.readerId
+      domainId = rt.domainId
+    }
+  }
+
+  if (orderId) {
+    await markReaderTransactionFailed({
+      publisherId,
+      type: "one_time_unlock",
+      amount: Number(payment.amount ?? 0),
+      currency: String(payment.currency ?? "INR"),
+      razorpayPaymentId: paymentId,
+      razorpayOrderId: orderId,
+      readerId,
+      contentUrl: notes?.contentUrl ?? null,
+      failureReason: reason,
+      metadata: { gateId: notes?.gateId, domainId },
+    })
+  } else if (subscriptionId) {
+    await markReaderTransactionFailed({
+      publisherId,
+      type: "subscription",
+      amount: Number(payment.amount ?? 0),
+      currency: String(payment.currency ?? "INR"),
+      razorpayPaymentId: paymentId,
+      razorpaySubscriptionId: subscriptionId,
+      readerId,
+      failureReason: reason,
+    })
+  }
 }
 
 async function handlePaymentCaptured(publisherId: string, payload: Record<string, unknown>) {

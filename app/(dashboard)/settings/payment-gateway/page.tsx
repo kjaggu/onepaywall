@@ -19,7 +19,7 @@ export default async function PaymentGatewayPage() {
         <div>
           <h1 className="text-h1 text-[var(--color-text)]">Payment gateway</h1>
           <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">
-            Choose how subscription payments are collected from your readers.
+            Choose how article unlocks and reader subscriptions are collected.
           </p>
         </div>
       </div>

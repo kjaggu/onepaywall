@@ -89,3 +89,30 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
     `,
   })
 }
+
+export async function sendReaderSubscriptionMagicLink(to: string, publicationName: string, restoreUrl: string) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Restore your ${publicationName} membership`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+        <div style="margin-bottom:28px">
+          <span style="font-weight:700;font-size:15px;color:#111">OnePaywall</span>
+        </div>
+        <h1 style="font-size:20px;font-weight:600;color:#111;margin-bottom:8px">Restore your membership</h1>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:28px">
+          Click below to restore your active <strong>${publicationName}</strong> membership on this browser.
+          This link expires in 30 minutes.
+        </p>
+        <a href="${restoreUrl}"
+           style="display:inline-block;padding:10px 22px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600">
+          Restore access
+        </a>
+        <p style="font-size:12px;color:#aaa;margin-top:28px">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  })
+}

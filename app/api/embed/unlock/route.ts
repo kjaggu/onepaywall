@@ -10,6 +10,7 @@ import {
 } from "@/lib/payments/oneTimeUnlock"
 import { recordSuccessfulUnlock } from "@/lib/payments/recordUnlock"
 import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
+import { createPendingReaderTransaction, markReaderTransactionFailed } from "@/lib/db/queries/transactions"
 
 // POST /api/embed/unlock?action=create — create a Razorpay order for a one-time unlock step
 // POST /api/embed/unlock?action=verify — verify payment signature and write gate_unlock + transaction
@@ -23,10 +24,10 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleCreate(req: NextRequest) {
-  let body: { token?: string; gateId?: string; stepId?: string; url?: string }
+  let body: { token?: string; gateId?: string; stepId?: string; url?: string; email?: string }
   try { body = await req.json() } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }) }
 
-  const { token, gateId, stepId, url: pageUrl } = body
+  const { token, gateId, stepId, url: pageUrl, email } = body
   if (!token || !gateId || !stepId) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 })
   }
@@ -66,6 +67,18 @@ async function handleCreate(req: NextRequest) {
       stepId,
       contentUrl: pageUrl,
     })
+    await createPendingReaderTransaction({
+      publisherId: domain.publisherId,
+      domainId: reader.domainId,
+      readerId: reader.readerId,
+      type: "one_time_unlock",
+      amount: resolved.amountInPaise,
+      currency: order.currency,
+      razorpayOrderId: order.orderId,
+      contentUrl: pageUrl,
+      readerEmail: email ?? null,
+      metadata: { gateId, stepId },
+    })
     return NextResponse.json(order)
   } catch (e) {
     console.error("Razorpay order creation failed:", e)
@@ -80,10 +93,11 @@ async function handleVerify(req: NextRequest) {
     orderId?: string
     paymentId?: string
     signature?: string
+    email?: string
   }
   try { body = await req.json() } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }) }
 
-  const { token, gateId, orderId, paymentId, signature } = body
+  const { token, gateId, orderId, paymentId, signature, email } = body
   if (!token || !gateId || !orderId || !paymentId || !signature) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 })
   }
@@ -99,7 +113,19 @@ async function handleVerify(req: NextRequest) {
   if (!domain) return NextResponse.json({ error: "domain not found" }, { status: 404 })
 
   const valid = await verifyPaymentSignature(domain.publisherId, orderId, paymentId, signature)
-  if (!valid) return NextResponse.json({ error: "invalid signature" }, { status: 400 })
+  if (!valid) {
+    await markReaderTransactionFailed({
+      publisherId: domain.publisherId,
+      type: "one_time_unlock",
+      razorpayPaymentId: paymentId,
+      razorpayOrderId: orderId,
+      readerId: reader.readerId,
+      readerEmail: email ?? null,
+      failureReason: "Invalid Razorpay signature",
+      metadata: { gateId },
+    })
+    return NextResponse.json({ error: "invalid signature" }, { status: 400 })
+  }
 
   // Fetch the order from Razorpay so amount + contentUrl are taken from the
   // authoritative source — never from the client.
@@ -115,6 +141,7 @@ async function handleVerify(req: NextRequest) {
     razorpayOrderId:   orderId,
     amountInPaise:     order.amount,
     contentUrl:        order.notes.contentUrl ?? null,
+    readerEmail:       email ?? null,
   })
 
   return NextResponse.json({ ok: true })

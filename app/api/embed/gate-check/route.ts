@@ -7,6 +7,9 @@ import { evaluateGate } from "@/lib/gates/evaluate"
 import { resolveUnlockPrice } from "@/lib/payments/resolveUnlockPrice"
 import { isPublisherActive } from "@/lib/db/queries/billing"
 import { markEmbedVerified } from "@/lib/db/queries/domains"
+import { readerHasActivePublisherSubscription } from "@/lib/db/queries/reader-subscriptions"
+import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
+import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -70,6 +73,14 @@ export async function GET(req: NextRequest) {
   // Resolve (or create) reader + token, increment visit count
   const reader = await resolveReader(clientId, ua, domain.id)
 
+  // Publisher-wide reader subscriptions bypass all gates for this publisher.
+  if (!preview && await readerHasActivePublisherSubscription(domain.publisherId, reader.readerId)) {
+    return NextResponse.json(
+      { token: reader.token, gate: null },
+      { headers: { "Cache-Control": "private, no-cache" } },
+    )
+  }
+
   // Evaluate gate
   const result = await evaluateGate({
     domainId: domain.id,
@@ -84,7 +95,25 @@ export async function GET(req: NextRequest) {
   // Resolve unlock prices server-side so the embed always shows what we'll actually charge.
   // Pricing precedence is publisher_content_prices > publisher default > step config (see resolveUnlockPrice).
   if (result.gate) {
+    const hasSubscriptionStep = result.gate.steps.some(step => step.stepType === "subscription_cta")
+    const subscriptionIntervals = hasSubscriptionStep
+      ? getEnabledSyncedIntervals(
+          await getPublisherReaderPlan(domain.publisherId),
+          (await getOrCreatePgConfig(domain.publisherId)).mode,
+        )
+      : []
+
     for (const step of result.gate.steps) {
+      if (step.stepType === "subscription_cta") {
+        step.config = {
+          ...step.config,
+          intervals: subscriptionIntervals.map(i => ({
+            interval: i.interval,
+            price: i.price,
+            currency: i.currency,
+          })),
+        }
+      }
       if (step.stepType !== "one_time_unlock") continue
       const stepCfg = step.config as { priceInPaise?: number }
       const resolved = await resolveUnlockPrice({

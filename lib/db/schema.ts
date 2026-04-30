@@ -381,6 +381,24 @@ export const publisherReaderPlans = pgTable("publisher_reader_plans", {
   quarterlyPrice:  integer("quarterly_price"),
   annualPrice:     integer("annual_price"),
   subsEnabled:     boolean("subs_enabled").notNull().default(false),
+  monthlyRazorpayPlanId:     text("monthly_razorpay_plan_id"),
+  quarterlyRazorpayPlanId:   text("quarterly_razorpay_plan_id"),
+  annualRazorpayPlanId:      text("annual_razorpay_plan_id"),
+  monthlySyncedPrice:        integer("monthly_synced_price"),
+  quarterlySyncedPrice:      integer("quarterly_synced_price"),
+  annualSyncedPrice:         integer("annual_synced_price"),
+  monthlySyncedCurrency:     text("monthly_synced_currency"),
+  quarterlySyncedCurrency:   text("quarterly_synced_currency"),
+  annualSyncedCurrency:      text("annual_synced_currency"),
+  monthlySyncedPgMode:       pgModeEnum("monthly_synced_pg_mode"),
+  quarterlySyncedPgMode:     pgModeEnum("quarterly_synced_pg_mode"),
+  annualSyncedPgMode:        pgModeEnum("annual_synced_pg_mode"),
+  monthlySyncedAt:           timestamp("monthly_synced_at"),
+  quarterlySyncedAt:         timestamp("quarterly_synced_at"),
+  annualSyncedAt:            timestamp("annual_synced_at"),
+  monthlySyncError:          text("monthly_sync_error"),
+  quarterlySyncError:        text("quarterly_sync_error"),
+  annualSyncError:           text("annual_sync_error"),
   defaultUnlockPrice: integer("default_unlock_price"),
   unlockEnabled:   boolean("unlock_enabled").notNull().default(false),
   createdAt:       timestamp("created_at").notNull().defaultNow(),
@@ -417,13 +435,86 @@ export const readerTransactions = pgTable("reader_transactions", {
   currency:            text("currency").notNull().default("INR"),
   razorpayPaymentId:   text("razorpay_payment_id"),
   razorpayOrderId:     text("razorpay_order_id"),
+  razorpaySubscriptionId: text("razorpay_subscription_id"),
+  readerEmailHash:     text("reader_email_hash"),
+  encryptedReaderEmail:text("encrypted_reader_email"),
   contentUrl:          text("content_url"),
+  failureReason:       text("failure_reason"),
   metadata:            jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
   createdAt:           timestamp("created_at").notNull().defaultNow(),
+  updatedAt:           timestamp("updated_at").notNull().defaultNow(),
+  completedAt:         timestamp("completed_at"),
 }, t => [
   index("reader_transactions_publisher_idx").on(t.publisherId),
   index("reader_transactions_created_idx").on(t.createdAt),
   index("reader_transactions_type_idx").on(t.type),
+  index("reader_transactions_status_idx").on(t.status),
+  index("reader_transactions_payment_idx").on(t.razorpayPaymentId),
+  index("reader_transactions_order_idx").on(t.razorpayOrderId),
+  index("reader_transactions_subscription_idx").on(t.razorpaySubscriptionId),
+])
+
+// ─── Reader subscriptions ────────────────────────────────────────────────────
+
+export const readerSubscribers = pgTable("reader_subscribers", {
+  id:                 text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:        text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  emailHash:          text("email_hash").notNull(),
+  encryptedEmail:     text("encrypted_email").notNull(),
+  razorpayCustomerId: text("razorpay_customer_id"),
+  active:             boolean("active").notNull().default(true),
+  createdAt:          timestamp("created_at").notNull().defaultNow(),
+  updatedAt:          timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("reader_subscribers_publisher_email_idx").on(t.publisherId, t.emailHash),
+  index("reader_subscribers_publisher_idx").on(t.publisherId),
+])
+
+export const readerSubscriptions = pgTable("reader_subscriptions", {
+  id:                    text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:           text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  subscriberId:          text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  interval:              text("interval").notNull(),
+  status:                text("status").notNull().default("created"),
+  pgMode:                pgModeEnum("pg_mode").notNull(),
+  razorpaySubscriptionId:text("razorpay_subscription_id").notNull(),
+  razorpayPlanId:        text("razorpay_plan_id").notNull(),
+  currentPeriodStart:    timestamp("current_period_start"),
+  currentPeriodEnd:      timestamp("current_period_end"),
+  cancelledAt:           timestamp("cancelled_at"),
+  cancelAtCycleEnd:      boolean("cancel_at_cycle_end").notNull().default(false),
+  dunningStartedAt:      timestamp("dunning_started_at"),
+  createdAt:             timestamp("created_at").notNull().defaultNow(),
+  updatedAt:             timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("reader_subscriptions_razorpay_idx").on(t.razorpaySubscriptionId),
+  index("reader_subscriptions_publisher_idx").on(t.publisherId),
+  index("reader_subscriptions_subscriber_idx").on(t.subscriberId),
+  index("reader_subscriptions_status_idx").on(t.status),
+])
+
+export const readerSubscriptionLinks = pgTable("reader_subscription_links", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  readerId:     text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("reader_subscription_links_reader_publisher_idx").on(t.readerId, t.publisherId),
+  index("reader_subscription_links_subscriber_idx").on(t.subscriberId),
+])
+
+export const readerSubscriptionMagicLinks = pgTable("reader_subscription_magic_links", {
+  token:        text("token").primaryKey(),
+  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  returnUrl:    text("return_url"),
+  expiresAt:    timestamp("expires_at").notNull(),
+  usedAt:       timestamp("used_at"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("reader_subscription_magic_links_subscriber_idx").on(t.subscriberId),
+  index("reader_subscription_magic_links_expires_idx").on(t.expiresAt),
 ])
 
 // ─── Password reset tokens ────────────────────────────────────────────────────

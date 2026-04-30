@@ -1,6 +1,6 @@
 import { eq, and, isNull, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { domains } from "@/lib/db/schema"
+import { domains, publishers } from "@/lib/db/schema"
 import { generateSiteKey } from "@/lib/embed/siteKey"
 
 export async function listDomains(publisherId: string) {
@@ -16,6 +16,23 @@ export async function getDomain(id: string, publisherId: string) {
     .select()
     .from(domains)
     .where(and(eq(domains.id, id), eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
+    .limit(1)
+  return row ?? null
+}
+
+export async function getDomainOwnerByHost(domain: string) {
+  const normalised = domain.toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "")
+  const [row] = await db
+    .select({
+      id: domains.id,
+      domain: domains.domain,
+      publisherId: domains.publisherId,
+      publisherName: publishers.name,
+      deletedAt: domains.deletedAt,
+    })
+    .from(domains)
+    .innerJoin(publishers, eq(domains.publisherId, publishers.id))
+    .where(eq(domains.domain, normalised))
     .limit(1)
   return row ?? null
 }

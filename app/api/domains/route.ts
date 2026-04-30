@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
-import { listDomains, createDomain, countActiveDomains } from "@/lib/db/queries/domains"
+import { listDomains, createDomain, countActiveDomains, getDomainOwnerByHost } from "@/lib/db/queries/domains"
 import { getPublisherLimits } from "@/lib/db/queries/billing"
 
 export async function GET() {
@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid domain format" }, { status: 400 })
   }
 
+  const existingOwner = await getDomainOwnerByHost(normalised)
+  if (existingOwner && existingOwner.publisherId !== session.publisherId && !existingOwner.deletedAt) {
+    return NextResponse.json({
+      error: `This domain is already linked to another publisher (${existingOwner.publisherName}).`,
+    }, { status: 409 })
+  }
+
   // Plan-limit check. NULL maxDomains means unlimited (Scale tier).
   const limits = await getPublisherLimits(session.publisherId)
   if (limits?.maxDomains != null) {
@@ -45,7 +52,7 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : ""
     if (msg.includes("domains_domain_idx")) {
-      return NextResponse.json({ error: "Domain is already registered" }, { status: 409 })
+      return NextResponse.json({ error: "This domain is already linked to a publisher." }, { status: 409 })
     }
     throw e
   }

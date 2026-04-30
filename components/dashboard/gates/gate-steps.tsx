@@ -99,6 +99,18 @@ function StepConfigEditor({
             <label className="text-label text-[var(--muted-foreground)]">Label</label>
             <Input value={String(config.label ?? "")} onChange={e => set("label", e.target.value)} placeholder="Read this article" />
           </div>
+          <div className="col-span-2 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`hideSkip-${step.id}`}
+              checked={Boolean(config.hideSkip)}
+              onChange={e => set("hideSkip", e.target.checked)}
+              className="h-4 w-4 rounded border-[var(--input)] accent-[var(--color-brand)]"
+            />
+            <label htmlFor={`hideSkip-${step.id}`} className="text-label text-[var(--color-text)] cursor-pointer">
+              Hide skip button — reader must pay to proceed
+            </label>
+          </div>
         </div>
       )}
 

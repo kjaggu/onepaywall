@@ -7,6 +7,7 @@ created_at, last_seen_at
 ```
 - Created on first gate check for unknown fingerprint.
 - Never store IP addresses. Fingerprint derived from but does not contain raw IP.
+- Paid subscriptions link an anonymous reader to `reader_subscribers` after checkout or magic-link restore. See `docs/data-model/payments.md`; this is the only reader PII exception.
 
 ## `reader_tokens`
 ```

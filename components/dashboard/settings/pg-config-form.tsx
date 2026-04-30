@@ -110,8 +110,8 @@ export function PgConfigForm({ initial }: Props) {
             </p>
             <p className="text-body-sm text-[var(--color-text-secondary)] mt-1">
               {m === "platform"
-                ? "OnePaywall collects payments on your behalf using our Razorpay account."
-                : "Connect your own Razorpay account. You receive funds directly."}
+                ? "OnePaywall collects reader payments, tracks revenue by publisher, and reconciles payouts."
+                : "Connect your own Razorpay account. You receive funds directly while OnePaywall manages access and analytics."}
             </p>
           </button>
         ))}
@@ -124,7 +124,8 @@ export function PgConfigForm({ initial }: Props) {
           <div>
             <p className="text-body-sm font-medium text-[var(--color-text)]">No setup needed</p>
             <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">
-              OnePaywall handles payment processing. Revenue is settled to you after platform fees are deducted.
+              OnePaywall handles article unlocks and subscriptions using our reader-payment Razorpay account.
+              Revenue is reconciled to you after platform fees are deducted.
             </p>
           </div>
         </div>
@@ -175,7 +176,14 @@ export function PgConfigForm({ initial }: Props) {
               onChange={setWebhookSecret}
             />
             <p className="text-xs text-[var(--color-text-secondary)]">
-              Set in Razorpay Dashboard → Webhooks. Used to validate incoming payment events.
+              Set in Razorpay Dashboard → Webhooks. Required for reliable subscription renewals, cancellations, and failed-payment updates.
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3">
+            <p className="text-body-sm font-medium text-[var(--color-text)]">Webhook URL</p>
+            <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">
+              Add your publisher webhook URL in Razorpay. It ends with <span className="font-mono">/api/webhooks/publisher/&lt;publisherId&gt;</span>.
             </p>
           </div>
         </div>

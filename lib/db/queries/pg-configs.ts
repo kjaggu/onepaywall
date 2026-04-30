@@ -53,9 +53,9 @@ export async function resolveDecryptedConfig(publisherId: string) {
     return {
       mode: "platform" as const,
       provider: "razorpay" as const,
-      keyId: process.env.RAZORPAY_KEY_ID ?? "",
-      keySecret: process.env.RAZORPAY_KEY_SECRET ?? "",
-      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET ?? "",
+      keyId: process.env.RAZORPAY_KEY_ID ?? process.env.RAZORPAY_PLATFORM_KEY_ID ?? "",
+      keySecret: process.env.RAZORPAY_KEY_SECRET ?? process.env.RAZORPAY_PLATFORM_KEY_SECRET ?? "",
+      webhookSecret: process.env.RAZORPAY_READER_WEBHOOK_SECRET ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? process.env.RAZORPAY_PLATFORM_WEBHOOK_SECRET ?? "",
     }
   }
   return {

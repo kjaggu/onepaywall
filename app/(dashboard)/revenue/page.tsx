@@ -10,7 +10,13 @@ type Transaction = {
   amount: number
   currency: string
   razorpayPaymentId: string | null
+  razorpayOrderId: string | null
+  razorpaySubscriptionId: string | null
+  readerEmail: string | null
+  readerEmailHash: string | null
   contentUrl: string | null
+  failureReason: string | null
+  completedAt: string | null
   readerId: string | null
   domainId: string | null
   domainName: string | null
@@ -24,6 +30,8 @@ type Summary = {
   unlocks: number
   recentTotal: number
   count: number
+  pendingCount: number
+  failedCount: number
 }
 
 const TYPE_LABELS: Record<Transaction["type"], string> = {
@@ -43,7 +51,7 @@ function fmt(amount: number, currency: string) {
 }
 
 function exportCsv(rows: Transaction[]) {
-  const headers = ["ID", "Date", "Type", "Status", "Amount", "Currency", "Domain", "Content URL", "Payment ID", "Reader ID"]
+  const headers = ["ID", "Date", "Type", "Status", "Amount", "Currency", "Reader Email", "Domain", "Content URL", "Payment ID", "Order ID", "Subscription ID", "Failure Reason", "Reader ID"]
   const lines = rows.map(r => [
     r.id,
     new Date(r.createdAt).toISOString(),
@@ -51,9 +59,13 @@ function exportCsv(rows: Transaction[]) {
     r.status,
     (r.amount / 100).toFixed(2),
     r.currency,
+    r.readerEmail ?? "",
     r.domainHost ?? "",
     r.contentUrl ?? "",
     r.razorpayPaymentId ?? "",
+    r.razorpayOrderId ?? "",
+    r.razorpaySubscriptionId ?? "",
+    r.failureReason ?? "",
     r.readerId ?? "",
   ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
 
@@ -94,12 +106,12 @@ export default function RevenuePage() {
     { label: "Total revenue",   value: fmt(summary.total, "INR") },
     { label: "Subscriptions",   value: fmt(summary.subs, "INR") },
     { label: "Article unlocks", value: fmt(summary.unlocks, "INR") },
-    { label: "Last 30 days",    value: fmt(summary.recentTotal, "INR") },
+    { label: "Pending / failed", value: `${summary.pendingCount} / ${summary.failedCount}` },
   ] : [
     { label: "Total revenue",   value: "—" },
     { label: "Subscriptions",   value: "—" },
     { label: "Article unlocks", value: "—" },
-    { label: "Last 30 days",    value: "—" },
+    { label: "Pending / failed", value: "—" },
   ]
 
   return (
@@ -161,8 +173,8 @@ export default function RevenuePage() {
       {/* Table */}
       <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden" }}>
         {/* Head */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 120px 100px 130px 160px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
-          {["Date", "Type", "Amount", "Status", "Domain", "Payment ID"].map((h, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+          {["Date", "Type", "Amount", "Status", "Reader", "Domain", "Provider IDs"].map((h, i) => (
             <div key={i} style={{ fontSize: 10, fontWeight: 600, color: "#bbb", letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</div>
           ))}
         </div>
@@ -187,7 +199,7 @@ export default function RevenuePage() {
           transactions.map((tx, i) => (
             <div
               key={tx.id}
-              style={{ display: "grid", gridTemplateColumns: "1fr 110px 120px 100px 130px 160px", padding: "11px 18px", borderBottom: i < transactions.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}
+              style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px", padding: "11px 18px", borderBottom: i < transactions.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}
             >
               <div>
                 <div style={{ fontSize: 13, color: "#333" }}>{new Date(tx.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
@@ -213,6 +225,20 @@ export default function RevenuePage() {
                 <span style={{ fontSize: 12, color: STATUS_COLORS[tx.status], fontWeight: 500, textTransform: "capitalize" }}>
                   {tx.status}
                 </span>
+                {tx.failureReason && (
+                  <div style={{ fontSize: 10, color: "#999", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100 }}>
+                    {tx.failureReason}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {tx.readerEmail ?? <span style={{ color: "#ccc" }}>—</span>}
+                {tx.readerEmailHash && (
+                  <div style={{ fontSize: 10, color: "#bbb", fontFamily: "monospace", marginTop: 1 }}>
+                    {tx.readerEmailHash.slice(0, 10)}…
+                  </div>
+                )}
               </div>
 
               <div style={{ fontSize: 12, color: "#555" }}>
@@ -220,7 +246,12 @@ export default function RevenuePage() {
               </div>
 
               <div style={{ fontSize: 11, color: "#aaa", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {tx.razorpayPaymentId ?? "—"}
+                {tx.razorpayPaymentId ?? tx.razorpayOrderId ?? tx.razorpaySubscriptionId ?? "—"}
+                {(tx.razorpayOrderId || tx.razorpaySubscriptionId) && (
+                  <div style={{ fontSize: 10, color: "#bbb", marginTop: 1 }}>
+                    {tx.razorpayOrderId ? "order" : "subscription"}
+                  </div>
+                )}
               </div>
             </div>
           ))

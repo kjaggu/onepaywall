@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Check, Save } from "lucide-react"
+import { AlertCircle, Check, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 
@@ -11,6 +11,20 @@ type Plan = {
   quarterlyPrice:  number | null
   annualPrice:     number | null
   subsEnabled:     boolean
+  monthlyRazorpayPlanId?: string | null
+  quarterlyRazorpayPlanId?: string | null
+  annualRazorpayPlanId?: string | null
+  monthlySyncError?: string | null
+  quarterlySyncError?: string | null
+  annualSyncError?: string | null
+}
+
+type SyncStatus = Record<"monthly" | "quarterly" | "annual", "not_configured" | "synced" | "needs_resync" | "error">
+type Gateway = {
+  mode: "platform" | "own"
+  keyIdSet: boolean
+  keySecretSet: boolean
+  webhookSecretSet: boolean
 }
 
 const EMPTY: Plan = {
@@ -55,6 +69,13 @@ export function SubscriptionsForm() {
   const [loading, setLoad]  = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
+  const [error, setError]   = useState("")
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    monthly: "not_configured",
+    quarterly: "not_configured",
+    annual: "not_configured",
+  })
+  const [gateway, setGateway] = useState<Gateway | null>(null)
 
   const load = useCallback(async () => {
     setLoad(true)
@@ -68,7 +89,19 @@ export function SubscriptionsForm() {
         quarterlyPrice: p.quarterlyPrice ?? null,
         annualPrice:    p.annualPrice    ?? null,
         subsEnabled:    p.subsEnabled    ?? false,
+        monthlyRazorpayPlanId: p.monthlyRazorpayPlanId ?? null,
+        quarterlyRazorpayPlanId: p.quarterlyRazorpayPlanId ?? null,
+        annualRazorpayPlanId: p.annualRazorpayPlanId ?? null,
+        monthlySyncError: p.monthlySyncError ?? null,
+        quarterlySyncError: p.quarterlySyncError ?? null,
+        annualSyncError: p.annualSyncError ?? null,
       } : EMPTY)
+      setSyncStatus({
+        monthly: data.syncStatus?.monthly ?? "not_configured",
+        quarterly: data.syncStatus?.quarterly ?? "not_configured",
+        annual: data.syncStatus?.annual ?? "not_configured",
+      })
+      setGateway(data.paymentGateway ?? null)
     }
     setLoad(false)
   }, [])
@@ -77,7 +110,8 @@ export function SubscriptionsForm() {
 
   async function save() {
     setSaving(true)
-    await fetch("/api/publisher-plans", {
+    setError("")
+    const res = await fetch("/api/publisher-plans", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -89,6 +123,27 @@ export function SubscriptionsForm() {
       }),
     })
     setSaving(false)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(data.error ?? "Could not save subscription plans.")
+      return
+    }
+    if (data.plan) {
+      setPlan(p => ({
+        ...p,
+        monthlyRazorpayPlanId: data.plan.monthlyRazorpayPlanId ?? null,
+        quarterlyRazorpayPlanId: data.plan.quarterlyRazorpayPlanId ?? null,
+        annualRazorpayPlanId: data.plan.annualRazorpayPlanId ?? null,
+        monthlySyncError: data.plan.monthlySyncError ?? null,
+        quarterlySyncError: data.plan.quarterlySyncError ?? null,
+        annualSyncError: data.plan.annualSyncError ?? null,
+      }))
+    }
+    setSyncStatus({
+      monthly: data.syncStatus?.monthly ?? "not_configured",
+      quarterly: data.syncStatus?.quarterly ?? "not_configured",
+      annual: data.syncStatus?.annual ?? "not_configured",
+    })
     setSaved(true)
     setTimeout(() => setSaved(false), 1800)
   }
@@ -103,6 +158,28 @@ export function SubscriptionsForm() {
   }
 
   const disabled = !plan.subsEnabled
+  const ownKeysIncomplete = gateway?.mode === "own" && (!gateway.keyIdSet || !gateway.keySecretSet)
+  const webhookWarning = gateway?.mode === "own" && !gateway.webhookSecretSet
+  const planIds = {
+    monthly: plan.monthlyRazorpayPlanId,
+    quarterly: plan.quarterlyRazorpayPlanId,
+    annual: plan.annualRazorpayPlanId,
+  }
+
+  function statusLabel(interval: "monthly" | "quarterly" | "annual") {
+    const status = syncStatus[interval]
+    if (status === "synced") return planIds[interval] ?? "Synced"
+    if (status === "needs_resync") return "Needs resync"
+    if (status === "error") return "Error"
+    return "Not configured"
+  }
+
+  function statusColor(status: SyncStatus[keyof SyncStatus]) {
+    if (status === "synced") return "var(--color-success)"
+    if (status === "error") return "var(--color-danger)"
+    if (status === "needs_resync") return "var(--color-warning)"
+    return "var(--color-text-secondary)"
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -111,7 +188,7 @@ export function SubscriptionsForm() {
           <div>
             <p className="text-body font-semibold text-[var(--color-text)]">Subscriptions</p>
             <p className="text-body-sm text-[var(--color-text-secondary)] mt-0.5">
-              Readers pay a recurring fee to access all your gated content.
+              Readers pay a recurring fee to access all gated content across your publication.
             </p>
           </div>
           <div className="flex items-center gap-2.5">
@@ -157,6 +234,24 @@ export function SubscriptionsForm() {
             />
           </div>
 
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {(["monthly", "quarterly", "annual"] as const).map(interval => (
+              <div key={interval} className="rounded-md border border-[var(--color-border)] px-3 py-2">
+                <div className="text-label text-[var(--color-text-secondary)] capitalize">{interval}</div>
+                <div
+                  className="text-body-sm font-semibold mt-1"
+                  style={{
+                    color: statusColor(syncStatus[interval]),
+                    fontFamily: syncStatus[interval] === "synced" && planIds[interval] ? "var(--font-geist-mono), monospace" : "inherit",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {statusLabel(interval)}
+                </div>
+              </div>
+            ))}
+          </div>
+
           {plan.subsEnabled && plan.monthlyPrice && plan.quarterlyPrice && (
             <p className="text-body-sm text-[var(--color-text-secondary)] mt-3">
               Quarterly saves {Math.round((1 - (plan.quarterlyPrice / 3) / plan.monthlyPrice) * 100)}% vs monthly
@@ -166,10 +261,30 @@ export function SubscriptionsForm() {
         </div>
       </div>
 
+      {ownKeysIncomplete && plan.subsEnabled && (
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--color-danger)] bg-red-50 px-4 py-3 text-sm text-[var(--color-danger)]">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+          Connect your Razorpay Key ID and Key Secret in Payment Gateway settings before enabling subscriptions.
+        </div>
+      )}
+
+      {webhookWarning && plan.subsEnabled && (
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+          Add your Razorpay webhook secret so renewals, cancellations, and failed payments stay in sync.
+        </div>
+      )}
+
+      {(plan.monthlySyncError || plan.quarterlySyncError || plan.annualSyncError || error) && (
+        <div className="rounded-lg border border-[var(--color-danger)] bg-red-50 px-4 py-3 text-sm text-[var(--color-danger)]">
+          {error || plan.monthlySyncError || plan.quarterlySyncError || plan.annualSyncError}
+        </div>
+      )}
+
       <div className="flex justify-end">
         <Button onClick={save} disabled={saving} className="gap-1.5">
           {saved ? <Check size={14} /> : <Save size={14} />}
-          {saved ? "Saved" : saving ? "Saving…" : "Save subscriptions"}
+          {saved ? "Saved" : saving ? "Syncing…" : "Save and sync plans"}
         </Button>
       </div>
     </div>

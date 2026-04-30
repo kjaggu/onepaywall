@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { gateUnlocks, publishers, readerTransactions } from "@/lib/db/schema"
+import { gateUnlocks, publishers } from "@/lib/db/schema"
+import { markReaderTransactionCompleted } from "@/lib/db/queries/transactions"
+import { eq } from "drizzle-orm"
 
 type RecordUnlockInput = {
   publisherId: string
@@ -13,6 +14,7 @@ type RecordUnlockInput = {
   contentUrl?: string | null
   contentId?: string | null
   unlockExpiresAt?: Date | null
+  readerEmail?: string | null
 }
 
 // Single source of truth for "reader paid → close the loop".
@@ -20,20 +22,31 @@ type RecordUnlockInput = {
 // (so revenue surfaces in the publisher dashboard). Idempotent on razorpayPaymentId so
 // the verify route and the webhook can both call this without producing duplicates.
 export async function recordSuccessfulUnlock(input: RecordUnlockInput): Promise<{ alreadyRecorded: boolean }> {
-  const existing = await db
-    .select({ id: readerTransactions.id })
-    .from(readerTransactions)
-    .where(eq(readerTransactions.razorpayPaymentId, input.razorpayPaymentId))
-    .limit(1)
-
-  if (existing.length > 0) return { alreadyRecorded: true }
-
   const [pub] = await db
     .select({ currency: publishers.currency })
     .from(publishers)
     .where(eq(publishers.id, input.publisherId))
     .limit(1)
   const currency = pub?.currency ?? "INR"
+
+  const result = await markReaderTransactionCompleted({
+    publisherId:       input.publisherId,
+    domainId:          input.domainId ?? null,
+    readerId:          input.readerId,
+    amount:            input.amountInPaise,
+    currency,
+    razorpayPaymentId: input.razorpayPaymentId,
+    razorpayOrderId:   input.razorpayOrderId,
+    contentUrl:        input.contentUrl ?? null,
+    readerEmail:       input.readerEmail ?? null,
+    metadata:          {
+      gateId: input.gateId,
+      domainId: input.domainId,
+      contentUrl: input.contentUrl,
+    },
+  })
+
+  if (result.alreadyRecorded) return { alreadyRecorded: true }
 
   await db.insert(gateUnlocks).values({
     readerId: input.readerId,
@@ -43,19 +56,5 @@ export async function recordSuccessfulUnlock(input: RecordUnlockInput): Promise<
     expiresAt: input.unlockExpiresAt ?? undefined,
   })
 
-  await db.insert(readerTransactions).values({
-    publisherId:       input.publisherId,
-    domainId:          input.domainId ?? undefined,
-    readerId:          input.readerId,
-    type:              "one_time_unlock",
-    status:            "completed",
-    amount:            input.amountInPaise,
-    currency,
-    razorpayPaymentId: input.razorpayPaymentId,
-    razorpayOrderId:   input.razorpayOrderId,
-    contentUrl:        input.contentUrl ?? undefined,
-    metadata:          { gateId: input.gateId },
-  })
-
-  return { alreadyRecorded: false }
+  return { alreadyRecorded: result.alreadyRecorded }
 }

@@ -14,14 +14,14 @@ Updated at the end of every meaningful session. Read this before starting work t
 ## Foundation
 | Area | Status | Notes |
 |------|--------|-------|
-| Next.js 15 scaffold | `done` | App Router, TypeScript strict, Tailwind |
+| Next.js 16 scaffold | `done` | App Router, TypeScript strict, Tailwind |
 | Drizzle + Neon client | `done` | `lib/db/client.ts`, `drizzle.config.ts` |
 | shadcn/ui init | `done` | Button component + utils |
 | Folder structure | `done` | Per CLAUDE.md spec |
 | Founding docs | `done` | CLAUDE.md, AGENTS.md, design-system, data-model (split), file-map, progress |
 | .env.example | `done` | |
-| Drizzle schema | `done` | All 22 tables defined — users, publishers, domains, gates, readers, ads, payments, analytics |
-| DB migrations | `done` | `0000`, `0001`, `0002` (whitelist), `0003` (publisher_plans + reader_transactions), `0004` (publisher currency/timezone), `0005` (unlock idempotency unique indexes) — applied via `npm run db:migrate` |
+| Drizzle schema | `done` | Core tables plus reader subscription tables defined — users, publishers, domains, gates, readers, ads, payments, analytics |
+| DB migrations | `done` | `0000`–`0008`; `0007` adds reader subscriptions + publisher reader-plan Razorpay sync state; `0008` adds transaction-attempt details |
 | Migration runner | `done` | `scripts/migrate.mjs` — tracks state in `_migrations` table, handles drizzle + hand-written SQL, idempotent. `npm run db:migrate` / `db:migrate:status` |
 | CSS design tokens | `done` | Brand (indigo), semantic, surface, text tokens + typography utilities in `app/globals.css` |
 
@@ -34,7 +34,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | JWT session lib | `done` | `lib/auth/session.ts` — sign, verify, get, set, clear cookie |
 | Login page + API | `done` | `app/(auth)/login/page.tsx`, `app/api/auth/login/route.ts` |
 | Forgot / reset password | `done` | Pages + API routes + email via Resend |
-| Signup page + API | `todo` | No signup flow yet — invite-only or admin-created |
+| Register page + API | `done` | `app/(auth)/register/page.tsx`, `app/api/auth/register/route.ts`, `lib/auth/register.ts` — creates user, publisher, owner membership, Starter trial, session |
 | Session guards | `done` | Dashboard redirects to /login; admin requires superadmin role |
 
 ---
@@ -45,6 +45,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | DB schema | `done` | publishers, publisher_members in schema.ts |
 | Publisher CRUD API | `done` | `app/api/publishers/route.ts` — GET + POST (re-issues session with publisherId) |
 | Query helpers | `done` | `lib/db/queries/publishers.ts` |
+| Publisher settings API | `done` | `app/api/publisher-settings/route.ts` — name, currency, timezone |
 | Team member management | `todo` | |
 | Dashboard shell | `done` | Sidebar nav, layout shell — `app/(dashboard)/layout.tsx`, `components/dashboard/sidebar.tsx` |
 
@@ -59,11 +60,13 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Site key generation | `done` | `lib/embed/siteKey.ts` — `opw_` prefixed hex, 44 chars |
 | Domain list UI | `done` | `app/(dashboard)/domains/page.tsx` — server component, real data, table + empty state |
 | Add domain sheet | `done` | `components/dashboard/domains/add-domain-sheet.tsx` |
-| Domain actions | `done` | `components/dashboard/domains/domain-actions.tsx` — pause/activate/remove dropdown |
+| Domain actions | `done` | `components/dashboard/domains/domain-status-actions.tsx` — pause/activate/remove dropdown |
 | Copy site key | `done` | `components/dashboard/domains/copy-site-key.tsx` |
 | Domain detail page | `done` | `app/(dashboard)/domains/[id]/page.tsx` — embed script snippet + install guide |
+| Domain embed setup page | `done` | `app/(dashboard)/domains/[id]/embed/page.tsx` + `app/api/domains/[id]/verify-embed/route.ts` |
+| Domain settings page | `done` | `app/(dashboard)/domains/[id]/settings/page.tsx` |
 | Copy embed script | `done` | `components/dashboard/domains/copy-embed-script.tsx` — syntax-highlighted snippet with copy button |
-| Whitelisted paths UI | `done` | `app/(dashboard)/domains/[id]/whitelist/page.tsx` + `components/dashboard/domains/domain-whitelist.tsx` |
+| Whitelisted paths UI | `done` | `app/(dashboard)/domains/[id]/free-pages/page.tsx` + `components/dashboard/domains/domain-whitelist.tsx` |
 | Whitelist enforcement | `done` | `app/api/embed/gate-check/route.ts` — whitelisted paths skip gate evaluation entirely |
 
 ---
@@ -78,6 +81,8 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Rule CRUD API | `done` | `app/api/gates/[id]/rules/` + `app/api/gates/[id]/rules/[ruleId]/` |
 | Gates list page | `done` | `app/(dashboard)/gates/page.tsx` — grouped by domain, create-gate sheet |
 | Gate builder page | `done` | `app/(dashboard)/gates/[id]/page.tsx` — header, rules, steps |
+| Gate steps page | `done` | `app/(dashboard)/gates/[id]/steps/page.tsx` |
+| Gate triggers page | `done` | `app/(dashboard)/gates/[id]/triggers/page.tsx`, `components/dashboard/gates/gate-triggers.tsx` |
 | Gate header component | `done` | `components/dashboard/gates/gate-header.tsx` — name/priority/enabled editor |
 | URL rules component | `done` | `components/dashboard/gates/gate-rules.tsx` — add/remove glob patterns |
 | Steps component | `done` | `components/dashboard/gates/gate-steps.tsx` — add/reorder/delete + per-type config |
@@ -98,6 +103,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Signal endpoint | `done` | `app/api/embed/signal/route.ts` — POST, fire-and-forget via sendBeacon |
 | Event endpoint | `done` | `app/api/embed/event/route.ts` — POST, gate event recording |
 | Embed JS bundle | `done` | `public/embed/embed.js` — 11.7KB raw / 3.4KB gzip, vanilla JS |
+| Embed test page | `done` | `app/embed/test/page.tsx` |
 
 ---
 
@@ -105,12 +111,12 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | ad_units, publisher_ad_networks in schema.ts |
-| Ad unit CRUD API | `todo` | |
-| Upload signed URL | `todo` | |
+| Ad unit CRUD API | `partial` | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts`, `lib/db/queries/ads.ts` — list/create/update/soft-delete exist; validation and serving integration still light |
+| Upload signed URL | `partial` | `app/api/ads/upload-url/route.ts` returns R2 storage key/CDN URL, but the presigned PUT implementation needs completion/verification |
 | Google AdSense adapter | `todo` | `lib/ads/networks/adsense.ts` |
 | Google Ad Manager adapter | `todo` | `lib/ads/networks/gam.ts` |
 | Ad rotation + relevance | `todo` | `lib/ads/rotate.ts` |
-| Ad management UI | `partial` | Placeholder page at `app/(dashboard)/ads/page.tsx` |
+| Ad management UI | `partial` | `app/(dashboard)/ads/page.tsx`, `components/dashboard/ads/create-ad-sheet.tsx` — direct creative library UI exists; network/settings pages are scaffolded |
 
 ---
 
@@ -125,10 +131,14 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Payment gateway settings UI | `done` | `app/(dashboard)/settings/payment-gateway/page.tsx` + `components/dashboard/settings/pg-config-form.tsx` |
 | OnePaywall billing — schema + API + webhook | `done` | Session 2a — migration `0006`, `lib/payments/billing.ts`, `app/api/billing/route.ts`, `app/api/webhooks/billing/route.ts`, signup hook in `lib/auth/register.ts`, `/api/me` extended for sub state |
 | OnePaywall billing — UI | `done` | Session 2b — `/settings/billing` plan picker + manage view, `BillingBanner`, topbar plan-tone badge, Razorpay Checkout integration |
-| OnePaywall billing — enforcement (Session 2c) | `todo` | Pending: 7-day past-due suspension worker (cron), `gate-check` skip when `status='suspended'`, plan-limit enforcement (max_domains / max_gates / max_mau_per_domain) on the relevant API endpoints |
+| OnePaywall billing — enforcement (Session 2c) | `partial` | Cron worker exists at `app/api/cron/billing-enforcement/route.ts`; `gate-check` skips inactive/suspended publishers; max domain/gate checks exist. Max MAU per domain enforcement is still pending. |
 | One-time unlock flow | `done` | `app/api/embed/unlock/route.ts` create+verify; embed checkout; price resolution via `lib/payments/resolveUnlockPrice.ts` (URL override → publisher default → step config); revenue + unlock recorded atomically via `lib/payments/recordUnlock.ts`, idempotent on `razorpay_payment_id` |
-| Webhook handler | `done` | `app/api/webhooks/publisher/[publisherId]/route.ts` — signature verified, replay-protected via `pg_webhook_events`, writes both `gate_unlocks` and `reader_transactions` |
-| Revenue ledger | `done` | `reader_transactions` written on every successful one-time unlock (verify route + webhook); surfaced in Revenue page and Analytics summary stat |
+| Reader subscriptions | `done` | Publisher membership intervals sync to Razorpay in platform or own-key mode; embed checkout + email magic-link restore; publisher-wide access bypass in gate-check |
+| Reader subscription APIs | `done` | `app/api/embed/subscription/route.ts` — create, verify, restore-request, restore-confirm |
+| Webhook handlers | `done` | `app/api/webhooks/publisher/[publisherId]/route.ts` handles own-key unlock/subscription events; `app/api/webhooks/reader/razorpay/route.ts` handles platform reader subscription events; `app/api/webhooks/billing/route.ts` remains SaaS billing only |
+| Revenue ledger | `done` | `reader_transactions` now tracks pending/completed/failed reader payments, reader email hash/encrypted email, Razorpay order/payment/subscription IDs, failure reason, and completion timestamps |
+| Publisher revenue dashboard | `done` | `/revenue` shows subscriptions + one-time unlocks, statuses, reader email/hash, domain/content, provider IDs, failure reasons, and CSV export for reconciliation/invoicing |
+| Publisher invoice workflow | `todo` | Next feature: invoice generation/numbering/downloads from completed `reader_transactions`; current CSV export provides the reconciliation source data |
 
 ---
 
@@ -151,7 +161,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Rollup computation | `done` | `lib/analytics/rollup.ts` — lazy upsert from gate_events per domain+gate+day |
 | Analytics queries | `done` | `lib/db/queries/analytics.ts` — getSummary (gate_events direct), getDailySeries (rollups) |
 | Analytics API | `done` | `app/api/analytics/route.ts` — GET, refreshes rollups then serves summary + daily series |
-| Analytics dashboard | `done` | `app/(dashboard)/analytics/page.tsx` + `components/dashboard/analytics/analytics-chart.tsx` — real stats + area chart (recharts) |
+| Analytics dashboard | `done` | `app/(dashboard)/analytics/page.tsx`, `app/(dashboard)/analytics/[domainId]/page.tsx`, `components/dashboard/analytics/analytics-chart.tsx` — real stats + area chart (recharts), filters |
 
 ---
 
@@ -159,8 +169,11 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | Admin layout + guard | `done` | `app/admin/layout.tsx` — requires superadmin session |
-| Publisher management | `todo` | |
-| Plan management | `todo` | |
+| Admin dashboard shell | `partial` | `components/admin/sidebar.tsx`, `components/admin/topbar.tsx`, `app/admin/page.tsx` |
+| Publisher management | `partial` | `app/admin/publishers/page.tsx`, `app/admin/publishers/[id]/page.tsx` — static/mock management UI, not wired to real admin APIs |
+| Plan management | `partial` | `app/admin/plans/page.tsx` — static/mock tier UI, not wired to real admin APIs |
+| Subscription management | `partial` | `app/admin/subscriptions/page.tsx` — static/mock subscription UI |
+| Platform health | `partial` | `app/admin/health/page.tsx` — static/mock monitoring UI |
 
 ---
 
@@ -171,3 +184,4 @@ Updated at the end of every meaningful session. Read this before starting work t
 | simplify hook | `done` | Runs `/simplify` on Stop |
 | security-review hook | `done` | Available as `/security-review` |
 | shadcn blocks policy | `done` | Documented in CLAUDE.md + design-system.md |
+| Billing seed/backfill scripts | `done` | `scripts/seed-plans.mjs`, `scripts/backfill-trial-subs.mjs`, `scripts/verify-billing-enforcement.mjs` |

@@ -4,6 +4,7 @@
   // ─── Config ─────────────────────────────────────────────────────────────────
 
   var API_BASE = "https://www.onepaywall.com";
+  var _base = API_BASE; // set in init() from data-api-base attr; shared by sendEvent/sendSignal
   var LS_CLIENT_ID = "opw_cid";
   var LS_TOKEN_PREFIX = "opw_tok_";
   var SCRIPT_ATTR = "data-site-key";
@@ -66,6 +67,11 @@
     ".opw-btn-secondary{background:#f0f0f0;color:#555}",
     ".opw-btn-secondary:hover{background:#e0e0e0}",
     ".opw-step-label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}",
+    ".opw-input{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:8px;padding:10px 12px;font-size:14px;margin:0 0 12px;outline:none}",
+    ".opw-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}",
+    ".opw-plan{border:1px solid #ddd;background:#fff;border-radius:8px;padding:9px 6px;cursor:pointer;color:#333;font-size:12px;font-weight:700}",
+    ".opw-plan-active{border-color:#27adb0;background:#eefafa;color:#13777a}",
+    ".opw-note{font-size:12px;color:#888;line-height:1.45;margin:8px 0 0}",
   ].join("");
 
   function injectStyles() {
@@ -74,6 +80,15 @@
     el.id = "opw-styles";
     el.textContent = styles;
     document.head.appendChild(el);
+  }
+
+  function loadRazorpay(cb, errCb) {
+    if (window.Razorpay) return cb();
+    var s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = cb;
+    s.onerror = errCb || function () {};
+    document.head.appendChild(s);
   }
 
   function lockScroll() {
@@ -105,6 +120,7 @@
 
     if (step.stepType === "subscription_cta") {
       var cfg = step.config || {};
+      var intervals = cfg.intervals || [];
       var title = document.createElement("div");
       title.className = "opw-title";
       title.textContent = cfg.heading || "Support our work";
@@ -115,15 +131,133 @@
       sub.textContent = cfg.subtext || "Subscribe to continue reading.";
       card.appendChild(sub);
 
-      var cta = document.createElement("button");
-      cta.className = "opw-btn opw-btn-primary";
-      cta.textContent = cfg.ctaLabel || "Subscribe";
-      cta.onclick = function () {
-        sendEvent(token, gateId, step.id, "subscription_cta_click");
-        if (cfg.ctaUrl) window.open(cfg.ctaUrl, "_blank");
-        if (step.onDecline === "proceed") { removeOverlay(); onComplete(); }
-      };
-      card.appendChild(cta);
+      if (intervals.length > 0) {
+        var selected = intervals[0];
+        var plans = document.createElement("div");
+        plans.className = "opw-plans";
+        intervals.forEach(function (item) {
+          var b = document.createElement("button");
+          b.className = "opw-plan" + (item.interval === selected.interval ? " opw-plan-active" : "");
+          b.type = "button";
+          b.textContent = item.interval.charAt(0).toUpperCase() + item.interval.slice(1) + " ₹" + ((item.price || 0) / 100).toFixed(0);
+          b.onclick = function () {
+            selected = item;
+            Array.prototype.forEach.call(plans.children, function (el) { el.className = "opw-plan"; });
+            b.className = "opw-plan opw-plan-active";
+          };
+          plans.appendChild(b);
+        });
+        card.appendChild(plans);
+
+        var email = document.createElement("input");
+        email.className = "opw-input";
+        email.type = "email";
+        email.placeholder = "Email for subscription access";
+        card.appendChild(email);
+
+        var cta = document.createElement("button");
+        cta.className = "opw-btn opw-btn-primary";
+        cta.textContent = cfg.ctaLabel || "Subscribe";
+        cta.onclick = function () {
+          if (!email.value || email.value.indexOf("@") === -1) { email.focus(); return; }
+          sendEvent(token, gateId, step.id, "subscription_cta_click");
+          cta.disabled = true;
+          cta.textContent = "Opening checkout…";
+
+          fetch(_base + "/api/embed/subscription?action=create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, gateId: gateId, interval: selected.interval, email: email.value }),
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (created) {
+              if (created.error) { cta.disabled = false; cta.textContent = cfg.ctaLabel || "Subscribe"; return; }
+              loadRazorpay(function () {
+                try {
+                  var rzp = new window.Razorpay({
+                    key: created.keyId,
+                    subscription_id: created.subscriptionId,
+                    name: "OnePaywall",
+                    description: "Reader membership",
+                    prefill: { email: email.value },
+                    handler: function (response) {
+                      fetch(_base + "/api/embed/subscription?action=verify", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          token: token,
+                          gateId: gateId,
+                          razorpaySubscriptionId: response.razorpay_subscription_id,
+                          razorpayPaymentId: response.razorpay_payment_id,
+                          razorpaySignature: response.razorpay_signature,
+                        }),
+                      })
+                        .then(function (r) { return r.json(); })
+                        .then(function (result) {
+                          if (result.ok) {
+                            removeOverlay();
+                            onComplete();
+                          }
+                        })
+                        .catch(function () {});
+                    },
+                    modal: {
+                      ondismiss: function () {
+                        cta.disabled = false;
+                        cta.textContent = cfg.ctaLabel || "Subscribe";
+                      },
+                    },
+                  });
+                  rzp.open();
+                } catch (e) {
+                  cta.disabled = false;
+                  cta.textContent = cfg.ctaLabel || "Subscribe";
+                }
+              }, function () {
+                cta.disabled = false;
+                cta.textContent = cfg.ctaLabel || "Subscribe";
+              });
+            })
+            .catch(function () { cta.disabled = false; cta.textContent = cfg.ctaLabel || "Subscribe"; });
+        };
+        card.appendChild(cta);
+
+        var restore = document.createElement("button");
+        restore.className = "opw-btn opw-btn-secondary";
+        restore.textContent = "Already subscribed?";
+        restore.onclick = function () {
+          if (!email.value || email.value.indexOf("@") === -1) { email.focus(); return; }
+
+          restore.disabled = true;
+          restore.textContent = "Check your email";
+          fetch(_base + "/api/embed/subscription?action=restore-request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, email: email.value, returnUrl: location.href }),
+          }).catch(function () {});
+        };
+        card.appendChild(restore);
+
+        var note = document.createElement("div");
+        note.className = "opw-note";
+        note.textContent = "Your email lets you restore access on another device.";
+        card.appendChild(note);
+      } else {
+        var cta = document.createElement("button");
+        cta.className = "opw-btn opw-btn-primary";
+        cta.textContent = cfg.ctaLabel || "Subscribe";
+        cta.onclick = function () {
+          sendEvent(token, gateId, step.id, "subscription_cta_click");
+          if (cfg.ctaUrl) {
+            window.open(cfg.ctaUrl, "_blank");
+            return;
+          }
+          // No subscription configured — treat as skip so reader isn't stuck
+          if (step.onDecline === "proceed") removeOverlay();
+          onComplete();
+        };
+        card.appendChild(cta);
+      }
 
       var skip = document.createElement("button");
       skip.className = "opw-btn opw-btn-secondary";
@@ -150,82 +284,92 @@
       sub2.textContent = "One-time payment of ₹" + rupees;
       card.appendChild(sub2);
 
+      var unlockEmail = document.createElement("input");
+      unlockEmail.className = "opw-input";
+      unlockEmail.type = "email";
+      unlockEmail.placeholder = "Email for receipt and support";
+      card.appendChild(unlockEmail);
+
       var pay = document.createElement("button");
       pay.className = "opw-btn opw-btn-primary";
       pay.textContent = "Pay ₹" + rupees;
       pay.onclick = function () {
+        if (!unlockEmail.value || unlockEmail.value.indexOf("@") === -1) { unlockEmail.focus(); return; }
         sendEvent(token, gateId, step.id, "one_time_unlock_start");
         pay.disabled = true;
         pay.textContent = "Opening payment…";
-        var base = (typeof OPW_API_BASE !== "undefined" ? OPW_API_BASE : API_BASE);
-        fetch(base + "/api/embed/unlock?action=create", {
+        fetch(_base + "/api/embed/unlock?action=create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: token, gateId: gateId, stepId: step.id, url: location.href }),
+          body: JSON.stringify({ token: token, gateId: gateId, stepId: step.id, url: location.href, email: unlockEmail.value }),
         })
           .then(function (r) { return r.json(); })
           .then(function (order) {
             if (order.error) { pay.disabled = false; pay.textContent = "Pay ₹" + rupees; return; }
-            function loadRazorpay(cb) {
-              if (window.Razorpay) return cb();
-              var s = document.createElement("script");
-              s.src = "https://checkout.razorpay.com/v1/checkout.js";
-              s.onload = cb;
-              document.head.appendChild(s);
-            }
             loadRazorpay(function () {
-              var rzp = new window.Razorpay({
-                key: order.keyId,
-                amount: order.amount,
-                currency: order.currency,
-                order_id: order.orderId,
-                name: "OnePaywall",
-                description: cfg2.label || "Article unlock",
-                handler: function (response) {
-                  fetch(base + "/api/embed/unlock?action=verify", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      token: token,
-                      gateId: gateId,
-                      orderId: response.razorpay_order_id,
-                      paymentId: response.razorpay_payment_id,
-                      signature: response.razorpay_signature,
-                    }),
-                  })
-                    .then(function (r) { return r.json(); })
-                    .then(function (result) {
-                      if (result.ok) {
-                        sendEvent(token, gateId, step.id, "one_time_unlock_complete");
-                        removeOverlay();
-                        onComplete();
-                      }
+              try {
+                var rzp = new window.Razorpay({
+                  key: order.keyId,
+                  amount: order.amount,
+                  currency: order.currency,
+                  order_id: order.orderId,
+                  name: "OnePaywall",
+                  description: cfg2.label || "Article unlock",
+                  handler: function (response) {
+                    fetch(_base + "/api/embed/unlock?action=verify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        token: token,
+                        gateId: gateId,
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        signature: response.razorpay_signature,
+                        email: unlockEmail.value,
+                      }),
                     })
-                    .catch(function () {});
-                },
-                modal: {
-                  ondismiss: function () {
-                    pay.disabled = false;
-                    pay.textContent = "Pay ₹" + rupees;
+                      .then(function (r) { return r.json(); })
+                      .then(function (result) {
+                        if (result.ok) {
+                          sendEvent(token, gateId, step.id, "one_time_unlock_complete");
+                          removeOverlay();
+                          onComplete();
+                        }
+                      })
+                      .catch(function () {});
                   },
-                },
-              });
-              rzp.open();
+                  modal: {
+                    ondismiss: function () {
+                      pay.disabled = false;
+                      pay.textContent = "Pay ₹" + rupees;
+                    },
+                  },
+                });
+                rzp.open();
+              } catch (e) {
+                pay.disabled = false;
+                pay.textContent = "Pay ₹" + rupees;
+              }
+            }, function () {
+              pay.disabled = false;
+              pay.textContent = "Pay ₹" + rupees;
             });
           })
           .catch(function () { pay.disabled = false; pay.textContent = "Pay ₹" + rupees; });
       };
       card.appendChild(pay);
 
-      var skip2 = document.createElement("button");
-      skip2.className = "opw-btn opw-btn-secondary";
-      skip2.textContent = "Skip";
-      skip2.onclick = function () {
-        sendEvent(token, gateId, step.id, "one_time_unlock_skip");
-        if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
-        else onComplete();
-      };
-      card.appendChild(skip2);
+      if (!cfg2.hideSkip) {
+        var skip2 = document.createElement("button");
+        skip2.className = "opw-btn opw-btn-secondary";
+        skip2.textContent = "Skip";
+        skip2.onclick = function () {
+          sendEvent(token, gateId, step.id, "one_time_unlock_skip");
+          if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
+          else onComplete();
+        };
+        card.appendChild(skip2);
+      }
 
     } else if (step.stepType === "ad") {
       var title3 = document.createElement("div");
@@ -296,8 +440,7 @@
   // ─── Events & signals ────────────────────────────────────────────────────────
 
   function sendEvent(token, gateId, stepId, eventType) {
-    var base = (typeof OPW_API_BASE !== "undefined" ? OPW_API_BASE : API_BASE);
-    fetch(base + "/api/embed/event", {
+    fetch(_base + "/api/embed/event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: token, gateId: gateId, stepId: stepId, eventType: eventType }),
@@ -306,12 +449,11 @@
   }
 
   function sendSignal(token, extra) {
-    var base = (typeof OPW_API_BASE !== "undefined" ? OPW_API_BASE : API_BASE);
     var body = Object.assign({ token: token, url: location.href, referrer: document.referrer, deviceType: deviceType() }, extra);
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(base + "/api/embed/signal", JSON.stringify(body));
+      navigator.sendBeacon(_base + "/api/embed/signal", JSON.stringify(body));
     } else {
-      fetch(base + "/api/embed/signal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).catch(function () {});
+      fetch(_base + "/api/embed/signal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).catch(function () {});
     }
   }
 
@@ -326,14 +468,17 @@
 
     var clientId = getClientId();
     var token = getToken(siteKey);
-    var base = script.getAttribute("data-api-base") || API_BASE;
+    var apiBaseAttr = script.getAttribute("data-api-base");
+    _base = apiBaseAttr !== null ? apiBaseAttr : API_BASE;
     var publishedAt = script.getAttribute("data-published-at") || "";
     var isPreview = script.getAttribute("data-preview") === "1";
+    var restoreToken = "";
+    try { restoreToken = new URLSearchParams(location.search).get("opw_restore_token") || ""; } catch (e) {}
 
     var startTime = Date.now();
 
     // Gate check
-    fetch(base + "/api/embed/gate-check?" + qs({
+    fetch(_base + "/api/embed/gate-check?" + qs({
       siteKey: siteKey,
       clientId: clientId,
       url: location.href,
@@ -344,6 +489,23 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.token) { setToken(siteKey, data.token); token = data.token; }
+        if (restoreToken && token) {
+          fetch(_base + "/api/embed/subscription?action=restore-confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, restoreToken: restoreToken }),
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (result) {
+              if (result.ok) {
+                var clean = new URL(location.href);
+                clean.searchParams.delete("opw_restore_token");
+                location.replace(clean.toString());
+              } else if (data.gate) showGate(data.gate, token);
+            })
+            .catch(function () { if (data.gate) showGate(data.gate, token); });
+          return;
+        }
         if (data.gate) showGate(data.gate, token);
       })
       .catch(function () { /* fail open — never block readers on error */ });
