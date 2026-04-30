@@ -11,9 +11,8 @@ import { isNotNull, isNull, or } from "drizzle-orm"
 const sql = neon(process.env.DATABASE_URL)
 const db = drizzle(sql)
 
-// Dynamic imports so we get the compiled TS helpers via tsx/node
-const { publisherReaderPlans } = await import("../lib/db/schema.js")
-const { syncPublisherReaderSubscriptionPlans } = await import("../lib/db/queries/publisher-plans.js")
+const { publisherReaderPlans } = await import("../lib/db/schema.ts")
+const { syncPublisherReaderSubscriptionPlans } = await import("../lib/db/queries/publisher-plans.ts")
 const { eq } = await import("drizzle-orm")
 
 // Find plans where syncedDisplayName is already set (monthly ran) but
