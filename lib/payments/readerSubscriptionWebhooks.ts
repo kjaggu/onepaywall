@@ -101,6 +101,7 @@ export async function processReaderSubscriptionWebhook(input: {
     if (!paymentId) return
     await recordReaderSubscriptionPayment({
       publisherId: ours.publisherId,
+      brandId: ours.brandId,
       razorpayPaymentId: paymentId,
       razorpaySubscriptionId: razorpaySubId,
       amount: Number(payment.amount ?? 0),
@@ -159,7 +160,15 @@ export async function processReaderSubscriptionWebhook(input: {
       })
     }
 
-    if (input.eventType === "subscription.cancelled" || input.eventType === "subscription.completed") {
+    // Detect cancellation by event type OR by a status transition to cancelled via any
+    // subscription.* event (e.g. subscription.updated when cancelling a paused subscription).
+    const remoteStatus = remote ? mapSubscriptionStatus(remote.status, ours.status) : null
+    const justCancelled =
+      input.eventType === "subscription.cancelled" ||
+      input.eventType === "subscription.completed" ||
+      (input.eventType.startsWith("subscription.") && remoteStatus === "cancelled" && ours.status !== "cancelled")
+
+    if (justCancelled) {
       return sendReaderSubscriptionCancelled({
         to: ctx.email,
         publisherName: ctx.publisherName,
@@ -184,5 +193,5 @@ export async function processReaderSubscriptionWebhook(input: {
         nextRenewal: remote?.currentEnd ?? null,
       })
     }
-  }).catch(() => {})
+  }).catch((err) => { console.error("[reader-subscription-webhook] email error:", err) })
 }

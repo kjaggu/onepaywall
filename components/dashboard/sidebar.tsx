@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
   BarChart2,
+  Briefcase,
   DollarSign,
   Globe,
   LayoutGrid,
@@ -41,6 +42,7 @@ const NAV: NavGroup[] = [
   {
     label: "Monetise",
     items: [
+      { label: "Brands",  href: "/brands",  icon: Briefcase },
       { label: "Gates",   href: "/gates",   icon: Lock      },
       { label: "Domains", href: "/domains", icon: Globe     },
       { label: "Pricing", href: "/pricing", icon: Package   },

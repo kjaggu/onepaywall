@@ -50,15 +50,15 @@ const INTERVALS: Array<{
   },
 ]
 
-export async function getPublisherReaderPlan(publisherId: string) {
+export async function getPublisherReaderPlan(brandId: string) {
   const [row] = await db
     .select()
     .from(publisherReaderPlans)
-    .where(eq(publisherReaderPlans.publisherId, publisherId))
+    .where(eq(publisherReaderPlans.brandId, brandId))
   return row ?? null
 }
 
-export async function upsertPublisherReaderPlan(publisherId: string, data: {
+export async function upsertPublisherReaderPlan(brandId: string, publisherId: string, data: {
   currency?: string
   monthlyPrice?: number | null
   quarterlyPrice?: number | null
@@ -67,18 +67,18 @@ export async function upsertPublisherReaderPlan(publisherId: string, data: {
   defaultUnlockPrice?: number | null
   unlockEnabled?: boolean
 }) {
-  const existing = await getPublisherReaderPlan(publisherId)
+  const existing = await getPublisherReaderPlan(brandId)
   if (existing) {
     const [row] = await db
       .update(publisherReaderPlans)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(publisherReaderPlans.publisherId, publisherId))
+      .where(eq(publisherReaderPlans.brandId, brandId))
       .returning()
     return row
   } else {
     const [row] = await db
       .insert(publisherReaderPlans)
-      .values({ publisherId, ...data })
+      .values({ brandId, publisherId, ...data })
       .returning()
     return row
   }
@@ -101,8 +101,8 @@ export function getReaderPlanSyncStatus(plan: Awaited<ReturnType<typeof getPubli
   })) as ReaderPlanSyncStatus
 }
 
-export async function syncPublisherReaderSubscriptionPlans(publisherId: string) {
-  const plan = await getPublisherReaderPlan(publisherId)
+export async function syncPublisherReaderSubscriptionPlans(brandId: string, publisherId: string) {
+  const plan = await getPublisherReaderPlan(brandId)
   if (!plan || !plan.subsEnabled) return plan
 
   const [publisher] = await db
@@ -111,7 +111,7 @@ export async function syncPublisherReaderSubscriptionPlans(publisherId: string) 
     .where(eq(publishers.id, publisherId))
     .limit(1)
   const publisherName = publisher?.name ?? "Publisher"
-  const currentPgMode = (await getOrCreatePgConfig(publisherId)).mode
+  const currentPgMode = (await getOrCreatePgConfig(brandId, publisherId)).mode
 
   let latest = plan
   for (const i of INTERVALS) {
@@ -145,7 +145,7 @@ export async function syncPublisherReaderSubscriptionPlans(publisherId: string) 
           [i.errorField]: null,
           updatedAt: new Date(),
         })
-        .where(eq(publisherReaderPlans.publisherId, publisherId))
+        .where(eq(publisherReaderPlans.brandId, brandId))
         .returning()
       latest = row
     } catch (e) {
@@ -156,7 +156,7 @@ export async function syncPublisherReaderSubscriptionPlans(publisherId: string) 
           [i.errorField]: message,
           updatedAt: new Date(),
         })
-        .where(eq(publisherReaderPlans.publisherId, publisherId))
+        .where(eq(publisherReaderPlans.brandId, brandId))
         .returning()
       latest = row
     }

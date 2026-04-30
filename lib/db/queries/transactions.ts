@@ -128,6 +128,7 @@ export async function createPendingReaderTransaction(input: {
 
 export async function markReaderTransactionCompleted(input: {
   publisherId: string
+  brandId?: string | null
   razorpayPaymentId: string
   razorpayOrderId?: string | null
   razorpaySubscriptionId?: string | null
@@ -160,6 +161,7 @@ export async function markReaderTransactionCompleted(input: {
     razorpaySubscriptionId: input.razorpaySubscriptionId ?? existing[0]?.razorpaySubscriptionId ?? null,
     amount: input.amount ?? existing[0]?.amount ?? 0,
     currency: input.currency ?? existing[0]?.currency ?? "INR",
+    brandId: input.brandId ?? existing[0]?.brandId ?? null,
     domainId: input.domainId ?? existing[0]?.domainId ?? null,
     readerId: input.readerId ?? existing[0]?.readerId ?? null,
     contentUrl: input.contentUrl ?? existing[0]?.contentUrl ?? null,

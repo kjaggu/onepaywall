@@ -23,14 +23,14 @@ export function hashSubscriberEmail(email: string): string {
   return createHash("sha256").update(normalizeSubscriberEmail(email)).digest("hex")
 }
 
-export async function getOrCreateSubscriber(publisherId: string, email: string) {
+export async function getOrCreateSubscriber(brandId: string, publisherId: string, email: string) {
   const normalized = normalizeSubscriberEmail(email)
   const emailHash = hashSubscriberEmail(normalized)
 
   const [existing] = await db
     .select()
     .from(readerSubscribers)
-    .where(and(eq(readerSubscribers.publisherId, publisherId), eq(readerSubscribers.emailHash, emailHash)))
+    .where(and(eq(readerSubscribers.brandId, brandId), eq(readerSubscribers.emailHash, emailHash)))
     .limit(1)
 
   if (existing) return existing
@@ -39,6 +39,7 @@ export async function getOrCreateSubscriber(publisherId: string, email: string) 
     .insert(readerSubscribers)
     .values({
       publisherId,
+      brandId,
       emailHash,
       encryptedEmail: encrypt(normalized),
     })
@@ -46,12 +47,12 @@ export async function getOrCreateSubscriber(publisherId: string, email: string) 
   return created
 }
 
-export async function getSubscriberByEmail(publisherId: string, email: string) {
+export async function getSubscriberByEmail(brandId: string, email: string) {
   const emailHash = hashSubscriberEmail(email)
   const [row] = await db
     .select()
     .from(readerSubscribers)
-    .where(and(eq(readerSubscribers.publisherId, publisherId), eq(readerSubscribers.emailHash, emailHash)))
+    .where(and(eq(readerSubscribers.brandId, brandId), eq(readerSubscribers.emailHash, emailHash)))
     .limit(1)
   return row ?? null
 }
@@ -80,6 +81,7 @@ export async function setSubscriberCustomerId(subscriberId: string, customerId: 
 
 export async function upsertReaderSubscription(input: {
   publisherId: string
+  brandId: string
   subscriberId: string
   interval: ReaderBillingInterval
   pgMode: "platform" | "own"
@@ -95,6 +97,7 @@ export async function upsertReaderSubscription(input: {
   const existing = await getReaderSubscriptionByRazorpayId(input.razorpaySubscriptionId)
   const values = {
     publisherId: input.publisherId,
+    brandId: input.brandId,
     subscriberId: input.subscriberId,
     interval: input.interval,
     pgMode: input.pgMode,
@@ -151,6 +154,7 @@ export async function updateReaderSubscriptionStatus(
 
 export async function linkReaderToSubscriber(input: {
   publisherId: string
+  brandId: string
   subscriberId: string
   readerId: string
 }) {
@@ -158,21 +162,21 @@ export async function linkReaderToSubscriber(input: {
     .insert(readerSubscriptionLinks)
     .values(input)
     .onConflictDoUpdate({
-      target: [readerSubscriptionLinks.readerId, readerSubscriptionLinks.publisherId],
+      target: [readerSubscriptionLinks.readerId, readerSubscriptionLinks.brandId],
       set: { subscriberId: input.subscriberId },
     })
 }
 
-export async function readerHasActivePublisherSubscription(publisherId: string, readerId: string) {
+export async function readerHasActiveBrandSubscription(brandId: string, readerId: string) {
   const now = new Date()
   const rows = await db
     .select({ id: readerSubscriptions.id })
     .from(readerSubscriptionLinks)
     .innerJoin(readerSubscriptions, eq(readerSubscriptionLinks.subscriberId, readerSubscriptions.subscriberId))
     .where(and(
-      eq(readerSubscriptionLinks.publisherId, publisherId),
+      eq(readerSubscriptionLinks.brandId, brandId),
       eq(readerSubscriptionLinks.readerId, readerId),
-      eq(readerSubscriptions.publisherId, publisherId),
+      eq(readerSubscriptions.brandId, brandId),
       inArray(readerSubscriptions.status, [...ACTIVE_STATUSES]),
       or(isNull(readerSubscriptions.currentPeriodEnd), gt(readerSubscriptions.currentPeriodEnd, now)),
     ))
@@ -180,13 +184,13 @@ export async function readerHasActivePublisherSubscription(publisherId: string, 
   return rows.length > 0
 }
 
-export async function subscriberHasActiveSubscription(publisherId: string, subscriberId: string) {
+export async function subscriberHasActiveSubscription(brandId: string, subscriberId: string) {
   const now = new Date()
   const rows = await db
     .select({ id: readerSubscriptions.id })
     .from(readerSubscriptions)
     .where(and(
-      eq(readerSubscriptions.publisherId, publisherId),
+      eq(readerSubscriptions.brandId, brandId),
       eq(readerSubscriptions.subscriberId, subscriberId),
       inArray(readerSubscriptions.status, [...ACTIVE_STATUSES]),
       or(isNull(readerSubscriptions.currentPeriodEnd), gt(readerSubscriptions.currentPeriodEnd, now)),
@@ -197,6 +201,7 @@ export async function subscriberHasActiveSubscription(publisherId: string, subsc
 
 export async function createSubscriptionMagicLink(input: {
   publisherId: string
+  brandId: string
   subscriberId: string
   returnUrl?: string | null
   ttlMinutes?: number
@@ -206,6 +211,7 @@ export async function createSubscriptionMagicLink(input: {
   await db.insert(readerSubscriptionMagicLinks).values({
     token,
     publisherId: input.publisherId,
+    brandId: input.brandId,
     subscriberId: input.subscriberId,
     returnUrl: input.returnUrl ?? null,
     expiresAt,
@@ -234,13 +240,15 @@ export async function consumeSubscriptionMagicLink(token: string) {
   return row
 }
 
-export async function listSubscribers(publisherId: string, options?: { status?: string }) {
+export async function listSubscribers(publisherId: string, options?: { status?: string; brandId?: string }) {
   const conditions = [eq(readerSubscriptions.publisherId, publisherId)]
+  if (options?.brandId) conditions.push(eq(readerSubscriptions.brandId, options.brandId))
   if (options?.status) conditions.push(eq(readerSubscriptions.status, options.status))
 
   const rows = await db
     .select({
       subscriberId: readerSubscribers.id,
+      brandId: readerSubscriptions.brandId,
       encryptedEmail: readerSubscribers.encryptedEmail,
       interval: readerSubscriptions.interval,
       status: readerSubscriptions.status,
@@ -262,11 +270,13 @@ export async function listSubscribers(publisherId: string, options?: { status?: 
   }))
 }
 
-export async function getSubscriberStats(publisherId: string) {
+export async function getSubscriberStats(publisherId: string, brandId?: string) {
+  const conditions = [eq(readerSubscriptions.publisherId, publisherId)]
+  if (brandId) conditions.push(eq(readerSubscriptions.brandId, brandId))
   const rows = await db
     .select({ status: readerSubscriptions.status })
     .from(readerSubscriptions)
-    .where(eq(readerSubscriptions.publisherId, publisherId))
+    .where(and(...conditions))
 
   const stats = { total: 0, active: 0, past_due: 0, paused: 0, cancelled: 0 }
   for (const r of rows) {
@@ -281,6 +291,7 @@ export async function getSubscriberStats(publisherId: string) {
 
 export async function recordReaderSubscriptionPayment(input: {
   publisherId: string
+  brandId?: string | null
   readerId?: string | null
   domainId?: string | null
   razorpayPaymentId: string
@@ -298,6 +309,7 @@ export async function recordReaderSubscriptionPayment(input: {
 
   const result = await markReaderTransactionCompleted({
     publisherId: input.publisherId,
+    brandId: input.brandId ?? null,
     readerId: input.readerId ?? undefined,
     domainId: input.domainId ?? null,
     amount: input.amount,

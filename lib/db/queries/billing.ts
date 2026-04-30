@@ -109,7 +109,8 @@ export async function isPublisherActive(publisherId: string): Promise<boolean> {
 export type PublisherLimits = {
   planSlug:        PlanRow["slug"]
   planName:        string
-  maxDomains:      number | null
+  maxBrands:       number | null
+  maxDomains:      number | null  // per-brand domain limit (hardcoded 3, kept for reference)
   maxGates:        number | null
   maxMauPerDomain: number | null
 }
@@ -122,6 +123,7 @@ export async function getPublisherLimits(publisherId: string): Promise<Publisher
   return {
     planSlug:        plan.slug,
     planName:        plan.name,
+    maxBrands:       plan.maxBrands ?? null,
     maxDomains:      plan.maxDomains,
     maxGates:        plan.maxGates,
     maxMauPerDomain: plan.maxMauPerDomain,

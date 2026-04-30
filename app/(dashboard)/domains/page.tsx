@@ -33,13 +33,11 @@ export default async function DomainsPage() {
           <AddDomainSheet />
         </div>
       ) : (
-        /* Domain list — entire row links to the domain overview. Per-domain
-           actions (pause / remove / embed script / free pages) live on the
-           detail page itself. */
         <div className="border border-[var(--border)] rounded-lg overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[2fr_auto_auto] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
+          <div className="grid grid-cols-[2fr_1fr_auto_auto] gap-4 px-4 py-2.5 bg-[var(--muted)] border-b border-[var(--border)]">
             <span className="text-label text-[var(--muted-foreground)]">Name / Domain</span>
+            <span className="text-label text-[var(--muted-foreground)]">Brand</span>
             <span className="text-label text-[var(--muted-foreground)]">Status</span>
             <span className="text-label text-[var(--muted-foreground)]">Embed</span>
           </div>
@@ -49,7 +47,7 @@ export default async function DomainsPage() {
             <Link
               key={d.id}
               href={`/domains/${d.id}`}
-              className={`grid grid-cols-[2fr_auto_auto] gap-4 px-4 py-3 items-center transition-colors hover:bg-[var(--muted)] ${
+              className={`grid grid-cols-[2fr_1fr_auto_auto] gap-4 px-4 py-3 items-center transition-colors hover:bg-[var(--muted)] ${
                 i < domains.length - 1 ? "border-b border-[var(--border)]" : ""
               }`}
             >
@@ -58,6 +56,11 @@ export default async function DomainsPage() {
                 <p className="text-body font-medium text-[var(--color-text)] truncate">{d.name}</p>
                 <p className="text-body-sm text-[var(--muted-foreground)] truncate">{d.domain}</p>
               </div>
+
+              {/* Brand */}
+              <p className="text-body-sm text-[var(--color-text-secondary)] truncate">
+                {d.brandName ?? "—"}
+              </p>
 
               {/* Status */}
               <Badge variant={d.status === "active" ? "default" : "secondary"} className="w-fit capitalize">

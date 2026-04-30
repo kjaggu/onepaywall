@@ -46,7 +46,7 @@ async function resolveReaderPublisher(token: string, gateId?: string) {
   if (!reader) return null
 
   const [domain] = await db
-    .select({ publisherId: domains.publisherId, domainId: domains.id })
+    .select({ publisherId: domains.publisherId, brandId: domains.brandId, domainId: domains.id })
     .from(domains)
     .where(eq(domains.id, reader.domainId))
     .limit(1)
@@ -62,7 +62,7 @@ async function resolveReaderPublisher(token: string, gateId?: string) {
     if (!gate) return null
   }
 
-  return { ...reader, publisherId: domain.publisherId }
+  return { ...reader, publisherId: domain.publisherId, brandId: domain.brandId ?? domain.publisherId }
 }
 
 function isEmail(value: string) {
@@ -82,8 +82,8 @@ async function handleCreate(req: NextRequest) {
   if (!context) return NextResponse.json({ error: "invalid token" }, { status: 401 })
 
   const [plan, pgConfig, pubRow] = await Promise.all([
-    getPublisherReaderPlan(context.publisherId),
-    getOrCreatePgConfig(context.publisherId),
+    getPublisherReaderPlan(context.brandId),
+    getOrCreatePgConfig(context.brandId, context.publisherId),
     db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
   ])
   const publisherName = pubRow[0]?.name ?? "OnePaywall"
@@ -91,9 +91,9 @@ async function handleCreate(req: NextRequest) {
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
   try {
-    const subscriber = await getOrCreateSubscriber(context.publisherId, email)
+    const subscriber = await getOrCreateSubscriber(context.brandId, context.publisherId, email)
 
-    if (await subscriberHasActiveSubscription(context.publisherId, subscriber.id)) {
+    if (await subscriberHasActiveSubscription(context.brandId, subscriber.id)) {
       return NextResponse.json({ error: "already_subscribed" }, { status: 409 })
     }
 
@@ -114,6 +114,7 @@ async function handleCreate(req: NextRequest) {
     })
     await upsertReaderSubscription({
       publisherId: context.publisherId,
+      brandId: context.brandId,
       subscriberId: subscriber.id,
       interval: interval as ReaderBillingInterval,
       pgMode: selected.pgMode ?? "platform",
@@ -192,6 +193,7 @@ async function handleVerify(req: NextRequest) {
 
   await upsertReaderSubscription({
     publisherId: context.publisherId,
+    brandId: context.brandId,
     subscriberId: ours.subscriberId,
     interval: ours.interval as ReaderBillingInterval,
     pgMode: ours.pgMode,
@@ -201,11 +203,12 @@ async function handleVerify(req: NextRequest) {
     currentPeriodStart: remote.currentStart,
     currentPeriodEnd: remote.currentEnd,
   })
-  await linkReaderToSubscriber({ publisherId: context.publisherId, subscriberId: ours.subscriberId, readerId: context.readerId })
+  await linkReaderToSubscriber({ publisherId: context.publisherId, brandId: context.brandId, subscriberId: ours.subscriberId, readerId: context.readerId })
 
   if (payment) {
     await recordReaderSubscriptionPayment({
       publisherId: context.publisherId,
+      brandId: context.brandId,
       readerId: context.readerId,
       domainId: context.domainId,
       razorpayPaymentId,
@@ -248,13 +251,13 @@ async function handleRestoreRequest(req: NextRequest) {
   const context = await resolveReaderPublisher(token)
   if (!context) return NextResponse.json({ ok: true })
 
-  const subscriber = await getSubscriberByEmail(context.publisherId, email)
-  if (!subscriber || !(await subscriberHasActiveSubscription(context.publisherId, subscriber.id))) {
+  const subscriber = await getSubscriberByEmail(context.brandId, email)
+  if (!subscriber || !(await subscriberHasActiveSubscription(context.brandId, subscriber.id))) {
     return NextResponse.json({ ok: true })
   }
 
   const [{ token: restoreToken }, pub] = await Promise.all([
-    createSubscriptionMagicLink({ publisherId: context.publisherId, subscriberId: subscriber.id, returnUrl }),
+    createSubscriptionMagicLink({ publisherId: context.publisherId, brandId: context.brandId, subscriberId: subscriber.id, returnUrl }),
     db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
   ])
 
@@ -275,10 +278,10 @@ async function handleRestoreConfirm(req: NextRequest) {
 
   const magic = await consumeSubscriptionMagicLink(body.restoreToken)
   if (!magic || magic.publisherId !== context.publisherId) return NextResponse.json({ error: "invalid restore token" }, { status: 400 })
-  if (!(await subscriberHasActiveSubscription(context.publisherId, magic.subscriberId))) {
+  if (!(await subscriberHasActiveSubscription(context.brandId, magic.subscriberId))) {
     return NextResponse.json({ error: "subscription inactive" }, { status: 400 })
   }
 
-  await linkReaderToSubscriber({ publisherId: context.publisherId, subscriberId: magic.subscriberId, readerId: context.readerId })
+  await linkReaderToSubscriber({ publisherId: context.publisherId, brandId: context.brandId, subscriberId: magic.subscriberId, readerId: context.readerId })
   return NextResponse.json({ ok: true, returnUrl: magic.returnUrl })
 }

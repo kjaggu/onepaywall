@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
 import { listDomains, createDomain, countActiveDomains, getDomainOwnerByHost } from "@/lib/db/queries/domains"
 import { getPublisherLimits } from "@/lib/db/queries/billing"
+import { getDefaultBrand, getBrand, countDomainsForBrand } from "@/lib/db/queries/brands"
 
-export async function GET() {
+const MAX_DOMAINS_PER_BRAND = 3
+
+export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
   if (!session.publisherId) return NextResponse.json({ domains: [] })
 
-  const domains = await listDomains(session.publisherId)
+  const brandId = req.nextUrl.searchParams.get("brandId") ?? undefined
+  const domains = await listDomains(session.publisherId, brandId)
   return NextResponse.json({ domains })
 }
 
@@ -17,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
   if (!session.publisherId) return NextResponse.json({ error: "No publisher found" }, { status: 403 })
 
-  const { name, domain } = await req.json()
+  const { name, domain, brandId: bodyBrandId } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 })
   if (!domain?.trim()) return NextResponse.json({ error: "Domain is required" }, { status: 400 })
 
@@ -34,20 +38,36 @@ export async function POST(req: NextRequest) {
     }, { status: 409 })
   }
 
-  // Plan-limit check. NULL maxDomains means unlimited (Scale tier).
+  // Resolve brand — use provided brandId or fall back to default brand
+  const brand = bodyBrandId
+    ? await getBrand(bodyBrandId, session.publisherId)
+    : await getDefaultBrand(session.publisherId)
+  if (!brand) return NextResponse.json({ error: "Brand not found" }, { status: 404 })
+
+  // Per-brand domain cap (always 3)
+  const brandDomainCount = await countDomainsForBrand(brand.id)
+  if (brandDomainCount >= MAX_DOMAINS_PER_BRAND) {
+    return NextResponse.json({
+      error: `Each brand can have up to ${MAX_DOMAINS_PER_BRAND} domains. Upgrade or create a new brand.`,
+      upgrade: true,
+    }, { status: 422 })
+  }
+
+  // Publisher plan — max brands check (but domain creation itself is brand-capped above)
   const limits = await getPublisherLimits(session.publisherId)
-  if (limits?.maxDomains != null) {
+  if (limits?.maxBrands != null) {
     const current = await countActiveDomains(session.publisherId)
-    if (current >= limits.maxDomains) {
+    // Legacy fallback: if maxDomains still used as total
+    if (limits.maxDomains != null && current >= limits.maxDomains) {
       return NextResponse.json({
-        error: `Your ${limits.planName} plan allows ${limits.maxDomains} domain${limits.maxDomains === 1 ? "" : "s"}. Upgrade to add more.`,
+        error: `Your ${limits.planName} plan allows ${limits.maxDomains} domain${limits.maxDomains === 1 ? "" : "s"} total. Upgrade to add more.`,
         upgrade: true,
       }, { status: 422 })
     }
   }
 
   try {
-    const created = await createDomain({ publisherId: session.publisherId, name: name.trim(), domain: normalised })
+    const created = await createDomain({ publisherId: session.publisherId, brandId: brand.id, name: name.trim(), domain: normalised })
     return NextResponse.json({ domain: created }, { status: 201 })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : ""

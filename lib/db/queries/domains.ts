@@ -1,13 +1,30 @@
 import { eq, and, isNull, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { domains, publishers } from "@/lib/db/schema"
+import { brands, domains, publishers } from "@/lib/db/schema"
 import { generateSiteKey } from "@/lib/embed/siteKey"
 
-export async function listDomains(publisherId: string) {
+export async function listDomains(publisherId: string, brandId?: string) {
+  const conditions = [eq(domains.publisherId, publisherId), isNull(domains.deletedAt)]
+  if (brandId) conditions.push(eq(domains.brandId, brandId))
   return db
-    .select()
+    .select({
+      id:           domains.id,
+      publisherId:  domains.publisherId,
+      brandId:      domains.brandId,
+      name:         domains.name,
+      domain:       domains.domain,
+      siteKey:      domains.siteKey,
+      status:       domains.status,
+      embedEnabled: domains.embedEnabled,
+      whitelistedPaths: domains.whitelistedPaths,
+      deletedAt:    domains.deletedAt,
+      createdAt:    domains.createdAt,
+      updatedAt:    domains.updatedAt,
+      brandName:    brands.name,
+    })
     .from(domains)
-    .where(and(eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
+    .leftJoin(brands, eq(domains.brandId, brands.id))
+    .where(and(...conditions))
     .orderBy(domains.createdAt)
 }
 
@@ -39,10 +56,12 @@ export async function getDomainOwnerByHost(domain: string) {
 
 export async function createDomain({
   publisherId,
+  brandId,
   name,
   domain,
 }: {
   publisherId: string
+  brandId: string
   name: string
   domain: string
 }) {
@@ -59,7 +78,7 @@ export async function createDomain({
   if (deleted) {
     const [restored] = await db
       .update(domains)
-      .set({ name, siteKey, embedEnabled: false, status: "active", deletedAt: null, updatedAt: new Date() })
+      .set({ name, brandId, siteKey, embedEnabled: false, status: "active", deletedAt: null, updatedAt: new Date() })
       .where(eq(domains.id, deleted.id))
       .returning()
     return restored
@@ -67,7 +86,7 @@ export async function createDomain({
 
   const [row] = await db
     .insert(domains)
-    .values({ publisherId, name, domain: normalised, siteKey })
+    .values({ publisherId, brandId, name, domain: normalised, siteKey })
     .returning()
   return row
 }

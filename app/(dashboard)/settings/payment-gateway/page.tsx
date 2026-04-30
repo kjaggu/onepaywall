@@ -2,13 +2,17 @@ import { notFound } from "next/navigation"
 import { CreditCard } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
+import { getDefaultBrand } from "@/lib/db/queries/brands"
 import { PgConfigForm } from "@/components/dashboard/settings/pg-config-form"
 
 export default async function PaymentGatewayPage() {
   const session = await getSession()
   if (!session?.publisherId) notFound()
 
-  const config = await getOrCreatePgConfig(session.publisherId)
+  const brand = await getDefaultBrand(session.publisherId)
+  if (!brand) notFound()
+
+  const config = await getOrCreatePgConfig(brand.id, session.publisherId)
 
   return (
     <div className="p-8 max-w-2xl">

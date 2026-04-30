@@ -83,11 +83,26 @@ export const publisherMembers = pgTable("publisher_members", {
   index("publisher_members_user_idx").on(t.userId),
 ])
 
+// ─── Brands ───────────────────────────────────────────────────────────────────
+
+export const brands = pgTable("brands", {
+  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId: text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:        text("name").notNull(),
+  slug:        text("slug").notNull(),
+  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  updatedAt:   timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("brands_publisher_slug_idx").on(t.publisherId, t.slug),
+  index("brands_publisher_idx").on(t.publisherId),
+])
+
 // ─── Domains ──────────────────────────────────────────────────────────────────
 
 export const domains = pgTable("domains", {
   id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:      text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:          text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   name:             text("name").notNull(),
   domain:           text("domain").notNull(),
   siteKey:          text("site_key").notNull(),
@@ -101,6 +116,7 @@ export const domains = pgTable("domains", {
   uniqueIndex("domains_domain_idx").on(t.domain),
   uniqueIndex("domains_site_key_idx").on(t.siteKey),
   index("domains_publisher_idx").on(t.publisherId),
+  index("domains_brand_idx").on(t.brandId),
 ])
 
 // ─── Gates ────────────────────────────────────────────────────────────────────
@@ -151,6 +167,7 @@ export const plans = pgTable("plans", {
   slug:              planSlugEnum("slug").primaryKey(),
   name:              text("name").notNull(),
   priceMonthly:      integer("price_monthly"),
+  maxBrands:         integer("max_brands"),
   maxDomains:        integer("max_domains"),
   maxMauPerDomain:   integer("max_mau_per_domain"),
   maxGates:          integer("max_gates"),
@@ -311,6 +328,7 @@ export const adUnits = pgTable("ad_units", {
 export const publisherPgConfigs = pgTable("publisher_pg_configs", {
   id:            text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:   text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:       text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   mode:          pgModeEnum("mode").notNull().default("platform"),
   provider:      pgProviderEnum("provider").notNull().default("razorpay"),
   keyId:         text("key_id"),
@@ -320,7 +338,8 @@ export const publisherPgConfigs = pgTable("publisher_pg_configs", {
   createdAt:     timestamp("created_at").notNull().defaultNow(),
   updatedAt:     timestamp("updated_at").notNull().defaultNow(),
 }, t => [
-  uniqueIndex("publisher_pg_configs_publisher_idx").on(t.publisherId),
+  uniqueIndex("publisher_pg_configs_brand_unique_idx").on(t.brandId),
+  index("publisher_pg_configs_publisher_idx").on(t.publisherId),
 ])
 
 export const pgWebhookEvents = pgTable("pg_webhook_events", {
@@ -376,6 +395,7 @@ export const analyticsRollups = pgTable("analytics_rollups", {
 export const publisherReaderPlans = pgTable("publisher_reader_plans", {
   id:              text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:     text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:         text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   currency:        text("currency").notNull().default("INR"),
   monthlyPrice:    integer("monthly_price"),
   quarterlyPrice:  integer("quarterly_price"),
@@ -404,12 +424,14 @@ export const publisherReaderPlans = pgTable("publisher_reader_plans", {
   createdAt:       timestamp("created_at").notNull().defaultNow(),
   updatedAt:       timestamp("updated_at").notNull().defaultNow(),
 }, t => [
-  uniqueIndex("publisher_reader_plans_publisher_idx").on(t.publisherId),
+  uniqueIndex("publisher_reader_plans_brand_unique_idx").on(t.brandId),
+  index("publisher_reader_plans_publisher_idx").on(t.publisherId),
 ])
 
 export const publisherContentPrices = pgTable("publisher_content_prices", {
   id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:      text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   urlPattern:   text("url_pattern").notNull(),
   price:        integer("price").notNull(),
   label:        text("label"),
@@ -427,6 +449,7 @@ export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "c
 export const readerTransactions = pgTable("reader_transactions", {
   id:                  text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:         text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:             text("brand_id").references(() => brands.id, { onDelete: "set null" }),
   domainId:            text("domain_id").references(() => domains.id, { onDelete: "set null" }),
   readerId:            text("reader_id").references(() => readers.id, { onDelete: "set null" }),
   type:                transactionTypeEnum("type").notNull(),
@@ -452,6 +475,7 @@ export const readerTransactions = pgTable("reader_transactions", {
   index("reader_transactions_payment_idx").on(t.razorpayPaymentId),
   index("reader_transactions_order_idx").on(t.razorpayOrderId),
   index("reader_transactions_subscription_idx").on(t.razorpaySubscriptionId),
+  index("reader_transactions_brand_idx").on(t.brandId),
 ])
 
 // ─── Reader subscriptions ────────────────────────────────────────────────────
@@ -459,6 +483,7 @@ export const readerTransactions = pgTable("reader_transactions", {
 export const readerSubscribers = pgTable("reader_subscribers", {
   id:                 text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:        text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:            text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   emailHash:          text("email_hash").notNull(),
   encryptedEmail:     text("encrypted_email").notNull(),
   razorpayCustomerId: text("razorpay_customer_id"),
@@ -466,13 +491,15 @@ export const readerSubscribers = pgTable("reader_subscribers", {
   createdAt:          timestamp("created_at").notNull().defaultNow(),
   updatedAt:          timestamp("updated_at").notNull().defaultNow(),
 }, t => [
-  uniqueIndex("reader_subscribers_publisher_email_idx").on(t.publisherId, t.emailHash),
+  uniqueIndex("reader_subscribers_brand_email_idx").on(t.brandId, t.emailHash),
   index("reader_subscribers_publisher_idx").on(t.publisherId),
+  index("reader_subscribers_brand_idx").on(t.brandId),
 ])
 
 export const readerSubscriptions = pgTable("reader_subscriptions", {
   id:                    text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:           text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:               text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   subscriberId:          text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
   interval:              text("interval").notNull(),
   status:                text("status").notNull().default("created"),
@@ -489,6 +516,7 @@ export const readerSubscriptions = pgTable("reader_subscriptions", {
 }, t => [
   uniqueIndex("reader_subscriptions_razorpay_idx").on(t.razorpaySubscriptionId),
   index("reader_subscriptions_publisher_idx").on(t.publisherId),
+  index("reader_subscriptions_brand_idx").on(t.brandId),
   index("reader_subscriptions_subscriber_idx").on(t.subscriberId),
   index("reader_subscriptions_status_idx").on(t.status),
 ])
@@ -496,17 +524,20 @@ export const readerSubscriptions = pgTable("reader_subscriptions", {
 export const readerSubscriptionLinks = pgTable("reader_subscription_links", {
   id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
   publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:      text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
   readerId:     text("reader_id").notNull().references(() => readers.id, { onDelete: "cascade" }),
   createdAt:    timestamp("created_at").notNull().defaultNow(),
 }, t => [
-  uniqueIndex("reader_subscription_links_reader_publisher_idx").on(t.readerId, t.publisherId),
+  uniqueIndex("reader_subscription_links_reader_brand_idx").on(t.readerId, t.brandId),
+  index("reader_subscription_links_publisher_idx").on(t.publisherId),
   index("reader_subscription_links_subscriber_idx").on(t.subscriberId),
 ])
 
 export const readerSubscriptionMagicLinks = pgTable("reader_subscription_magic_links", {
   token:        text("token").primaryKey(),
   publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:      text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
   subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
   returnUrl:    text("return_url"),
   expiresAt:    timestamp("expires_at").notNull(),

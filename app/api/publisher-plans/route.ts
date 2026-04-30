@@ -9,18 +9,33 @@ import {
   syncPublisherReaderSubscriptionPlans,
 } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
+import { getDefaultBrand, getBrand } from "@/lib/db/queries/brands"
 
-export async function GET() {
+async function resolveBrandId(publisherId: string, req: NextRequest): Promise<string | null> {
+  const brandId = req.nextUrl.searchParams.get("brandId")
+  if (brandId) {
+    const brand = await getBrand(brandId, publisherId)
+    return brand?.id ?? null
+  }
+  const brand = await getDefaultBrand(publisherId)
+  return brand?.id ?? null
+}
+
+export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session?.publisherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const brandId = await resolveBrandId(session.publisherId, req)
+  if (!brandId) return NextResponse.json({ error: "No brand found" }, { status: 404 })
+
   const [plan, contentPrices, pgConfig] = await Promise.all([
-    getPublisherReaderPlan(session.publisherId),
+    getPublisherReaderPlan(brandId),
     listContentPrices(session.publisherId),
-    getOrCreatePgConfig(session.publisherId),
+    getOrCreatePgConfig(brandId, session.publisherId),
   ])
 
   return NextResponse.json({
+    brandId,
     plan,
     contentPrices,
     syncStatus: getReaderPlanSyncStatus(plan, pgConfig.mode),
@@ -37,6 +52,9 @@ export async function PUT(req: NextRequest) {
   const session = await getSession()
   if (!session?.publisherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const brandId = await resolveBrandId(session.publisherId, req)
+  if (!brandId) return NextResponse.json({ error: "No brand found" }, { status: 404 })
+
   const body = await req.json()
   if (body.subsEnabled) {
     const prices = [body.monthlyPrice, body.quarterlyPrice, body.annualPrice]
@@ -45,7 +63,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Add at least one subscription price before enabling subscriptions." }, { status: 400 })
     }
 
-    const pgConfig = await getOrCreatePgConfig(session.publisherId)
+    const pgConfig = await getOrCreatePgConfig(brandId, session.publisherId)
     if (pgConfig.mode === "own" && (!pgConfig.keyId || !pgConfig.keySecret)) {
       return NextResponse.json({
         error: "Connect your Razorpay Key ID and Key Secret before enabling reader subscriptions.",
@@ -54,12 +72,12 @@ export async function PUT(req: NextRequest) {
     }
   }
 
-  await upsertPublisherReaderPlan(session.publisherId, body)
+  await upsertPublisherReaderPlan(brandId, session.publisherId, body)
   const plan = body.subsEnabled
-    ? await syncPublisherReaderSubscriptionPlans(session.publisherId)
-    : await getPublisherReaderPlan(session.publisherId)
+    ? await syncPublisherReaderSubscriptionPlans(brandId, session.publisherId)
+    : await getPublisherReaderPlan(brandId)
 
-  const pgConfig = await getOrCreatePgConfig(session.publisherId)
+  const pgConfig = await getOrCreatePgConfig(brandId, session.publisherId)
   return NextResponse.json({ plan, syncStatus: getReaderPlanSyncStatus(plan, pgConfig.mode) })
 }
 
