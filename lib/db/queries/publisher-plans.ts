@@ -125,7 +125,8 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
       latest[i.planIdField] &&
       latest[i.syncedPriceField] === price &&
       latest[i.syncedCurrencyField] === latest.currency &&
-      latest[i.syncedModeField] === currentPgMode
+      latest[i.syncedModeField] === currentPgMode &&
+      latest.syncedDisplayName === displayName
 
     if (alreadySynced) continue
 
@@ -146,6 +147,7 @@ export async function syncPublisherReaderSubscriptionPlans(brandId: string, publ
           [i.syncedModeField]: synced.pgMode,
           [i.syncedAtField]: new Date(),
           [i.errorField]: null,
+          syncedDisplayName: displayName,
           updatedAt: new Date(),
         })
         .where(eq(publisherReaderPlans.brandId, brandId))

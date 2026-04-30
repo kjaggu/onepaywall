@@ -423,6 +423,7 @@ export const publisherReaderPlans = pgTable("publisher_reader_plans", {
   monthlySyncError:          text("monthly_sync_error"),
   quarterlySyncError:        text("quarterly_sync_error"),
   annualSyncError:           text("annual_sync_error"),
+  syncedDisplayName:  text("synced_display_name"),
   defaultUnlockPrice: integer("default_unlock_price"),
   unlockEnabled:   boolean("unlock_enabled").notNull().default(false),
   createdAt:       timestamp("created_at").notNull().defaultNow(),
