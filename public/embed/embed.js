@@ -216,7 +216,7 @@
                 return;
               }
               checkoutWin.location.replace(
-                _base + "/checkout?" + qs({ sid: created.subscriptionId, kid: created.keyId, email: email.value, rt: token, gid: gateId, base: _base })
+                _base + "/checkout?" + qs({ sid: created.subscriptionId, kid: created.keyId, email: email.value, rt: token, gid: gateId, base: _base, pub: created.publisherName })
               );
             })
             .catch(function () {

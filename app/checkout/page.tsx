@@ -10,6 +10,7 @@ function CheckoutInner() {
   const readerToken = params.get("rt")
   const gateId = params.get("gid")
   const apiBase = params.get("base") ?? ""
+  const publisherName = params.get("pub") ?? "OnePaywall"
   const launched = useRef(false)
 
   useEffect(() => {
@@ -23,8 +24,8 @@ function CheckoutInner() {
       const rzp = new Win.Razorpay({
         key: keyId,
         subscription_id: subscriptionId,
-        name: "OnePaywall",
-        description: "Reader membership",
+        name: publisherName,
+        description: `Subscribe to ${publisherName} · Powered by OnePaywall`,
         prefill: { email },
         handler: async (response: {
           razorpay_payment_id: string
@@ -70,7 +71,7 @@ function CheckoutInner() {
       window.close()
     }
     document.head.appendChild(script)
-  }, [subscriptionId, keyId, readerToken, gateId, email, apiBase])
+  }, [subscriptionId, keyId, readerToken, gateId, email, apiBase, publisherName])
 
   return (
     <div style={{

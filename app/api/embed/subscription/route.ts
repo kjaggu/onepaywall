@@ -80,10 +80,12 @@ async function handleCreate(req: NextRequest) {
   const context = await resolveReaderPublisher(token, gateId)
   if (!context) return NextResponse.json({ error: "invalid token" }, { status: 401 })
 
-  const [plan, pgConfig] = await Promise.all([
+  const [plan, pgConfig, pubRow] = await Promise.all([
     getPublisherReaderPlan(context.publisherId),
     getOrCreatePgConfig(context.publisherId),
+    db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
   ])
+  const publisherName = pubRow[0]?.name ?? "OnePaywall"
   const selected = getEnabledSyncedIntervals(plan, pgConfig.mode).find(i => i.interval === interval)
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
@@ -127,6 +129,7 @@ async function handleCreate(req: NextRequest) {
       keyId: created.keyId,
       interval,
       email,
+      publisherName,
     })
   } catch (e) {
     console.error("reader subscription creation failed:", e)
