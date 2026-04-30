@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { domains, gates, publishers } from "@/lib/db/schema"
+import { brands, domains, gates, publishers } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
@@ -82,12 +82,16 @@ async function handleCreate(req: NextRequest) {
   const context = await resolveReaderPublisher(token, gateId)
   if (!context) return NextResponse.json({ error: "invalid token" }, { status: 401 })
 
-  const [plan, pgConfig, pubRow] = await Promise.all([
+  const [plan, pgConfig, pubRow, brandRow] = await Promise.all([
     getPublisherReaderPlan(context.brandId),
     getOrCreatePgConfig(context.brandId, context.publisherId),
     db.select({ name: publishers.name }).from(publishers).where(eq(publishers.id, context.publisherId)).limit(1),
+    context.brandId !== context.publisherId
+      ? db.select({ name: brands.name }).from(brands).where(eq(brands.id, context.brandId)).limit(1)
+      : Promise.resolve([] as { name: string }[]),
   ])
   const publisherName = pubRow[0]?.name ?? "OnePaywall"
+  const displayName = brandRow[0]?.name ? `${brandRow[0].name} | ${publisherName}` : publisherName
   const selected = getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own").find(i => i.interval === interval)
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
@@ -117,7 +121,7 @@ async function handleCreate(req: NextRequest) {
     const created = await createReaderSubscription({
       publisherId: context.publisherId,
       brandId: context.brandId,
-      publisherName,
+      publisherName: displayName,
       subscriberId: subscriber.id,
       interval: interval as ReaderBillingInterval,
       razorpayPlanId: selected.razorpayPlanId,
@@ -148,7 +152,7 @@ async function handleCreate(req: NextRequest) {
       keyId: created.keyId,
       interval,
       email,
-      publisherName,
+      publisherName: displayName,
     })
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e)
