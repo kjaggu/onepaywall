@@ -282,6 +282,7 @@ export async function getSubscriberStats(publisherId: string) {
 export async function recordReaderSubscriptionPayment(input: {
   publisherId: string
   readerId?: string | null
+  domainId?: string | null
   razorpayPaymentId: string
   razorpaySubscriptionId: string
   amount: number
@@ -298,6 +299,7 @@ export async function recordReaderSubscriptionPayment(input: {
   const result = await markReaderTransactionCompleted({
     publisherId: input.publisherId,
     readerId: input.readerId ?? undefined,
+    domainId: input.domainId ?? null,
     amount: input.amount,
     currency: input.currency || pub?.currency || "INR",
     razorpayPaymentId: input.razorpayPaymentId,

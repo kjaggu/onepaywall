@@ -122,6 +122,35 @@ export async function getGateBreakdown(domainId: string, since: Date): Promise<G
   })
 }
 
+// 24-hour gate decision counts grouped by hour — for the overview hourly chart
+export async function getHourlyDecisions(domainIds: string[]): Promise<Array<{ hour: number; shown: number; passed: number }>> {
+  const empty = Array.from({ length: 24 }, (_, h) => ({ hour: h, shown: 0, passed: 0 }))
+  if (domainIds.length === 0) return empty
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const domainFilter = domainIds.length === 1
+    ? eq(gateEvents.domainId, domainIds[0])
+    : inArray(gateEvents.domainId, domainIds)
+
+  const rows = await db
+    .select({
+      hour: sql<number>`EXTRACT(HOUR FROM ${gateEvents.occurredAt})::int`,
+      shown:  sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'gate_shown')`,
+      passed: sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'gate_passed')`,
+    })
+    .from(gateEvents)
+    .where(and(domainFilter, gte(gateEvents.occurredAt, since)))
+    .groupBy(sql`EXTRACT(HOUR FROM ${gateEvents.occurredAt})`)
+    .orderBy(sql`EXTRACT(HOUR FROM ${gateEvents.occurredAt})`)
+
+  const map = new Map(rows.map(r => [r.hour, { shown: Number(r.shown), passed: Number(r.passed) }]))
+  return Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    shown:  map.get(h)?.shown  ?? 0,
+    passed: map.get(h)?.passed ?? 0,
+  }))
+}
+
 // Daily time-series from rollups, summed across all gates per day
 // Pass gateId to isolate a single gate's trend
 export async function getDailySeries(domainIds: string[], since: Date, gateId?: string): Promise<DailyPoint[]> {

@@ -207,6 +207,7 @@ async function handleVerify(req: NextRequest) {
     await recordReaderSubscriptionPayment({
       publisherId: context.publisherId,
       readerId: context.readerId,
+      domainId: context.domainId,
       razorpayPaymentId,
       razorpaySubscriptionId,
       amount: payment.amount,

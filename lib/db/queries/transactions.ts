@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/client"
 import { readerTransactions, domains } from "@/lib/db/schema"
-import { eq, and, gte, lte, desc, or } from "drizzle-orm"
+import { eq, and, gte, lte, desc, or, inArray } from "drizzle-orm"
 import { encrypt, decrypt } from "@/lib/payments/encrypt"
 import { createHash } from "crypto"
 import type { SQL } from "drizzle-orm"
@@ -267,4 +267,35 @@ export async function getRevenueForPeriod(publisherId: string, since: Date, doma
   const total = rows.reduce((s, r) => s + r.amount, 0)
   const currency = rows[0]?.currency ?? "INR"
   return { total, currency, count: rows.length }
+}
+
+// Per-domain completed revenue in one query — for the overview domain table
+export async function getRevenueByDomain(publisherId: string, domainIds: string[], since: Date): Promise<Record<string, { total: number; currency: string }>> {
+  if (domainIds.length === 0) return {}
+
+  const domainFilter = domainIds.length === 1
+    ? eq(readerTransactions.domainId, domainIds[0])
+    : inArray(readerTransactions.domainId, domainIds)
+
+  const rows = await db
+    .select({
+      domainId: readerTransactions.domainId,
+      amount:   readerTransactions.amount,
+      currency: readerTransactions.currency,
+    })
+    .from(readerTransactions)
+    .where(and(
+      eq(readerTransactions.publisherId, publisherId),
+      eq(readerTransactions.status, "completed"),
+      gte(readerTransactions.createdAt, since),
+      domainFilter,
+    ))
+
+  const result: Record<string, { total: number; currency: string }> = {}
+  for (const r of rows) {
+    if (!r.domainId) continue
+    if (!result[r.domainId]) result[r.domainId] = { total: 0, currency: r.currency }
+    result[r.domainId].total += r.amount
+  }
+  return result
 }
