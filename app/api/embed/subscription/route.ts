@@ -100,6 +100,7 @@ async function handleCreate(req: NextRequest) {
 
     const created = await createReaderSubscription({
       publisherId: context.publisherId,
+      publisherName,
       subscriberId: subscriber.id,
       interval: interval as ReaderBillingInterval,
       razorpayPlanId: selected.razorpayPlanId,

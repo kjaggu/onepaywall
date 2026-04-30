@@ -107,6 +107,7 @@ export async function createOrReuseReaderCustomer(input: {
 
 export async function createReaderSubscription(input: {
   publisherId: string
+  publisherName: string
   subscriberId: string
   interval: ReaderBillingInterval
   razorpayPlanId: string
@@ -124,8 +125,10 @@ export async function createReaderSubscription(input: {
     customer_id: input.razorpayCustomerId,
     total_count: cadence.totalCount,
     customer_notify: 0,
+    fee_bearer: "customer",
     notes: {
       publisherId: input.publisherId,
+      publisherName: input.publisherName,
       subscriberId: input.subscriberId,
       interval: input.interval,
       source: "onepaywall_reader_subscription",
