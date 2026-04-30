@@ -83,12 +83,13 @@ export async function createReaderRazorpayPlan(input: {
 
 export async function createOrReuseReaderCustomer(input: {
   publisherId: string
+  brandId?: string | null
   email: string
   existingCustomerId?: string | null
 }) {
   if (input.existingCustomerId) return input.existingCustomerId
 
-  const cfg = await resolveConfig(input.publisherId)
+  const cfg = await resolveConfig(input.publisherId, input.brandId)
   const client = getClient(cfg)
   const customers = client.customers as unknown as {
     create: (body: Record<string, unknown>) => Promise<{ id: string }>
@@ -107,13 +108,14 @@ export async function createOrReuseReaderCustomer(input: {
 
 export async function createReaderSubscription(input: {
   publisherId: string
+  brandId?: string | null
   publisherName: string
   subscriberId: string
   interval: ReaderBillingInterval
   razorpayPlanId: string
   razorpayCustomerId: string
 }): Promise<CreatedReaderSubscription> {
-  const cfg = await resolveConfig(input.publisherId)
+  const cfg = await resolveConfig(input.publisherId, input.brandId)
   const client = getClient(cfg)
   const cadence = intervalToRazorpay(input.interval)
   const subscriptions = client.subscriptions as unknown as {

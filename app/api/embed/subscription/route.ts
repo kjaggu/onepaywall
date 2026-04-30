@@ -5,6 +5,7 @@ import { domains, gates, publishers } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
+import { resolveConfig } from "@/lib/payments/resolveConfig"
 import {
   consumeSubscriptionMagicLink,
   createSubscriptionMagicLink,
@@ -90,6 +91,14 @@ async function handleCreate(req: NextRequest) {
   const selected = getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own").find(i => i.interval === interval)
   if (!selected) return NextResponse.json({ error: "subscription interval not available" }, { status: 400 })
 
+  const gatewayCfg = await resolveConfig(context.publisherId, context.brandId)
+  if (!gatewayCfg.keyId || !gatewayCfg.keySecret) {
+    console.error("reader subscription: payment gateway not configured", {
+      publisherId: context.publisherId, brandId: context.brandId, mode: gatewayCfg.mode,
+    })
+    return NextResponse.json({ error: "gateway_not_configured" }, { status: 503 })
+  }
+
   try {
     const subscriber = await getOrCreateSubscriber(context.brandId, context.publisherId, email)
 
@@ -99,6 +108,7 @@ async function handleCreate(req: NextRequest) {
 
     const customerId = await createOrReuseReaderCustomer({
       publisherId: context.publisherId,
+      brandId: context.brandId,
       email,
       existingCustomerId: subscriber.razorpayCustomerId,
     })
@@ -106,6 +116,7 @@ async function handleCreate(req: NextRequest) {
 
     const created = await createReaderSubscription({
       publisherId: context.publisherId,
+      brandId: context.brandId,
       publisherName,
       subscriberId: subscriber.id,
       interval: interval as ReaderBillingInterval,
@@ -140,7 +151,8 @@ async function handleCreate(req: NextRequest) {
       publisherName,
     })
   } catch (e) {
-    console.error("reader subscription creation failed:", e)
+    const detail = e instanceof Error ? e.message : String(e)
+    console.error("reader subscription creation failed:", { detail, publisherId: context.publisherId, brandId: context.brandId })
     return NextResponse.json({ error: "payment provider error" }, { status: 502 })
   }
 }
