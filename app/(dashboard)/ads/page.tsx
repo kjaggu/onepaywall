@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Megaphone, Plus, Image as ImageIcon, Video, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { CreateAdSheet } from "@/components/dashboard/ads/create-ad-sheet"
 
 type AdUnit = {
@@ -50,15 +51,11 @@ export default function AdsPage() {
 
   return (
     <div>
-      {/* Inline create-CTA — sits above the table within the Library tab. */}
       <div className="flex justify-end mb-3">
-        <button
-          onClick={() => setShowCreate(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#111", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-        >
+        <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
           <Plus size={14} />
           Create ad unit
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -80,13 +77,10 @@ export default function AdsPage() {
           <div style={{ fontSize: 12, color: "#bbb", maxWidth: 320, lineHeight: 1.6, marginBottom: 20 }}>
             Upload images, GIFs, or short videos to show readers during gate interactions.
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 6, background: "#111", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
+          <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
             <Plus size={14} />
             Create ad unit
-          </button>
+          </Button>
         </div>
       ) : (
         <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden" }}>
@@ -165,12 +159,11 @@ export default function AdsPage() {
         </div>
       )}
 
-      {showCreate && (
-        <CreateAdSheet
-          onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); load() }}
-        />
-      )}
+      <CreateAdSheet
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onCreated={load}
+      />
     </div>
   )
 }

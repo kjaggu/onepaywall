@@ -1,7 +1,13 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { X, Upload, Image as ImageIcon, Video } from "lucide-react"
+import { X, Upload, Video } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 type AdFormData = {
   name: string
@@ -19,7 +25,13 @@ const INITIAL: AdFormData = {
   ctaUrl: "",
 }
 
-export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+type Props = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCreated: () => void
+}
+
+export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
   const [form, setForm] = useState<AdFormData>(INITIAL)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -27,6 +39,14 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
   const [error, setError] = useState<string | null>(null)
   const [skipType, setSkipType] = useState<"skip" | "mandatory">("skip")
   const fileRef = useRef<HTMLInputElement>(null)
+
+  function reset() {
+    setForm(INITIAL)
+    setFile(null)
+    setPreview(null)
+    setError(null)
+    setSkipType("skip")
+  }
 
   function handleFile(f: File) {
     if (f.type.startsWith("video/")) {
@@ -57,7 +77,6 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
     setError(null)
 
     try {
-      // 1. Get a signed upload URL
       const urlRes = await fetch("/api/ads/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,7 +85,6 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
       const { uploadUrl, storageKey, cdnUrl, error: urlErr } = await urlRes.json()
 
       if (!urlRes.ok) {
-        // R2 not configured — create the ad unit without media for now
         if (urlErr === "R2 storage not configured") {
           await fetch("/api/ads", {
             method: "POST",
@@ -80,16 +98,16 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
               skipAfterSeconds: skipType === "mandatory" ? null : (form.skipAfterSeconds ?? null),
             }),
           })
+          onOpenChange(false)
+          reset()
           onCreated()
           return
         }
         throw new Error(urlErr ?? "Failed to get upload URL")
       }
 
-      // 2. Upload directly to R2
       await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
 
-      // 3. Create the ad unit record
       const res = await fetch("/api/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,6 +123,8 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
         }),
       })
       if (!res.ok) throw new Error("Failed to create ad unit")
+      onOpenChange(false)
+      reset()
       onCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong")
@@ -114,24 +134,13 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex justify-end"
-      style={{ background: "rgba(0,0,0,0.18)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
-        className="bg-white h-full overflow-y-auto flex flex-col"
-        style={{ width: 440, boxShadow: "-4px 0 24px rgba(0,0,0,0.08)" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#ebebeb] shrink-0">
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#111" }}>Create ad unit</span>
-          <button onClick={onClose} className="text-[#aaa] hover:text-[#555] transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+    <Sheet open={open} onOpenChange={v => { onOpenChange(v); if (!v) reset() }}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Create ad unit</SheetTitle>
+        </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 p-6 gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 pb-4 mt-2">
           {/* Name */}
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 12, fontWeight: 500, color: "#555" }}>Ad name</label>
@@ -251,11 +260,7 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
             />
           </div>
 
-          {error && (
-            <div style={{ fontSize: 12, color: "#e54" }}>{error}</div>
-          )}
-
-          <div className="flex-1" />
+          {error && <div style={{ fontSize: 12, color: "#e54" }}>{error}</div>}
 
           <button
             type="submit"
@@ -276,7 +281,7 @@ export function CreateAdSheet({ onClose, onCreated }: { onClose: () => void; onC
             {saving ? "Creating…" : "Create ad unit"}
           </button>
         </form>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }

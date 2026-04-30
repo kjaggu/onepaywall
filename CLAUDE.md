@@ -93,6 +93,68 @@ Components never touch DB. API routes never contain business logic. `/lib` is pu
 
 ---
 
+## Side sheets — mandatory pattern
+
+All slide-over panels **must** use the `Sheet` component from `components/ui/sheet.tsx`. Never implement a custom overlay/drawer with `fixed inset-0` divs.
+
+### Pattern A — self-contained trigger (preferred)
+Use when the sheet has a single trigger button. The button is part of the sheet component itself.
+
+```tsx
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+<Sheet open={open} onOpenChange={setOpen}>
+  <SheetTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+    <PlusIcon size={14} />
+    Button label
+  </SheetTrigger>
+  <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+    <SheetHeader>
+      <SheetTitle>Sheet title</SheetTitle>
+    </SheetHeader>
+    <div className="flex flex-col gap-5 px-4 pb-4 mt-2">
+      {/* form or content */}
+    </div>
+  </SheetContent>
+</Sheet>
+```
+
+### Pattern B — externally controlled (use when multiple triggers open the same sheet)
+Use when the sheet must be opened from more than one place (e.g. a header button and an empty-state button).
+
+```tsx
+// In the sheet component:
+type Props = { open: boolean; onOpenChange: (open: boolean) => void }
+
+<Sheet open={open} onOpenChange={v => { onOpenChange(v); if (!v) reset() }}>
+  <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+    ...
+  </SheetContent>
+</Sheet>
+
+// In the page:
+const [sheetOpen, setSheetOpen] = useState(false)
+<Button onClick={() => setSheetOpen(true)}>Open</Button>         // trigger 1
+<Button onClick={() => setSheetOpen(true)}>Empty state CTA</Button> // trigger 2
+<MySheet open={sheetOpen} onOpenChange={setSheetOpen} />
+```
+
+### Width classes
+| Width | Class | Use for |
+|-------|-------|---------|
+| Narrow | `w-full sm:max-w-md` | Simple forms (add domain, add subscriber) |
+| Medium | `w-full sm:max-w-lg` | Multi-step wizards, file uploads (create gate, import CSV) |
+
+### Rules
+- **Never** use raw pixel widths (`w-[400px]`) — they lose to the Sheet's built-in `data-[side=right]:w-3/4` selector due to CSS specificity
+- **Never** use a hidden `<SheetTrigger>` + separate `<Button>` outside the sheet — use Pattern A or B
+- Always add `overflow-y-auto` to `SheetContent` when content can exceed viewport height
+- Content padding goes on an inner div (`px-4 pb-4`), not on `SheetContent` itself
+
+---
+
 ## UI development — shadcn blocks first
 
 Before building any UI component or page layout, check shadcn blocks:
