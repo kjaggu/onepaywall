@@ -28,22 +28,25 @@ function StatItem({ raw, suffix, label, note, active, decimals }: typeof STATS[0
 
 export function StatsBar() {
   const [active, setActive] = useState(false)
-  const ref = useScrollReveal<HTMLDivElement>(0.2)
+  const gridRef = useScrollReveal<HTMLDivElement>(0.2)
 
   return (
     <section
-      ref={ref as React.RefObject<HTMLDivElement>}
-      className="lp-reveal"
-      onAnimationEnd={() => setActive(true)}
       style={{ background: "rgba(255,255,255,0.03)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
     >
       <div
         className="lp-stagger"
         ref={(el) => {
+          // attach useScrollReveal ref
+          ;(gridRef as React.MutableRefObject<HTMLDivElement | null>).current = el
           if (el && !active) {
             const obs = new IntersectionObserver(([entry]) => {
-              if (entry.isIntersecting) { setActive(true); obs.disconnect() }
-            }, { threshold: 0.3 })
+              if (entry.isIntersecting) {
+                el.classList.add("is-visible")
+                setActive(true)
+                obs.disconnect()
+              }
+            }, { threshold: 0.2 })
             obs.observe(el)
           }
         }}
