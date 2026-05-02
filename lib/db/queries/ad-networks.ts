@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client"
 import { publisherAdNetworks } from "@/lib/db/schema"
 import { encrypt, decrypt } from "@/lib/payments/encrypt"
 
-export type AdProvider = "google_adsense" | "google_ad_manager"
+export type AdProvider = "google_adsense"
 
 export type AdNetworkRow = {
   id: string
@@ -15,7 +15,6 @@ export type AdNetworkRow = {
 }
 
 export type AdsenseCredentials = { adClientId: string }
-export type GAMCredentials = { networkCode: string; adUnitRootPath: string }
 
 export async function listAdNetworks(publisherId: string): Promise<AdNetworkRow[]> {
   const rows = await db
@@ -51,7 +50,7 @@ export async function getAdNetwork(id: string, publisherId: string): Promise<AdN
 export async function upsertAdNetwork(
   publisherId: string,
   provider: AdProvider,
-  credentials: AdsenseCredentials | GAMCredentials,
+  credentials: AdsenseCredentials,
   active: boolean = true,
 ): Promise<AdNetworkRow> {
   const encryptedCredentials = encrypt(JSON.stringify(credentials))
@@ -99,7 +98,7 @@ export async function getDecryptedCredentials(
 
   if (!row) return null
   try {
-    return JSON.parse(decrypt(row.credentials as string)) as AdsenseCredentials | GAMCredentials
+    return JSON.parse(decrypt(row.credentials as string)) as AdsenseCredentials
   } catch {
     return null
   }
@@ -107,7 +106,7 @@ export async function getDecryptedCredentials(
 
 export async function getDecryptedCredentialsById(id: string): Promise<{
   provider: AdProvider
-  credentials: AdsenseCredentials | GAMCredentials
+  credentials: AdsenseCredentials
 } | null> {
   const [row] = await db
     .select({
@@ -122,7 +121,7 @@ export async function getDecryptedCredentialsById(id: string): Promise<{
   try {
     return {
       provider: row.provider as AdProvider,
-      credentials: JSON.parse(decrypt(row.credentials as string)) as AdsenseCredentials | GAMCredentials,
+      credentials: JSON.parse(decrypt(row.credentials as string)) as AdsenseCredentials,
     }
   } catch {
     return null

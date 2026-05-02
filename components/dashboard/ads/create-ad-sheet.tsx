@@ -27,7 +27,7 @@ const INITIAL: AdFormData = {
 
 type NetworkOption = {
   id: string
-  provider: "google_adsense" | "google_ad_manager"
+  provider: "google_adsense"
 }
 
 type Props = {
@@ -50,8 +50,6 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
   const [networks, setNetworks] = useState<NetworkOption[]>([])
   const [selectedNetworkId, setSelectedNetworkId] = useState("")
   const [adSlotId, setAdSlotId] = useState("")
-  const [adUnitPath, setAdUnitPath] = useState("")
-  const [adSizes, setAdSizes] = useState("300x250")
   const [networkName, setNetworkName] = useState("")
 
   const loadNetworks = useCallback(async () => {
@@ -76,8 +74,6 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
     setSkipType("skip")
     setSelectedNetworkId("")
     setAdSlotId("")
-    setAdUnitPath("")
-    setAdSizes("300x250")
     setNetworkName("")
   }
 
@@ -174,19 +170,8 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
     const network = networks.find(n => n.id === selectedNetworkId)
     if (!network) { setError("Invalid network selected."); return }
 
-    let networkConfig: Record<string, unknown>
-    if (network.provider === "google_adsense") {
-      if (!adSlotId.trim()) { setError("Ad Slot ID is required."); return }
-      networkConfig = { adSlotId: adSlotId.trim() }
-    } else {
-      if (!adUnitPath.trim()) { setError("Ad Unit Path is required."); return }
-      const sizes = adSizes
-        .split(",")
-        .map(s => s.trim().split("x").map(Number))
-        .filter(pair => pair.length === 2 && !pair.some(isNaN))
-      if (sizes.length === 0) { setError("Enter at least one valid size (e.g. 300x250)."); return }
-      networkConfig = { adUnitPath: adUnitPath.trim(), sizes }
-    }
+    if (!adSlotId.trim()) { setError("Ad Slot ID is required."); return }
+    const networkConfig: Record<string, unknown> = { adSlotId: adSlotId.trim() }
 
     setSaving(true)
     setError(null)
@@ -415,7 +400,7 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
                 <label style={{ fontSize: 12, fontWeight: 500, color: "#555" }}>Network</label>
                 {networks.length === 0 ? (
                   <p style={{ fontSize: 13, color: "#888" }}>
-                    No networks connected. Go to the Networks tab to connect AdSense or Google Ad Manager first.
+                    No networks connected. Go to the Networks tab to connect AdSense first.
                   </p>
                 ) : (
                   <select
@@ -424,16 +409,14 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
                     style={{ border: "1px solid #ddd", borderRadius: 6, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#fff" }}
                   >
                     {networks.map(n => (
-                      <option key={n.id} value={n.id}>
-                        {n.provider === "google_adsense" ? "Google AdSense" : "Google Ad Manager"}
-                      </option>
+                      <option key={n.id} value={n.id}>Google AdSense</option>
                     ))}
                   </select>
                 )}
               </div>
 
-              {/* Provider-specific config */}
-              {selectedNetwork?.provider === "google_adsense" && (
+              {/* AdSense slot ID */}
+              {selectedNetwork && (
                 <div className="flex flex-col gap-1.5">
                   <label style={{ fontSize: 12, fontWeight: 500, color: "#555" }}>Ad Slot ID</label>
                   <input
@@ -446,34 +429,6 @@ export function CreateAdSheet({ open, onOpenChange, onCreated }: Props) {
                   />
                   <p style={{ fontSize: 11, color: "#aaa" }}>Found in your AdSense account under Ads → By ad unit.</p>
                 </div>
-              )}
-
-              {selectedNetwork?.provider === "google_ad_manager" && (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label style={{ fontSize: 12, fontWeight: 500, color: "#555" }}>Ad Unit Path</label>
-                    <input
-                      type="text"
-                      placeholder="/12345678/my-site/content"
-                      value={adUnitPath}
-                      onChange={e => setAdUnitPath(e.target.value)}
-                      style={{ border: "1px solid #ddd", borderRadius: 6, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit" }}
-                      className="focus:border-[#111] transition-colors"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label style={{ fontSize: 12, fontWeight: 500, color: "#555" }}>Sizes</label>
-                    <input
-                      type="text"
-                      placeholder="300x250,728x90"
-                      value={adSizes}
-                      onChange={e => setAdSizes(e.target.value)}
-                      style={{ border: "1px solid #ddd", borderRadius: 6, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit" }}
-                      className="focus:border-[#111] transition-colors"
-                    />
-                    <p style={{ fontSize: 11, color: "#aaa" }}>Comma-separated, e.g. 300x250,728x90</p>
-                  </div>
-                </>
               )}
 
               {error && <div style={{ fontSize: 12, color: "#e54" }}>{error}</div>}

@@ -16,7 +16,6 @@ import { selectAdUnit } from "@/lib/ads/rotate"
 import type { AdUnitCandidate } from "@/lib/ads/rotate"
 import { getDecryptedCredentialsById } from "@/lib/db/queries/ad-networks"
 import { resolveAdsenseConfig } from "@/lib/ads/networks/adsense"
-import { resolveGAMConfig } from "@/lib/ads/networks/gam"
 import { makeCache } from "@/lib/cache"
 
 // ─── Module-level caches ──────────────────────────────────────────────────────
@@ -262,11 +261,6 @@ export async function GET(req: NextRequest) {
               adConfig.networkAdConfig = resolveAdsenseConfig(
                 netCfg as { adSlotId: string },
                 netData.credentials as Parameters<typeof resolveAdsenseConfig>[1],
-              )
-            } else if (netData.provider === "google_ad_manager") {
-              adConfig.networkAdConfig = resolveGAMConfig(
-                netCfg as { adUnitPath: string; sizes: number[][] },
-                netData.credentials as Parameters<typeof resolveGAMConfig>[1],
               )
             }
           }

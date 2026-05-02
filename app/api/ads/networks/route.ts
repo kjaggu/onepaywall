@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth/session"
 import { listAdNetworks, upsertAdNetwork } from "@/lib/db/queries/ad-networks"
-import type { AdProvider, AdsenseCredentials, GAMCredentials } from "@/lib/db/queries/ad-networks"
+import type { AdsenseCredentials } from "@/lib/db/queries/ad-networks"
 
 export async function GET() {
   const session = await getSession()
@@ -20,24 +20,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "provider and credentials are required" }, { status: 400 })
   }
 
-  const provider = body.provider as AdProvider
-  if (provider !== "google_adsense" && provider !== "google_ad_manager") {
+  if (body.provider !== "google_adsense") {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 })
   }
 
-  let credentials: AdsenseCredentials | GAMCredentials
-  if (provider === "google_adsense") {
-    if (!body.credentials.adClientId) {
-      return NextResponse.json({ error: "adClientId is required for AdSense" }, { status: 400 })
-    }
-    credentials = { adClientId: body.credentials.adClientId }
-  } else {
-    if (!body.credentials.networkCode || !body.credentials.adUnitRootPath) {
-      return NextResponse.json({ error: "networkCode and adUnitRootPath are required for GAM" }, { status: 400 })
-    }
-    credentials = { networkCode: body.credentials.networkCode, adUnitRootPath: body.credentials.adUnitRootPath }
+  if (!body.credentials.adClientId) {
+    return NextResponse.json({ error: "adClientId is required" }, { status: 400 })
   }
 
-  const network = await upsertAdNetwork(session.publisherId, provider, credentials, true)
+  const credentials: AdsenseCredentials = { adClientId: body.credentials.adClientId }
+  const network = await upsertAdNetwork(session.publisherId, "google_adsense", credentials, true)
   return NextResponse.json({ network }, { status: 201 })
 }
