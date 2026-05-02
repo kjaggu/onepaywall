@@ -149,8 +149,22 @@ Check this before exploring the codebase. Find your feature area, then go direct
 |------|-------|
 | Revenue API (list + summary) | `app/api/revenue/route.ts` |
 | Transaction query helpers | `lib/db/queries/transactions.ts` |
-| Revenue page (filterable transaction ledger + CSV export) | `app/(dashboard)/revenue/page.tsx` |
+| Revenue page (filterable transaction ledger + CSV export + Invoice button) | `app/(dashboard)/revenue/page.tsx` |
 | DB schema | `lib/db/schema.ts` → `reader_transactions` |
+
+---
+
+## Invoices
+
+| Task | Files |
+|------|-------|
+| Invoices list page | `app/(dashboard)/invoices/page.tsx` |
+| Invoices API (list + create) | `app/api/invoices/route.ts` |
+| Invoice download (HTML) | `app/api/invoices/[id]/download/route.ts` |
+| Invoice query helpers | `lib/db/queries/invoices.ts` |
+| HTML invoice renderer | `lib/invoices/format.ts` |
+| DB schema | `lib/db/schema.ts` → `publisherInvoices` |
+| Migration | `db/migrations/0019_publisher_invoices.sql` |
 
 ---
 
@@ -252,13 +266,16 @@ Check this before exploring the codebase. Find your feature area, then go direct
 |------|-------|
 | Admin layout + guard | `app/admin/layout.tsx` |
 | Admin shell components | `components/admin/sidebar.tsx`, `components/admin/topbar.tsx` |
-| Admin overview | `app/admin/page.tsx` |
-| Publisher list/detail | `app/admin/publishers/page.tsx`, `app/admin/publishers/[id]/page.tsx` |
-| Plan management | `app/admin/plans/page.tsx` |
-| Subscription management | `app/admin/subscriptions/page.tsx` |
+| Admin overview (live stats) | `app/admin/page.tsx` |
+| Publisher list (search, live data) | `app/admin/publishers/page.tsx` |
+| Publisher detail (domains + members) | `app/admin/publishers/[id]/page.tsx` |
+| Plan management (live subscriber counts + MRR) | `app/admin/plans/page.tsx` |
+| Subscription management (status filter + search) | `app/admin/subscriptions/page.tsx` |
 | Platform health | `app/admin/health/page.tsx` |
 | Admin settings | `app/admin/settings/page.tsx` |
-| Admin API | not implemented yet |
+| Admin query helpers | `lib/db/queries/admin.ts` |
+| Admin publishers API | `app/api/admin/publishers/route.ts` |
+| Admin subscriptions API | `app/api/admin/subscriptions/route.ts` |
 
 ---
 

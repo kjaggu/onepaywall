@@ -14,6 +14,7 @@ import {
   Mail,
   Megaphone,
   Package,
+  Receipt,
   Settings,
   Tag,
   Users,
@@ -64,6 +65,7 @@ const NAV: NavGroup[] = [
       { label: "Analytics", href: "/analytics",         icon: BarChart2  },
       { label: "Content",   href: "/analytics/content", icon: FileText   },
       { label: "Revenue",   href: "/revenue",           icon: DollarSign },
+      { label: "Invoices",  href: "/invoices",          icon: Receipt    },
     ],
   },
   {

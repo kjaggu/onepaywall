@@ -485,6 +485,29 @@ export const readerTransactions = pgTable("reader_transactions", {
   index("reader_transactions_brand_idx").on(t.brandId),
 ])
 
+// ─── Publisher invoices ───────────────────────────────────────────────────────
+
+export const publisherInvoices = pgTable("publisher_invoices", {
+  id:                   text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:          text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  transactionId:        text("transaction_id").references(() => readerTransactions.id, { onDelete: "set null" }),
+  domainId:             text("domain_id").references(() => domains.id, { onDelete: "set null" }),
+  invoiceNumber:        integer("invoice_number").notNull(),
+  type:                 text("type").notNull(),
+  amount:               integer("amount").notNull(),
+  currency:             text("currency").notNull().default("INR"),
+  readerEmailHash:      text("reader_email_hash"),
+  encryptedReaderEmail: text("encrypted_reader_email"),
+  contentUrl:           text("content_url"),
+  razorpayPaymentId:    text("razorpay_payment_id"),
+  issuedAt:             timestamp("issued_at").notNull().defaultNow(),
+  createdAt:            timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("publisher_invoices_pub_num_idx").on(t.publisherId, t.invoiceNumber),
+  index("publisher_invoices_publisher_idx").on(t.publisherId),
+  index("publisher_invoices_transaction_idx").on(t.transactionId),
+])
+
 // ─── Reader subscriptions ────────────────────────────────────────────────────
 
 export const readerSubscribers = pgTable("reader_subscribers", {

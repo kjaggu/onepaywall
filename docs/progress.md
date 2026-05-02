@@ -148,7 +148,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Webhook handlers | `done` | `app/api/webhooks/publisher/[publisherId]/route.ts` handles own-key unlock/subscription events; `app/api/webhooks/reader/razorpay/route.ts` handles platform reader subscription events; `app/api/webhooks/billing/route.ts` remains SaaS billing only |
 | Revenue ledger | `done` | `reader_transactions` now tracks pending/completed/failed reader payments, reader email hash/encrypted email, Razorpay order/payment/subscription IDs, failure reason, and completion timestamps |
 | Publisher revenue dashboard | `done` | `/revenue` shows subscriptions + one-time unlocks, statuses, reader email/hash, domain/content, provider IDs, failure reasons, and CSV export for reconciliation/invoicing |
-| Publisher invoice workflow | `todo` | Next feature: invoice generation/numbering/downloads from completed `reader_transactions`; current CSV export provides the reconciliation source data |
+| Publisher invoice workflow | `done` | `publisher_invoices` table + sequential numbering; "Invoice" button per completed transaction in `/revenue`; `/invoices` list page + sidebar entry; download renders clean printable HTML at `GET /api/invoices/[id]/download` |
 
 ---
 
@@ -229,10 +229,14 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Area | Status | Notes |
 |------|--------|-------|
 | Admin layout + guard | `done` | `app/admin/layout.tsx` — requires superadmin session |
-| Admin dashboard shell | `partial` | `components/admin/sidebar.tsx`, `components/admin/topbar.tsx`, `app/admin/page.tsx` |
-| Publisher management | `partial` | `app/admin/publishers/page.tsx`, `app/admin/publishers/[id]/page.tsx` — static/mock management UI, not wired to real admin APIs |
-| Plan management | `partial` | `app/admin/plans/page.tsx` — static/mock tier UI, not wired to real admin APIs |
-| Subscription management | `partial` | `app/admin/subscriptions/page.tsx` — static/mock subscription UI |
+| Admin dashboard shell | `done` | `components/admin/sidebar.tsx`, `components/admin/topbar.tsx` |
+| Admin overview | `done` | `app/admin/page.tsx` — async server component; live MRR, publishers, domains, gate decisions/day, recent publishers table, MRR-by-plan, alerts |
+| Publisher list | `done` | `app/admin/publishers/page.tsx` — client component fetches `/api/admin/publishers`; search + plan/status badges |
+| Publisher detail | `done` | `app/admin/publishers/[id]/page.tsx` — async server component; domains with gate count + last ping, team members |
+| Plan management | `done` | `app/admin/plans/page.tsx` — async server component; live subscriber counts + MRR per plan |
+| Subscription management | `done` | `app/admin/subscriptions/page.tsx` — client component fetches `/api/admin/subscriptions`; status filter + search |
+| Admin query helpers | `done` | `lib/db/queries/admin.ts` — getPlatformStats, listAllPublishers, getPublisherDetail, listAllSubscriptions, getPlansWithStats |
+| Admin API routes | `done` | `app/api/admin/publishers/route.ts`, `app/api/admin/subscriptions/route.ts` — superadmin-guarded |
 | Platform health | `partial` | `app/admin/health/page.tsx` — static/mock monitoring UI |
 
 ---

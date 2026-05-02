@@ -1,46 +1,57 @@
+import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { getPublisherDetail } from "@/lib/db/queries/admin"
 
-// Dummy detail — in production this would be fetched by ID
-const PUBLISHER = {
-  id: "1",
-  name: "FinMedia Group",
-  slug: "finmedia",
-  plan: "Growth",
-  status: "active",
-  mrr: "₹7,999",
-  mau: "84,200",
-  joined: "12 Apr 2026",
-  owner: "Rohit Sharma",
-  ownerEmail: "rohit@finmedia.com",
-  domains: [
-    { domain: "financeinsider.co",    gates: 4, mau: "42,100", health: "ok",       lastSeen: "<1s" },
-    { domain: "marketstoday.in",      gates: 2, mau: "18,400", health: "ok",       lastSeen: "3s"  },
-    { domain: "deepvalue-india.com",  gates: 3, mau: "14,200", health: "degraded", lastSeen: "22s" },
-    { domain: "fintechpulse.co",      gates: 1, mau: "6,800",  health: "ok",       lastSeen: "1s"  },
-    { domain: "equitybrief.io",       gates: 2, mau: "2,700",  health: "paused",   lastSeen: "4h"  },
-  ],
-  members: [
-    { name: "Rohit Sharma",  email: "rohit@finmedia.com",  role: "owner",  joined: "12 Apr 2026" },
-    { name: "Priya Menon",   email: "priya@finmedia.com",  role: "admin",  joined: "14 Apr 2026" },
-    { name: "Ankit Verma",   email: "ankit@finmedia.com",  role: "member", joined: "20 Apr 2026" },
-    { name: "Sara Joshi",    email: "sara@finmedia.com",   role: "member", joined: "22 Apr 2026" },
-  ],
+function fmtINR(paise: number | null) {
+  if (paise == null) return "—"
+  return "₹" + (paise / 100).toLocaleString("en-IN")
 }
 
-const healthDot: Record<string, { color: string; label: string }> = {
-  ok:       { color: "#27adb0", label: "OK"     },
-  degraded: { color: "#c4820a", label: "Slow"   },
-  paused:   { color: "#ccc",    label: "Paused" },
+function relativeTime(date: Date | null): string {
+  if (!date) return "never"
+  const diff = Date.now() - new Date(date).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 2)  return "<1s"
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
 }
+
+const planColorMap: Record<string, { bg: string; color: string }> = {
+  trial:   { bg: "#f5f5f5", color: "#888"    },
+  lite:    { bg: "#f5f5f5", color: "#666"    },
+  starter: { bg: "#eff3ff", color: "#3451b2" },
+  growth:  { bg: "#f0fdf8", color: "#166534" },
+  scale:   { bg: "#faf5ff", color: "#6b21a8" },
+}
+
 const roleStyle: Record<string, { bg: string; color: string }> = {
   owner:  { bg: "#faf5ff", color: "#6b21a8" },
   admin:  { bg: "#eff3ff", color: "#3451b2" },
   member: { bg: "#f5f5f5", color: "#666"    },
 }
 
-export default function PublisherDetailPage() {
-  const p = PUBLISHER
+const healthDot: Record<string, { color: string; label: string }> = {
+  active:  { color: "#27adb0", label: "OK"     },
+  paused:  { color: "#ccc",    label: "Paused" },
+  removed: { color: "#e5e5e5", label: "Removed"},
+}
+
+export default async function PublisherDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const p = await getPublisherDetail(id)
+  if (!p) notFound()
+
+  const pc = planColorMap[p.planSlug ?? ""] ?? planColorMap.lite
+
   return (
     <div style={{ padding: "28px 32px" }}>
       {/* Back + header */}
@@ -51,7 +62,9 @@ export default function PublisherDetailPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>{p.name}</h1>
-            <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>{p.slug} · joined {p.joined}</p>
+            <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
+              {p.slug} · joined {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            </p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e5e5e5", background: "#fff", fontSize: 12, fontWeight: 500, color: "#555", cursor: "pointer", fontFamily: "inherit" }}>
@@ -67,14 +80,16 @@ export default function PublisherDetailPage() {
       {/* Stat strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
         {[
-          { label: "Plan",     value: p.plan,    sub: "current subscription" },
-          { label: "MRR",      value: p.mrr,     sub: "platform billing"     },
-          { label: "MAU",      value: p.mau,     sub: "monthly active users" },
-          { label: "Domains",  value: String(p.domains.length), sub: `${p.domains.filter(d => d.health === "ok").length} healthy` },
+          { label: "Plan",    value: p.planName ?? "—",              sub: "current subscription" },
+          { label: "MRR",     value: fmtINR(p.priceMonthly),         sub: "platform billing"     },
+          { label: "MAU",     value: "—",                             sub: "monthly active users" },
+          { label: "Domains", value: String(p.domains.length),        sub: `${p.domains.filter(d => d.status === "active").length} active` },
         ].map((s, i) => (
           <div key={s.label} style={{ padding: "15px 20px", borderRight: i < 3 ? "1px solid #ebebeb" : "none", background: "#fff" }}>
             <div style={{ fontSize: 11, color: "#aaa", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>{s.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: "#111", letterSpacing: "-0.02em" }}>{s.value}</div>
+            {s.label === "Plan" && p.planSlug
+              ? <span style={{ padding: "3px 8px", borderRadius: 3, background: pc.bg, color: pc.color, fontSize: 13, fontWeight: 600 }}>{s.value}</span>
+              : <div style={{ fontSize: 20, fontWeight: 600, color: "#111", letterSpacing: "-0.02em" }}>{s.value}</div>}
             <div style={{ fontSize: 11, color: "#ccc", marginTop: 3 }}>{s.sub}</div>
           </div>
         ))}
@@ -87,27 +102,33 @@ export default function PublisherDetailPage() {
           <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb" }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Domains</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 50px 72px 80px 64px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
-            {["Domain", "Gates", "MAU", "Last ping", "Health"].map(h => (
-              <div key={h} style={{ fontSize: 10, fontWeight: 600, color: "#bbb", letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</div>
-            ))}
-          </div>
-          {p.domains.map((d, i) => {
-            const hd = healthDot[d.health] ?? healthDot.ok
-            return (
-              <div key={d.domain} className="row-hover transition-colors duration-[80ms]"
-                style={{ display: "grid", gridTemplateColumns: "2fr 50px 72px 80px 64px", padding: "10px 18px", borderBottom: i < p.domains.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: hd.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{d.domain}</span>
-                </div>
-                <span style={{ fontSize: 12, color: "#666" }}>{d.gates}</span>
-                <span style={{ fontSize: 12, color: "#666" }}>{d.mau}</span>
-                <span style={{ fontSize: 12, color: "#ccc" }}>{d.lastSeen}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: hd.color }}>{hd.label}</span>
+          {p.domains.length === 0 && (
+            <div style={{ padding: "24px 18px", textAlign: "center", color: "#bbb", fontSize: 13 }}>No domains yet.</div>
+          )}
+          {p.domains.length > 0 && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 50px 80px 64px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+                {["Domain", "Gates", "Last ping", "Health"].map(h => (
+                  <div key={h} style={{ fontSize: 10, fontWeight: 600, color: "#bbb", letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</div>
+                ))}
               </div>
-            )
-          })}
+              {p.domains.map((d, i) => {
+                const hd = healthDot[d.status] ?? healthDot.active
+                return (
+                  <div key={d.id} className="row-hover transition-colors duration-[80ms]"
+                    style={{ display: "grid", gridTemplateColumns: "2fr 50px 80px 64px", padding: "10px 18px", borderBottom: i < p.domains.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: hd.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{d.domain}</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: "#666" }}>{d.gateCount}</span>
+                    <span style={{ fontSize: 12, color: "#ccc" }}>{relativeTime(d.lastPingAt)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: hd.color }}>{hd.label}</span>
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
 
         {/* Members panel */}
@@ -116,10 +137,13 @@ export default function PublisherDetailPage() {
             <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Team members</span>
             <button style={{ fontSize: 12, color: "#27adb0", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>
           </div>
+          {p.members.length === 0 && (
+            <div style={{ padding: "16px", fontSize: 12, color: "#bbb" }}>No members.</div>
+          )}
           {p.members.map((m, i) => {
             const rs = roleStyle[m.role] ?? roleStyle.member
             return (
-              <div key={m.email} className="row-hover transition-colors duration-[80ms]"
+              <div key={m.userId} className="row-hover transition-colors duration-[80ms]"
                 style={{ padding: "10px 16px", borderBottom: i < p.members.length - 1 ? "1px solid #f5f5f5" : "none", display: "flex", alignItems: "center", gap: 10, background: "#fff" }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ fontSize: 11, fontWeight: 600, color: "#888" }}>{m.name[0]}</span>

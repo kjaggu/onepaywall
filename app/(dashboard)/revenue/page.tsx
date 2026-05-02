@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Download, DollarSign, RefreshCw } from "lucide-react"
+import { Download, DollarSign, RefreshCw, FileText } from "lucide-react"
 
 type Transaction = {
   id: string
@@ -79,12 +79,24 @@ function exportCsv(rows: Transaction[]) {
   URL.revokeObjectURL(url)
 }
 
+async function createAndOpenInvoice(transactionId: string) {
+  const res = await fetch("/api/invoices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transactionId }),
+  })
+  if (!res.ok) return
+  const { invoice } = await res.json()
+  window.open(`/api/invoices/${invoice.id}/download`, "_blank")
+}
+
 export default function RevenuePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState<"" | "subscription" | "one_time_unlock">("")
   const [statusFilter, setStatusFilter] = useState<"" | "completed" | "refunded" | "pending" | "failed">("")
+  const [invoicingId, setInvoicingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -121,13 +133,19 @@ export default function RevenuePage() {
           <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>Revenue</h1>
           <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Subscription and article unlock payments across all domains.</p>
         </div>
-        <button
-          onClick={() => exportCsv(transactions)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#fff", color: "#555", border: "1px solid #ddd", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
-        >
-          <Download size={14} />
-          Export CSV
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <a href="/invoices" style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#fff", color: "#555", border: "1px solid #ddd", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", textDecoration: "none" }}>
+            <FileText size={14} />
+            Invoices
+          </a>
+          <button
+            onClick={() => exportCsv(transactions)}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "#fff", color: "#555", border: "1px solid #ddd", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Summary strip */}
@@ -173,8 +191,8 @@ export default function RevenuePage() {
       {/* Table */}
       <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden" }}>
         {/* Head */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
-          {["Date", "Type", "Amount", "Status", "Reader", "Domain", "Provider IDs"].map((h, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px 80px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+          {["Date", "Type", "Amount", "Status", "Reader", "Domain", "Provider IDs", ""].map((h, i) => (
             <div key={i} style={{ fontSize: 10, fontWeight: 600, color: "#bbb", letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</div>
           ))}
         </div>
@@ -199,7 +217,7 @@ export default function RevenuePage() {
           transactions.map((tx, i) => (
             <div
               key={tx.id}
-              style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px", padding: "11px 18px", borderBottom: i < transactions.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}
+              style={{ display: "grid", gridTemplateColumns: "1fr 108px 120px 112px 170px 145px 170px 80px", padding: "11px 18px", borderBottom: i < transactions.length - 1 ? "1px solid #f5f5f5" : "none", alignItems: "center", background: "#fff" }}
             >
               <div>
                 <div style={{ fontSize: 13, color: "#333" }}>{new Date(tx.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
@@ -251,6 +269,23 @@ export default function RevenuePage() {
                   <div style={{ fontSize: 10, color: "#bbb", marginTop: 1 }}>
                     {tx.razorpayOrderId ? "order" : "subscription"}
                   </div>
+                )}
+              </div>
+
+              <div>
+                {tx.status === "completed" && (
+                  <button
+                    disabled={invoicingId === tx.id}
+                    onClick={async () => {
+                      setInvoicingId(tx.id)
+                      await createAndOpenInvoice(tx.id)
+                      setInvoicingId(null)
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 5, border: "1px solid #e5e5e5", background: "#fff", fontSize: 11, fontWeight: 500, color: invoicingId === tx.id ? "#ccc" : "#555", cursor: invoicingId === tx.id ? "default" : "pointer", fontFamily: "inherit" }}
+                  >
+                    <FileText size={11} />
+                    {invoicingId === tx.id ? "…" : "Invoice"}
+                  </button>
                 )}
               </div>
             </div>

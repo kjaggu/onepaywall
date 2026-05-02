@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createHmac, createHash } from "crypto"
 import { getSession } from "@/lib/auth/session"
 
 export async function POST(req: NextRequest) {
@@ -11,26 +12,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "filename and contentType required" }, { status: 400 })
   }
 
-  const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
-  const R2_BUCKET     = process.env.R2_BUCKET
-  const R2_ACCESS_KEY = process.env.R2_ACCESS_KEY_ID
-  const R2_SECRET_KEY = process.env.R2_SECRET_ACCESS_KEY
-  const CDN_BASE      = process.env.R2_CDN_BASE_URL
+  const accountId = process.env.R2_ACCOUNT_ID
+  const bucket    = process.env.R2_BUCKET
+  const accessKey = process.env.R2_ACCESS_KEY_ID
+  const secretKey = process.env.R2_SECRET_ACCESS_KEY
+  const CDN_BASE  = process.env.R2_CDN_BASE_URL
 
-  if (!R2_ACCOUNT_ID || !R2_BUCKET || !R2_ACCESS_KEY || !R2_SECRET_KEY) {
+  if (!accountId || !bucket || !accessKey || !secretKey) {
     return NextResponse.json({ error: "R2 storage not configured" }, { status: 503 })
   }
 
   const storageKey = `ads/${session.publisherId}/${Date.now()}-${filename}`
   const cdnUrl     = CDN_BASE ? `${CDN_BASE}/${storageKey}` : null
+  const host       = `${accountId}.r2.cloudflarestorage.com`
+  const now        = new Date()
+  const dateStr    = now.toISOString().slice(0, 10).replace(/-/g, "")
+  const dateTimeStr = now.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z"
+  const region     = "auto"
+  const service    = "s3"
+  const scope      = `${dateStr}/${region}/${service}/aws4_request`
+  const expires    = 900
 
-  // Build a presigned PUT URL using AWS Signature v4 compatible with R2
-  const endpoint = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-  const expires  = 900 // 15 min
+  function hmac(key: Buffer | string, data: string): Buffer {
+    return createHmac("sha256", key).update(data).digest()
+  }
 
-  const url = new URL(`/${R2_BUCKET}/${storageKey}`, endpoint)
-  url.searchParams.set("X-Amz-Expires", String(expires))
+  const queryParts: [string, string][] = [
+    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential", `${accessKey}/${scope}`],
+    ["X-Amz-Date", dateTimeStr],
+    ["X-Amz-Expires", String(expires)],
+    ["X-Amz-SignedHeaders", "content-type;host"],
+  ]
+  queryParts.sort((a, b) => a[0] < b[0] ? -1 : 1)
+  const canonicalQuery = queryParts
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&")
 
-  // Return storageKey and cdnUrl so the client can record them after upload
-  return NextResponse.json({ uploadUrl: url.toString(), storageKey, cdnUrl, expiresIn: expires })
+  const canonicalRequest = [
+    "PUT",
+    `/${bucket}/${storageKey}`,
+    canonicalQuery,
+    `content-type:${contentType}\nhost:${host}\n`,
+    "content-type;host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n")
+
+  const requestHash  = createHash("sha256").update(canonicalRequest).digest("hex")
+  const stringToSign = ["AWS4-HMAC-SHA256", dateTimeStr, scope, requestHash].join("\n")
+  const signingKey   = hmac(hmac(hmac(hmac(`AWS4${secretKey}`, dateStr), region), service), "aws4_request")
+  const signature    = createHmac("sha256", signingKey).update(stringToSign).digest("hex")
+
+  const uploadUrl = `https://${host}/${bucket}/${storageKey}?${canonicalQuery}&X-Amz-Signature=${signature}`
+
+  return NextResponse.json({ uploadUrl, storageKey, cdnUrl, expiresIn: expires })
 }
