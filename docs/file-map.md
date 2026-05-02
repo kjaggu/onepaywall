@@ -123,13 +123,20 @@ Check this before exploring the codebase. Find your feature area, then go direct
 |------|-------|
 | Ad unit CRUD | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts` |
 | Upload signed URL | `app/api/ads/upload-url/route.ts` |
-| Ad unit query helpers | `lib/db/queries/ads.ts` |
-| Ad network connection | `app/(dashboard)/ads/networks/page.tsx` (UI scaffold; adapters not built yet) |
-| Ad settings | `app/(dashboard)/ads/settings/page.tsx` |
-| Ad rotation + relevance | `lib/ads/rotate.ts` (todo) |
+| Ad unit query helpers (includes listActiveAdUnits) | `lib/db/queries/ads.ts` |
+| Ad network credential CRUD | `lib/db/queries/ad-networks.ts`, `app/api/ads/networks/route.ts`, `app/api/ads/networks/[id]/route.ts` |
+| Ad selection engine | `lib/ads/rotate.ts`, unit tests: `lib/ads/rotate.test.ts` |
+| AdSense render config adapter | `lib/ads/networks/adsense.ts` |
+| GAM render config adapter | `lib/ads/networks/gam.ts` |
 | Ad management page | `app/(dashboard)/ads/page.tsx`, `app/(dashboard)/ads/layout.tsx` |
-| Create ad unit sheet | `components/dashboard/ads/create-ad-sheet.tsx` |
+| Ad analytics page (impressions, completion %, fill %) | `app/(dashboard)/ads/analytics/page.tsx`, `app/api/ads/analytics/route.ts` |
+| Ad analytics query helpers | `lib/db/queries/ad-analytics.ts` |
+| Ad network connection UI | `app/(dashboard)/ads/networks/page.tsx` |
+| Connect AdSense / GAM sheets | `components/dashboard/ads/connect-adsense-sheet.tsx`, `components/dashboard/ads/connect-gam-sheet.tsx` |
+| Create ad unit sheet (direct + network source) | `components/dashboard/ads/create-ad-sheet.tsx` |
+| Ad settings | `app/(dashboard)/ads/settings/page.tsx` |
 | DB schema | `lib/db/schema.ts` → `ad_units`, `publisher_ad_networks` |
+| Migration (ad_unit_id index) | `db/migrations/0016_ad_intelligence.sql` |
 | Data model reference | `docs/data-model/ads.md` |
 
 ---
@@ -199,9 +206,10 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Task | Files |
 |------|-------|
 | Signal collection | `app/api/embed/signal/route.ts` |
-| Content classification | `lib/intelligence/classifyContent.ts`, `lib/db/queries/contentClassifications.ts` (todo) |
+| Content classification | `lib/intelligence/classifyContent.ts`, `lib/db/queries/contentClassifications.ts` |
 | URL sanitisation | `lib/intelligence/sanitize.ts` |
-| Profile computation | `lib/intelligence/computeProfile.ts` (todo) |
+| Profile computation | `lib/intelligence/computeProfile.ts` |
+| Profile cron + Trigger.dev | `app/api/cron/compute-profiles/route.ts`, `trigger/compute-profiles.ts` |
 | DB schema | `lib/db/schema.ts` → `reader_page_visits`, `content_classifications`, `reader_profiles` |
 | Data model reference | `docs/data-model/readers.md` |
 
@@ -219,6 +227,20 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Analytics filters | `components/dashboard/analytics/range-filter.tsx`, `components/dashboard/analytics/gate-filter.tsx` |
 | DB schema | `lib/db/schema.ts` → `gate_events`, `analytics_rollups` |
 | Data model reference | `docs/data-model/analytics.md` |
+
+---
+
+## Media Analytics (Phase 2)
+
+| Task | Files |
+|------|-------|
+| Page event endpoint | `app/api/embed/page-event/route.ts` |
+| Source stats rollup | `lib/analytics/source-stats.ts` |
+| Content analytics queries | `lib/db/queries/content-analytics.ts` |
+| Content analytics page | `app/(dashboard)/analytics/content/page.tsx` |
+| Audience page (profile-powered) | `app/(dashboard)/audience/page.tsx` |
+| DB schema | `lib/db/schema.ts` → `pageEvents`, `sourceStats` |
+| Migration | `db/migrations/0015_page_events.sql` |
 
 ---
 

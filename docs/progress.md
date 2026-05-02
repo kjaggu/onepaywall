@@ -107,16 +107,26 @@ Updated at the end of every meaningful session. Read this before starting work t
 
 ---
 
-## Ads
+## Ads (Phase 3 complete)
 | Area | Status | Notes |
 |------|--------|-------|
 | DB schema | `done` | ad_units, publisher_ad_networks in schema.ts |
-| Ad unit CRUD API | `partial` | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts`, `lib/db/queries/ads.ts` — list/create/update/soft-delete exist; validation and serving integration still light |
+| Ad unit CRUD API | `done` | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts`, `lib/db/queries/ads.ts` — includes `listActiveAdUnits` for rotation engine |
 | Upload signed URL | `partial` | `app/api/ads/upload-url/route.ts` returns R2 storage key/CDN URL, but the presigned PUT implementation needs completion/verification |
-| Google AdSense adapter | `todo` | `lib/ads/networks/adsense.ts` |
-| Google Ad Manager adapter | `todo` | `lib/ads/networks/gam.ts` |
-| Ad rotation + relevance | `todo` | `lib/ads/rotate.ts` |
-| Ad management UI | `partial` | `app/(dashboard)/ads/page.tsx`, `components/dashboard/ads/create-ad-sheet.tsx` — direct creative library UI exists; network/settings pages are scaffolded |
+| Ad selection engine | `done` | `lib/ads/rotate.ts` — weighted relevance scoring against reader crossPublisherInterests; 9 unit tests passing |
+| Google AdSense adapter | `done` | `lib/ads/networks/adsense.ts` — pure render config resolver |
+| Google Ad Manager adapter | `done` | `lib/ads/networks/gam.ts` — pure render config resolver |
+| Gate-check ad injection | `done` | `app/api/embed/gate-check/route.ts` — selects ad unit, injects config into step.config; resolves network ad config |
+| Embed.js real ad rendering | `done` | `public/embed/embed.js` — image + video rendering, skip timer, CTA, fallback; bundle 7.7KB gzip |
+| Event adUnitId attribution | `done` | `app/api/embed/event/route.ts` — writes adUnitId to gate_events |
+| Ad network credential CRUD | `done` | `lib/db/queries/ad-networks.ts`, `app/api/ads/networks/route.ts`, `app/api/ads/networks/[id]/route.ts` — AES-256-GCM encrypted credentials |
+| Ad analytics queries | `done` | `lib/db/queries/ad-analytics.ts` — per-unit, per-segment, per-category stats |
+| Ad analytics API | `done` | `app/api/ads/analytics/route.ts` |
+| Ad analytics page | `done` | `app/(dashboard)/ads/analytics/page.tsx` — impressions, completion %, skip %, fill %; analytics tab added to layout |
+| Ad network connection UI | `done` | `app/(dashboard)/ads/networks/page.tsx` — connects AdSense/GAM, manage active/pause/disconnect |
+| Connect sheets | `done` | `components/dashboard/ads/connect-adsense-sheet.tsx`, `components/dashboard/ads/connect-gam-sheet.tsx` |
+| Create ad unit sheet | `done` | `components/dashboard/ads/create-ad-sheet.tsx` — source toggle: direct upload or network; network branch selects connected network + slot/path config |
+| Migration | `done` | `db/migrations/0016_ad_intelligence.sql` — partial index on gate_events.ad_unit_id |
 
 ---
 
@@ -148,8 +158,11 @@ Updated at the end of every meaningful session. Read this before starting work t
 | DB schema | `done` | reader_page_visits, content_classifications, reader_profiles in schema.ts |
 | Signal collection | `done` | `app/api/embed/signal/route.ts` — writes reader_page_visits (readTime, scrollDepth, device, referrer origin) |
 | URL sanitisation | `done` | `lib/intelligence/sanitize.ts` — strips PII query params, normalises |
-| Content classification | `todo` | `lib/intelligence/classifyContent.ts` |
-| Profile computation | `todo` | `lib/intelligence/computeProfile.ts` |
+| Content classification | `done` | `lib/intelligence/classifyContent.ts` — keyword classifier → 10 categories; caches in content_classifications; 30-day TTL |
+| Profile computation | `done` | `lib/intelligence/computeProfile.ts` — engagement score, topic interests, monetizationProbability, segment, visitFrequency |
+| Profile cron endpoint | `done` | `app/api/cron/compute-profiles/route.ts` — batch recomputes stale profiles |
+| Trigger.dev integration | `done` | `trigger/compute-profiles.ts` — scheduleProfileCompute task; every-5th-signal + gate_passed/ad_complete event triggers |
+| Gate targeting conditions | `done` | `lib/gates/evaluate.ts` — minMonetizationProbability, readerSegments conditions |
 
 ---
 
@@ -162,6 +175,21 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Analytics queries | `done` | `lib/db/queries/analytics.ts` — getSummary (gate_events direct), getDailySeries (rollups) |
 | Analytics API | `done` | `app/api/analytics/route.ts` — GET, refreshes rollups then serves summary + daily series |
 | Analytics dashboard | `done` | `app/(dashboard)/analytics/page.tsx`, `app/(dashboard)/analytics/[domainId]/page.tsx`, `components/dashboard/analytics/analytics-chart.tsx` — real stats + area chart (recharts), filters |
+
+---
+
+## Media Analytics (Phase 2)
+| Area | Status | Notes |
+|------|--------|-------|
+| DB schema — page_events | `done` | `db/migrations/0015_page_events.sql` + `lib/db/schema.ts` (pageEvents, sourceStats) |
+| page_view embed event | `done` | `public/embed/embed.js` — fires after token resolved; `app/api/embed/page-event/route.ts` |
+| read_complete embed event | `done` | embed.js — 5s polling: scrollDepth ≥80% + elapsed ≥30s; fires once |
+| Source stats rollup | `done` | `lib/analytics/source-stats.ts` — lazy upsert on content page load |
+| Content analytics queries | `done` | `lib/db/queries/content-analytics.ts` — 8 functions: getTopContent, getSourceAttribution, getReaderJourneyFunnel, getActiveReaderCount, getSegmentDistribution, getTopicInterestDistribution, getMonetizationHistogram, getVisitFrequencyBreakdown |
+| Content analytics page | `done` | `app/(dashboard)/analytics/content/page.tsx` — funnel, top content table, source attribution |
+| Audience page rewrite | `done` | `app/(dashboard)/audience/page.tsx` — segment distribution, topic interests, monetization histogram, visit frequency |
+| Domain analytics extension | `done` | `app/(dashboard)/analytics/[domainId]/page.tsx` — top content section + "See all" link |
+| Sidebar nav | `done` | Content link added under Measure group in `components/dashboard/sidebar.tsx` |
 
 ---
 

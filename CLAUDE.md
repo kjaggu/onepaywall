@@ -82,7 +82,8 @@ Components never touch DB. API routes never contain business logic. `/lib` is pu
 ## Docs (read only what you need)
 | Doc | When to read |
 |-----|-------------|
-| `docs/file-map.md` | **Start here** — maps features to files |
+| `docs/product-roadmap.md` | **Start here for phase context** — pillars, current state, phase deliverables |
+| `docs/file-map.md` | Maps features to files |
 | `docs/data-model/overview.md` | Entity relationships at a glance |
 | `docs/data-model/publishers.md` | publishers, members, domains, gates, gate_steps |
 | `docs/data-model/readers.md` | readers, tokens, unlocks, signals, profiles |

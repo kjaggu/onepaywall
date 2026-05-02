@@ -7,6 +7,7 @@ import {
   BarChart2,
   Briefcase,
   DollarSign,
+  FileText,
   Globe,
   LayoutGrid,
   Lock,
@@ -52,10 +53,11 @@ const NAV: NavGroup[] = [
   {
     label: "Measure",
     items: [
-      { label: "Analytics",   href: "/analytics",   icon: BarChart2  },
-      { label: "Revenue",     href: "/revenue",     icon: DollarSign },
-      { label: "Subscribers", href: "/subscribers", icon: Users2     },
-      { label: "Audience",    href: "/audience",    icon: Users      },
+      { label: "Analytics",   href: "/analytics",         icon: BarChart2  },
+      { label: "Content",     href: "/analytics/content", icon: FileText   },
+      { label: "Revenue",     href: "/revenue",           icon: DollarSign },
+      { label: "Subscribers", href: "/subscribers",       icon: Users2     },
+      { label: "Audience",    href: "/audience",          icon: Users      },
     ],
   },
   {

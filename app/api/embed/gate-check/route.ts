@@ -11,6 +11,12 @@ import { getReaderActiveSubscriptionInfo } from "@/lib/db/queries/reader-subscri
 import { getEnabledSyncedIntervals, getPublisherReaderPlan } from "@/lib/db/queries/publisher-plans"
 import { getOrCreatePgConfig } from "@/lib/db/queries/pg-configs"
 import { getReaderProfile } from "@/lib/db/queries/reader-intelligence"
+import { listActiveAdUnits } from "@/lib/db/queries/ads"
+import { selectAdUnit } from "@/lib/ads/rotate"
+import type { AdUnitCandidate } from "@/lib/ads/rotate"
+import { getDecryptedCredentialsById } from "@/lib/db/queries/ad-networks"
+import { resolveAdsenseConfig } from "@/lib/ads/networks/adsense"
+import { resolveGAMConfig } from "@/lib/ads/networks/gam"
 import { makeCache } from "@/lib/cache"
 
 // ─── Module-level caches ──────────────────────────────────────────────────────
@@ -23,6 +29,7 @@ const TTL = {
   PLAN:    5 * 60 * 1000,  // reader plan changes only on publisher pricing edits
   PG:      5 * 60 * 1000,  // PG config changes only on publisher settings edits
   PRICES:  5 * 60 * 1000,  // content prices change only on publisher edits
+  ADS:     5 * 60 * 1000,  // ad unit list changes only on publisher ad edits
 }
 
 type DomainRow = typeof domains.$inferSelect
@@ -33,6 +40,8 @@ const planCache     = makeCache<string, Awaited<ReturnType<typeof getPublisherRe
 const pgCache       = makeCache<string, Awaited<ReturnType<typeof getOrCreatePgConfig>>>()    // key: brandId
 const pricesCache   = makeCache<string, Awaited<ReturnType<typeof import("@/lib/db/queries/publisher-plans").listContentPrices>>>() // key: publisherId
 const profileCache  = makeCache<string, Awaited<ReturnType<typeof getReaderProfile>>>()       // key: readerId
+const adUnitsCache  = makeCache<string, AdUnitCandidate[]>()          // key: publisherId
+const netCredsCache = makeCache<string, Awaited<ReturnType<typeof getDecryptedCredentialsById>>>() // key: adNetworkId
 
 // ─── Cached loaders ───────────────────────────────────────────────────────────
 
@@ -92,6 +101,22 @@ async function getCachedReaderProfile(readerId: string) {
   const profile = await getReaderProfile(readerId)
   profileCache.set(readerId, profile, PROFILE_TTL)
   return profile
+}
+
+async function getCachedAdUnits(publisherId: string): Promise<AdUnitCandidate[]> {
+  const hit = adUnitsCache.get(publisherId)
+  if (hit !== undefined) return hit
+  const units = await listActiveAdUnits(publisherId)
+  adUnitsCache.set(publisherId, units, TTL.ADS)
+  return units
+}
+
+async function getCachedNetworkCreds(adNetworkId: string) {
+  const hit = netCredsCache.get(adNetworkId)
+  if (hit !== undefined) return hit
+  const creds = await getDecryptedCredentialsById(adNetworkId)
+  netCredsCache.set(adNetworkId, creds, TTL.ADS)
+  return creds
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -186,13 +211,26 @@ export async function GET(req: NextRequest) {
 
   if (finalResult.gate) {
     const hasSubscriptionStep = finalResult.gate.steps.some(step => step.stepType === "subscription_cta")
+    const hasAdStep = finalResult.gate.steps.some(step => step.stepType === "ad")
 
-    const subscriptionIntervals = hasSubscriptionStep
-      ? await Promise.all([
-          getCachedPlan(domain.brandId ?? domain.publisherId),
-          getCachedPgConfig(domain.brandId ?? domain.publisherId, domain.publisherId),
-        ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own"))
-      : []
+    const [subscriptionIntervals, adUnits] = await Promise.all([
+      hasSubscriptionStep
+        ? Promise.all([
+            getCachedPlan(domain.brandId ?? domain.publisherId),
+            getCachedPgConfig(domain.brandId ?? domain.publisherId, domain.publisherId),
+          ]).then(([plan, pgConfig]) => getEnabledSyncedIntervals(plan, pgConfig.mode as "platform" | "own"))
+        : Promise.resolve([]),
+      hasAdStep ? getCachedAdUnits(domain.publisherId) : Promise.resolve([]),
+    ])
+
+    // Pre-select ad unit once (same unit shown for all ad steps in this gate)
+    const readerAdContext = readerProfile
+      ? {
+          crossPublisherInterests: (readerProfile.crossPublisherInterests as Record<string, { score: number; domainCount: number }>) ?? {},
+          topicInterests: (readerProfile.topicInterests as Record<string, number>) ?? {},
+        }
+      : null
+    const adSelection = hasAdStep ? selectAdUnit(adUnits, readerAdContext) : null
 
     for (const step of finalResult.gate.steps) {
       if (step.stepType === "subscription_cta") {
@@ -204,6 +242,36 @@ export async function GET(req: NextRequest) {
             currency: i.currency,
           })),
         }
+      }
+      if (step.stepType === "ad" && adSelection) {
+        const adConfig: Record<string, unknown> = {
+          ...step.config,
+          selectedAdUnitId: adSelection.adUnit.id,
+          mediaType:        adSelection.adUnit.mediaType,
+          cdnUrl:           adSelection.adUnit.cdnUrl,
+          ctaLabel:         adSelection.adUnit.ctaLabel,
+          ctaUrl:           adSelection.adUnit.ctaUrl,
+          skipAfterSeconds: adSelection.adUnit.skipAfterSeconds,
+        }
+        // For network ad units, resolve the network render config (credentials never exposed)
+        if (adSelection.adUnit.sourceType === "network" && adSelection.adUnit.adNetworkId) {
+          const netData = await getCachedNetworkCreds(adSelection.adUnit.adNetworkId)
+          if (netData) {
+            const netCfg = adSelection.adUnit.networkConfig as Record<string, unknown>
+            if (netData.provider === "google_adsense") {
+              adConfig.networkAdConfig = resolveAdsenseConfig(
+                netCfg as { adSlotId: string },
+                netData.credentials as Parameters<typeof resolveAdsenseConfig>[1],
+              )
+            } else if (netData.provider === "google_ad_manager") {
+              adConfig.networkAdConfig = resolveGAMConfig(
+                netCfg as { adUnitPath: string; sizes: number[][] },
+                netData.credentials as Parameters<typeof resolveGAMConfig>[1],
+              )
+            }
+          }
+        }
+        step.config = adConfig
       }
       if (step.stepType !== "one_time_unlock") continue
 

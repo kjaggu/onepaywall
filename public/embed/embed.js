@@ -133,6 +133,7 @@
     ".opw-widget-title{font-size:13px;font-weight:600;color:#111;margin:0 0 2px}",
     ".opw-widget-since{font-size:12px;color:#666;margin:0 0 10px}",
     ".opw-widget-hidden{display:none!important}",
+    ".opw-skip-timer{font-size:11px;color:#aaa;margin-bottom:8px}",
   ].join("");
 
   function injectStyles() {
@@ -445,6 +446,10 @@
       }
 
     } else if (step.stepType === "ad") {
+      var cfg3 = step.config || {};
+      var adUnitId3 = cfg3.selectedAdUnitId || null;
+      var skipSecs3 = cfg3.skipAfterSeconds || null;
+
       var title3 = document.createElement("div");
       title3.className = "opw-title";
       title3.textContent = "Quick ad break";
@@ -455,23 +460,126 @@
       sub3.textContent = "Watch a short ad to continue reading for free.";
       card.appendChild(sub3);
 
-      // Ad placeholder — real ad serving wired in next phase
-      var adBox = document.createElement("div");
-      adBox.style.cssText = "background:#f5f5f5;border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;margin-bottom:16px";
-      adBox.textContent = "Ad";
-      card.appendChild(adBox);
-
-      sendEvent(token, gateId, step.id, "ad_start");
-
-      var completeBtn = document.createElement("button");
-      completeBtn.className = "opw-btn opw-btn-primary";
-      completeBtn.textContent = "Continue";
-      completeBtn.onclick = function () {
-        sendEvent(token, gateId, step.id, "ad_complete");
+      var continueBtn3 = document.createElement("button");
+      continueBtn3.className = "opw-btn opw-btn-primary";
+      continueBtn3.textContent = "Continue";
+      continueBtn3.style.display = "none";
+      continueBtn3.onclick = function () {
+        sendEvent(token, gateId, step.id, "ad_complete", adUnitId3);
         if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
         else onComplete();
       };
-      card.appendChild(completeBtn);
+
+      var skipBtn3 = document.createElement("button");
+      skipBtn3.className = "opw-btn opw-btn-secondary";
+      skipBtn3.textContent = "Skip ad";
+      skipBtn3.style.display = "none";
+      skipBtn3.onclick = function () {
+        sendEvent(token, gateId, step.id, "ad_skip", adUnitId3);
+        if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
+        else onComplete();
+      };
+
+      var timerLabel3 = document.createElement("div");
+      timerLabel3.className = "opw-skip-timer";
+      timerLabel3.style.display = "none";
+
+      function enableAdControls3() {
+        continueBtn3.style.display = "";
+        if (skipSecs3) skipBtn3.style.display = "";
+      }
+
+      function startAdTimer3(secs) {
+        timerLabel3.style.display = "block";
+        timerLabel3.textContent = "Skip in " + secs + "s";
+        var remaining3 = secs;
+        var t3 = setInterval(function () {
+          remaining3--;
+          if (remaining3 <= 0) {
+            clearInterval(t3);
+            timerLabel3.style.display = "none";
+            enableAdControls3();
+          } else {
+            timerLabel3.textContent = "Skip in " + remaining3 + "s";
+          }
+        }, 1000);
+      }
+
+      if (cfg3.cdnUrl) {
+        if (cfg3.mediaType === "video") {
+          var vid3 = document.createElement("video");
+          vid3.style.cssText = "width:100%;border-radius:8px;display:block;margin-bottom:16px;max-height:240px;background:#000";
+          vid3.setAttribute("playsinline", "");
+          vid3.muted = false;
+          vid3.src = cfg3.cdnUrl;
+          var adStarted3 = false;
+          vid3.oncanplay = function () {
+            if (adStarted3) return;
+            adStarted3 = true;
+            sendEvent(token, gateId, step.id, "ad_start", adUnitId3);
+            if (skipSecs3) startAdTimer3(skipSecs3);
+            vid3.play().catch(function () {});
+          };
+          vid3.onended = function () {
+            timerLabel3.style.display = "none";
+            sendEvent(token, gateId, step.id, "ad_complete", adUnitId3);
+            if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
+            else onComplete();
+          };
+          vid3.onerror = function () {
+            if (!adStarted3) {
+              adStarted3 = true;
+              sendEvent(token, gateId, step.id, "ad_start", adUnitId3);
+            }
+            vid3.style.display = "none";
+            enableAdControls3();
+          };
+          card.appendChild(vid3);
+        } else {
+          var img3 = document.createElement("img");
+          img3.style.cssText = "width:100%;border-radius:8px;display:block;margin-bottom:16px";
+          img3.alt = "";
+          img3.src = cfg3.cdnUrl;
+          var imgLoaded3 = false;
+          img3.onload = function () {
+            if (imgLoaded3) return;
+            imgLoaded3 = true;
+            sendEvent(token, gateId, step.id, "ad_start", adUnitId3);
+            if (skipSecs3) startAdTimer3(skipSecs3);
+            else enableAdControls3();
+          };
+          img3.onerror = function () {
+            if (!imgLoaded3) {
+              imgLoaded3 = true;
+              img3.style.display = "none";
+              sendEvent(token, gateId, step.id, "ad_start", adUnitId3);
+              enableAdControls3();
+            }
+          };
+          card.appendChild(img3);
+          if (cfg3.ctaLabel && cfg3.ctaUrl) {
+            var ctaLink3 = document.createElement("a");
+            ctaLink3.className = "opw-btn opw-btn-secondary";
+            ctaLink3.style.cssText = "display:block;margin-bottom:8px;text-align:center;text-decoration:none";
+            ctaLink3.href = cfg3.ctaUrl;
+            ctaLink3.target = "_blank";
+            ctaLink3.rel = "noopener noreferrer";
+            ctaLink3.textContent = cfg3.ctaLabel;
+            card.appendChild(ctaLink3);
+          }
+        }
+      } else {
+        var adBox3 = document.createElement("div");
+        adBox3.style.cssText = "background:#f5f5f5;border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;margin-bottom:16px";
+        adBox3.textContent = "Ad";
+        card.appendChild(adBox3);
+        sendEvent(token, gateId, step.id, "ad_start", adUnitId3);
+        enableAdControls3();
+      }
+
+      card.appendChild(timerLabel3);
+      card.appendChild(continueBtn3);
+      if (skipSecs3) card.appendChild(skipBtn3);
     }
 
     return card;
@@ -512,11 +620,13 @@
 
   // ─── Events & signals ────────────────────────────────────────────────────────
 
-  function sendEvent(token, gateId, stepId, eventType) {
+  function sendEvent(token, gateId, stepId, eventType, adUnitId) {
+    var body = { token: token, gateId: gateId, stepId: stepId, eventType: eventType };
+    if (adUnitId) body.adUnitId = adUnitId;
     fetch(_base + "/api/embed/event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: token, gateId: gateId, stepId: stepId, eventType: eventType }),
+      body: JSON.stringify(body),
       keepalive: true,
     }).catch(function () {});
   }
@@ -528,6 +638,16 @@
     } else {
       fetch(_base + "/api/embed/signal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).catch(function () {});
     }
+  }
+
+  function sendPageEvent(token, eventType, extra) {
+    var body = Object.assign({ token: token, eventType: eventType, url: location.href, referrer: document.referrer }, extra || {});
+    fetch(_base + "/api/embed/page-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(function () {});
   }
 
   // ─── Main ────────────────────────────────────────────────────────────────────
@@ -586,6 +706,7 @@
         if (data.token) { setToken(siteKey, data.token); token = data.token; }
         isSubscriber = !!data.isSubscriber;
         gateShown = !!data.gate;
+        if (token) sendPageEvent(token, "page_view");
         if (isSubscriber) {
           if (restoreToken) {
             var cleanSub = new URL(location.href);
@@ -626,7 +747,20 @@
       if (total > 0) maxScroll = Math.max(maxScroll, Math.round((scrolled / total) * 100));
     }, { passive: true });
 
+    // Fire read_complete once when scroll >= 80% AND elapsed >= 30s
+    var readComplete = false;
+    var readCheckInterval = setInterval(function () {
+      if (readComplete) { clearInterval(readCheckInterval); return; }
+      var elapsed = Math.round((Date.now() - startTime) / 1000);
+      if (maxScroll >= 80 && elapsed >= 30) {
+        readComplete = true;
+        clearInterval(readCheckInterval);
+        if (token) sendPageEvent(token, "read_complete", { readTimeSeconds: elapsed, scrollDepthPct: maxScroll });
+      }
+    }, 5000);
+
     window.addEventListener("pagehide", function () {
+      clearInterval(readCheckInterval);
       if (!token) return;
       sendSignal(token, {
         readTimeSeconds: Math.round((Date.now() - startTime) / 1000),

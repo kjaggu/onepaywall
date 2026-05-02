@@ -1,9 +1,10 @@
 import { Tabs, type TabItem } from "@/components/dashboard/tabs"
 
 const tabs: TabItem[] = [
-  { label: "Library",  href: "/ads", exact: true },
-  { label: "Networks", href: "/ads/networks" },
-  { label: "Settings", href: "/ads/settings" },
+  { label: "Library",   href: "/ads",           exact: true },
+  { label: "Analytics", href: "/ads/analytics" },
+  { label: "Networks",  href: "/ads/networks" },
+  { label: "Settings",  href: "/ads/settings" },
 ]
 
 export default function AdsLayout({ children }: { children: React.ReactNode }) {

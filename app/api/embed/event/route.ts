@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     stepId: typeof body.stepId === "string" ? body.stepId : undefined,
     readerId: reader.readerId,
     eventType: body.eventType,
+    adUnitId: typeof body.adUnitId === "string" ? body.adUnitId : undefined,
     contentId: typeof body.contentId === "string" ? body.contentId : undefined,
     metadata: typeof body.metadata === "object" ? body.metadata : {},
   })

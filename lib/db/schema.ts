@@ -558,6 +558,43 @@ export const readerSubscriptionMagicLinks = pgTable("reader_subscription_magic_l
   index("reader_subscription_magic_links_expires_idx").on(t.expiresAt),
 ])
 
+// ─── Page events (content analytics / GA replacement) ────────────────────────
+
+export const pageEvents = pgTable("page_events", {
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainId:         text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  readerId:         text("reader_id").references(() => readers.id, { onDelete: "set null" }),
+  eventType:        text("event_type").notNull(),  // 'page_view' | 'read_complete'
+  url:              text("url").notNull(),
+  referrer:         text("referrer"),
+  contentCategory:  text("content_category"),
+  readTimeSeconds:  integer("read_time_seconds"),
+  scrollDepthPct:   integer("scroll_depth_pct"),
+  occurredAt:       timestamp("occurred_at").notNull().defaultNow(),
+}, t => [
+  index("page_events_domain_idx").on(t.domainId),
+  index("page_events_occurred_idx").on(t.domainId, t.occurredAt),
+  index("page_events_url_idx").on(t.domainId, t.url),
+  index("page_events_type_idx").on(t.domainId, t.eventType, t.occurredAt),
+])
+
+export const sourceStats = pgTable("source_stats", {
+  id:                  text("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainId:            text("domain_id").notNull().references(() => domains.id, { onDelete: "cascade" }),
+  date:                date("date").notNull(),
+  referrer:            text("referrer").notNull(),
+  pageViews:           integer("page_views").notNull().default(0),
+  uniqueReaders:       integer("unique_readers").notNull().default(0),
+  avgReadTimeSeconds:  integer("avg_read_time_seconds"),
+  avgScrollDepthPct:   integer("avg_scroll_depth_pct"),
+  readerQualityScore:  real("reader_quality_score"),
+  createdAt:           timestamp("created_at").notNull().defaultNow(),
+  updatedAt:           timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("source_stats_unique_idx").on(t.domainId, t.date, t.referrer),
+  index("source_stats_domain_date_idx").on(t.domainId, t.date),
+])
+
 // ─── Password reset tokens ────────────────────────────────────────────────────
 
 export const passwordResetTokens = pgTable("password_reset_tokens", {

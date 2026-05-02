@@ -1,12 +1,14 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ExternalLink, Users } from "lucide-react"
+import { ArrowLeft, ExternalLink, FileText, Users } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
 import { getDomain } from "@/lib/db/queries/domains"
 import { getSummary, getGateBreakdown, getDailySeries } from "@/lib/db/queries/analytics"
 import { getRevenueForPeriod } from "@/lib/db/queries/transactions"
 import { getAudienceStats, getIntentTierDistribution, TIER_META, fmtReadTime } from "@/lib/db/queries/reader-intelligence"
+import { getTopContent } from "@/lib/db/queries/content-analytics"
 import { refreshRollups } from "@/lib/analytics/rollup"
+import { extractPath } from "@/lib/intelligence/sanitize"
 import { AnalyticsChart } from "@/components/dashboard/analytics/analytics-chart"
 import { RangeFilter } from "@/components/dashboard/analytics/range-filter"
 import { GateFilter } from "@/components/dashboard/analytics/gate-filter"
@@ -44,13 +46,14 @@ export default async function DomainAnalyticsPage({
   const from = since(days)
   await refreshRollups([domainId], from)
 
-  const [summary, gateStats, daily, revenue, audience, tiers] = await Promise.all([
+  const [summary, gateStats, daily, revenue, audience, tiers, topContent] = await Promise.all([
     getSummary([domainId], from),
     getGateBreakdown(domainId, from),
     getDailySeries([domainId], from, gateParam || undefined),
     getRevenueForPeriod(session.publisherId, from, domainId),
     getAudienceStats([domainId], from),
     getIntentTierDistribution([domainId], from),
+    getTopContent([domainId], from, 10),
   ])
 
   // Validate gateParam is actually one of this domain's gates
@@ -226,6 +229,52 @@ export default async function DomainAnalyticsPage({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Top content on this domain */}
+      {topContent.length > 0 && (
+        <div style={{ border: "1px solid #ebebeb", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ padding: "12px 18px", borderBottom: "1px solid #ebebeb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <FileText size={14} color="#888" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>Top content</span>
+            </div>
+            <Link href={`/analytics/content?range=${days}`} style={{ fontSize: 12, color: "#aaa", textDecoration: "none" }}>
+              See all →
+            </Link>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 80px 80px 90px", padding: "7px 18px", background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+            {["URL", "Views", "Readers", "Avg read", "Avg scroll", "Gate CVR"].map((h, i) => (
+              <div key={i} style={{ fontSize: 10, fontWeight: 600, color: "#bbb", letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</div>
+            ))}
+          </div>
+
+          {topContent.map((row, i) => {
+            const path = extractPath(row.url)
+            const displayPath = path.length > 52 ? path.slice(0, 52) + "…" : path
+            const cvrColor = row.gateConversionRate >= 20 ? "#27adb0" : row.gateConversionRate >= 5 ? "#f59e0b" : "#999"
+            return (
+              <div
+                key={row.url}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 80px 80px 80px 80px 90px",
+                  padding: "9px 18px",
+                  borderBottom: i < topContent.length - 1 ? "1px solid #f5f5f5" : "none",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#333", fontFamily: "monospace" }} title={row.url}>{displayPath}</span>
+                <span style={{ fontSize: 13, color: "#333" }}>{row.pageViews.toLocaleString()}</span>
+                <span style={{ fontSize: 13, color: "#333" }}>{row.uniqueReaders.toLocaleString()}</span>
+                <span style={{ fontSize: 13, color: "#333" }}>{fmtReadTime(row.avgReadTimeSeconds)}</span>
+                <span style={{ fontSize: 13, color: "#333" }}>{row.avgScrollDepthPct != null ? `${row.avgScrollDepthPct}%` : "—"}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: cvrColor }}>{row.gateConversionRate}%</span>
+              </div>
+            )
+          })}
         </div>
       )}
 

@@ -13,8 +13,8 @@
 | Pillar | Analogue | Status |
 |--------|----------|--------|
 | Reader Intelligence | Clevertap | **Phase 1 complete** — profile computation, cross-publisher graph, content classification |
-| Media Analytics | Google Analytics | 30% — gate analytics only; full dashboard is Phase 2 |
-| Ad Intelligence | Ad Network | 20% — schema only; delivery engine is Phase 3 |
+| Media Analytics | Google Analytics | **Phase 2 complete** — content analytics, source attribution, reader journey funnel, audience profiles |
+| Ad Intelligence | Ad Network | **Phase 3 complete** — ad selection engine, direct ad rendering, network adapters, analytics |
 | Monetization Suite | Membership + Ecommerce | 70% — subscriptions + pay-per-article done; lead capture + digital products are Phase 4 |
 
 ---
@@ -43,22 +43,23 @@ Reader profiling engine and cross-publisher interest graph. Prerequisite for sma
 
 ---
 
-## Phase 2 — Media Analytics Dashboard (GA Replacement)
+## Phase 2 — Media Analytics Dashboard (GA Replacement) ✅ Complete
 
 Replace Google Analytics for publishers. Gives publishers a reason to install the embed even without a paywall.
 
-**Deliverables:**
-1. New embed event types: `page_view`, `read_complete` — funneled into `gate_events` or a new `page_events` table.
-2. `/app/(dashboard)/analytics/content/` — Top content by views, avg read time, scroll depth, gate conversion rate per article. Replaces the need for GA content reports.
-3. Source attribution: referrer → domain breakdown with reader quality score per source (high-intent readers from referrer X).
-4. Reader journey funnel: new reader → repeat reader → gate shown → converted.
-5. `/app/(dashboard)/audience/` page rewrite — uses computed `reader_profiles`: segment distribution, topic interest treemap, monetization probability histogram, visit frequency breakdown.
-6. Real-time reader count: last 30 min active sessions from `reader_tokens.updatedAt`.
-7. Domain-level analytics deep-dive: `/analytics/[domainId]` — content breakdown for one domain.
-
-**Schema changes needed:**
-- `page_events` table (or extend `gate_events`) for `page_view` + `read_complete` event types
-- `source_stats` rollup (daily per-domain per-referrer)
+**Delivered:**
+| File | Change |
+|------|--------|
+| `db/migrations/0015_page_events.sql` | New — `page_events` + `source_stats` tables with indexes |
+| `lib/db/schema.ts` | Extended — `pageEvents`, `sourceStats` Drizzle table definitions |
+| `app/api/embed/page-event/route.ts` | New — POST endpoint; validates token, classifies URL, inserts page_events (fire-and-forget) |
+| `public/embed/embed.js` | Extended — `sendPageEvent` helper; `page_view` fires after token resolved; `read_complete` polls every 5s (scrollDepth ≥80% + elapsed ≥30s) |
+| `lib/analytics/source-stats.ts` | New — lazy rollup: joins reader_page_visits + reader_profiles, upserts into source_stats |
+| `lib/db/queries/content-analytics.ts` | New — 8 query functions: getTopContent, getSourceAttribution, getReaderJourneyFunnel, getActiveReaderCount, getSegmentDistribution, getTopicInterestDistribution, getMonetizationHistogram, getVisitFrequencyBreakdown |
+| `app/(dashboard)/analytics/content/page.tsx` | New — content analytics page: active reader chip, reader journey funnel, top content table, source attribution with quality score |
+| `app/(dashboard)/audience/page.tsx` | Rewritten — segment distribution, topic interests, monetization histogram, visit frequency (all from reader_profiles) |
+| `app/(dashboard)/analytics/[domainId]/page.tsx` | Extended — top 10 content section + "See all" link to /analytics/content |
+| `components/dashboard/sidebar.tsx` | Extended — "Content" nav link added under Measure group |
 
 ---
 
