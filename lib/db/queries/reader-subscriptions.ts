@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "crypto"
-import { and, desc, eq, gt, inArray, isNull, or } from "drizzle-orm"
+import { and, asc, desc, eq, gt, inArray, isNull, or } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import {
   readerSubscribers,
@@ -436,5 +436,43 @@ export async function getSubscriptionById(subscriptionId: string, publisherId: s
       eq(readerSubscriptions.publisherId, publisherId),
     ))
     .limit(1)
+  return row ?? null
+}
+
+// CRM-lite: list all reader_subscribers rows (not just those with subscriptions),
+// optionally filtered by source ('subscription' | 'lead_capture' | 'manual').
+export async function listSubscribersCrm(
+  publisherId: string,
+  options?: { source?: string; limit?: number },
+) {
+  const conditions = [eq(readerSubscribers.publisherId, publisherId)]
+  if (options?.source) conditions.push(eq(readerSubscribers.source, options.source))
+
+  const rows = await db
+    .select()
+    .from(readerSubscribers)
+    .where(and(...conditions))
+    .orderBy(desc(readerSubscribers.createdAt))
+    .limit(options?.limit ?? 500)
+
+  return rows.map(({ encryptedEmail, ...row }) => ({
+    ...row,
+    email: decrypt(encryptedEmail),
+  }))
+}
+
+export async function updateSubscriberNotes(
+  subscriberId: string,
+  publisherId: string,
+  notes: string | null,
+) {
+  const [row] = await db
+    .update(readerSubscribers)
+    .set({ notes, updatedAt: new Date() })
+    .where(and(
+      eq(readerSubscribers.id, subscriberId),
+      eq(readerSubscribers.publisherId, publisherId),
+    ))
+    .returning()
   return row ?? null
 }

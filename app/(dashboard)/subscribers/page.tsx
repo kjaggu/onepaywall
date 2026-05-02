@@ -205,17 +205,11 @@ export default function SubscribersPage() {
   const allSelected = subscribers.length > 0 && selected.size === subscribers.length
 
   return (
-    <div style={{ padding: "28px 32px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111" }}>Subscribers</h1>
-          <p style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Readers with an active or past subscription to your publication.</p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <ImportSubscribersSheet onImported={load} />
-          <AddSubscriberSheet onAdded={load} />
-        </div>
+    <div>
+      {/* Header actions */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 8 }}>
+        <ImportSubscribersSheet onImported={load} />
+        <AddSubscriberSheet onAdded={load} />
       </div>
 
       {/* Stats strip */}

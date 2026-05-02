@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 
-type StepType = "ad" | "subscription_cta" | "one_time_unlock"
+type StepType = "ad" | "subscription_cta" | "one_time_unlock" | "lead_capture" | "digital_product"
 type StepAction = "proceed" | "next_step"
 
 type Step = {
@@ -20,15 +20,19 @@ type Step = {
 }
 
 const STEP_LABELS: Record<StepType, string> = {
-  ad: "Ad",
+  ad:               "Ad",
   subscription_cta: "Subscription CTA",
-  one_time_unlock: "One-time unlock",
+  one_time_unlock:  "One-time unlock",
+  lead_capture:     "Lead capture",
+  digital_product:  "Digital product",
 }
 
 const STEP_COLORS: Record<StepType, string> = {
-  ad: "default",
+  ad:               "default",
   subscription_cta: "secondary",
-  one_time_unlock: "outline",
+  one_time_unlock:  "outline",
+  lead_capture:     "default",
+  digital_product:  "secondary",
 }
 
 function StepConfigEditor({
@@ -120,6 +124,41 @@ function StepConfigEditor({
         </p>
       )}
 
+      {step.stepType === "lead_capture" && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-label text-[var(--muted-foreground)]">Heading</label>
+              <Input value={String(config.heading ?? "")} onChange={e => set("heading", e.target.value)} placeholder="Get free access" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-label text-[var(--muted-foreground)]">CTA label</label>
+              <Input value={String(config.ctaLabel ?? "")} onChange={e => set("ctaLabel", e.target.value)} placeholder="Get access" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-label text-[var(--muted-foreground)]">GDPR consent text</label>
+            <Input value={String(config.gdprText ?? "")} onChange={e => set("gdprText", e.target.value)} placeholder="I agree to receive emails from this publisher." />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`nameRequired-${step.id}`}
+              checked={Boolean(config.nameRequired)}
+              onChange={e => set("nameRequired", e.target.checked)}
+              className="h-4 w-4 rounded border-[var(--input)] accent-[var(--color-brand)]"
+            />
+            <label htmlFor={`nameRequired-${step.id}`} className="text-label text-[var(--color-text)] cursor-pointer">
+              Require reader name
+            </label>
+          </div>
+        </>
+      )}
+
+      {step.stepType === "digital_product" && (
+        <DigitalProductConfig config={config} set={set} />
+      )}
+
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-1">
           <label className="text-label text-[var(--muted-foreground)]">On skip</label>
@@ -146,6 +185,72 @@ function StepConfigEditor({
         <Button size="sm" onClick={save} disabled={saving} className="mt-auto">
           {saving ? "Saving…" : "Save step"}
         </Button>
+      </div>
+    </div>
+  )
+}
+
+function DigitalProductConfig({
+  config,
+  set,
+}: {
+  config: Record<string, unknown>
+  set: (key: string, value: unknown) => void
+}) {
+  const [products, setProducts] = useState<{ id: string; title: string; priceInPaise: number }[]>([])
+
+  useEffect(() => {
+    fetch("/api/digital-products")
+      .then(r => r.ok ? r.json() : { products: [] })
+      .then(d => setProducts(d.products ?? []))
+      .catch(() => {})
+  }, [])
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="col-span-2 flex flex-col gap-1">
+        <label className="text-label text-[var(--muted-foreground)]">Product</label>
+        {products.length === 0 ? (
+          <p className="text-body-sm text-[var(--muted-foreground)]">
+            No products yet — create one in the Digital Products section first.
+          </p>
+        ) : (
+          <select
+            value={String(config.productId ?? "")}
+            onChange={e => {
+              const product = products.find(p => p.id === e.target.value)
+              set("productId", e.target.value)
+              if (product) {
+                set("productTitle", product.title)
+                set("priceInPaise", product.priceInPaise)
+              }
+            }}
+            className="h-8 rounded-lg border border-[var(--input)] bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          >
+            <option value="">Select a product…</option>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.title} — ₹{(p.priceInPaise / 100).toFixed(0)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-label text-[var(--muted-foreground)]">Button label</label>
+        <Input value={String(config.label ?? "")} onChange={e => set("label", e.target.value)} placeholder="Download report" />
+      </div>
+      <div className="col-span-2 flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="dp-hideSkip"
+          checked={Boolean(config.hideSkip)}
+          onChange={e => set("hideSkip", e.target.checked)}
+          className="h-4 w-4 rounded border-[var(--input)] accent-[var(--color-brand)]"
+        />
+        <label htmlFor="dp-hideSkip" className="text-label text-[var(--color-text)] cursor-pointer">
+          Hide skip button — reader must purchase to proceed
+        </label>
       </div>
     </div>
   )
@@ -265,6 +370,8 @@ export function GateSteps({ gateId, initialSteps }: { gateId: string; initialSte
           <option value="ad">Ad</option>
           <option value="subscription_cta">Subscription CTA</option>
           <option value="one_time_unlock">One-time unlock</option>
+          <option value="lead_capture">Lead capture</option>
+          <option value="digital_product">Digital product</option>
         </select>
         <Button size="sm" onClick={addStep} disabled={adding} className="gap-1.5">
           <Plus size={13} />

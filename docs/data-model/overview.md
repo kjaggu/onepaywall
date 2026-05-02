@@ -11,12 +11,21 @@ publishers ──< publisher_members >── users
      ├──< publisher_subscriptions >── plans
      ├── publisher_pg_configs
      ├──< publisher_ad_networks ──< ad_units
-     └── (ad_units also owned directly by publisher)
+     ├── (ad_units also owned directly by publisher)
+     ├── publisher_email_configs          (Phase 5 — one per publisher)
+     ├──< publisher_email_campaigns       (Phase 5 — broadcast sends)
+     ├──< publisher_email_automations     (Phase 5 — trigger-based)
+     │         └──< email_automation_runs (dedup log)
+     └──< email_events                    (open/click/bounce/complaint)
 
 readers ──< reader_tokens (per domain)
         ──< gate_unlocks  (per gate)
         ──< reader_page_visits (90-day raw signals)
         ── reader_profiles (computed, 1:1)
+
+reader_subscribers (email list, per publisher/brand)
+        ──< email_automation_runs
+        ──< email_events
 
 content_classifications (shared URL→topic cache)
 

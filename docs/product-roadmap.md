@@ -2,7 +2,7 @@
 
 **Vision:** Plug-and-play media monetization for small & medium publishers — one embed script, zero third-party integrations.
 
-> Clevertap + Google Analytics + Membership Management + Ad Network + Lead Management — built for publications.
+> Clevertap + Google Analytics + Membership Management + Ad Network + Lead Management + Mailchimp — built for publications.
 
 **Network-effect moat:** Every publisher that installs the OnePaywall embed contributes to a shared, anonymized reader interest graph. Better data → smarter ad targeting and gate decisions → better ROI → more publisher onboarding.
 
@@ -16,6 +16,7 @@
 | Media Analytics | Google Analytics | **Phase 2 complete** — content analytics, source attribution, reader journey funnel, audience profiles |
 | Ad Intelligence | Ad Network | **Phase 3 complete** — ad selection engine, direct ad rendering, network adapters, analytics |
 | Monetization Suite | Membership + Ecommerce | 70% — subscriptions + pay-per-article done; lead capture + digital products are Phase 4 |
+| Publisher Email | Mailchimp | Planned — Phase 5 |
 
 ---
 
@@ -96,7 +97,102 @@ Two missing monetization primitives that complete the publisher toolkit.
 
 ---
 
-## Phase 5 — Audience Marketplace (Network Effect Monetization)
+## Phase 5 — Publisher Email & Automation
+
+One-stop email for small publishers: send campaigns and trigger-based automations from their own domain,
+pre-segmented by the behavioral data OnePaywall already collects.
+
+**Differentiator vs Mailchimp:** segments are auto-built from `reader_profiles` (engagement score, visit frequency,
+ad interactions, gate events, topic interests) — publisher clicks send, not configure.
+
+### Day-1 automation triggers
+| Trigger | When it fires |
+|---------|--------------|
+| `new_subscriber` | reader_subscribers row created (any source: gate, subscription, newsletter optin) |
+| `segment_entered` | reader profile segment changes (new→casual, casual→regular, etc.) |
+| `ad_engaged` | `ad_complete` or `ad_click` gate_event for this publisher |
+| `inactivity` | no page signal in N days (configurable; default 14) — re-engagement |
+
+### Email capture touchpoints
+1. Lead capture gate step (Phase 4) — creates `reader_subscribers` with `source = 'lead_capture'`
+2. Subscription checkout — email already stored in `reader_subscribers`
+3. New `newsletter_optin` gate step type — free sign-up, no paywall, opt-in only
+
+### Segment filter (campaigns + automations)
+```json
+{
+  "segment": "power_user",
+  "minMonetizationProbability": 0.5,
+  "topicInterest": "technology",
+  "source": "lead_capture",
+  "subscriptionStatus": "active",
+  "adEngaged": true
+}
+```
+All fields optional; null filter = all active (non-unsubscribed) subscribers.
+
+### Deliverables
+
+#### Schema — `db/migrations/0018_email_automation.sql`
+- `publisher_email_configs` — Resend API key (encrypted via `PG_ENCRYPTION_KEY`), from_name, from_email, domain_verified_at
+- Extend `reader_subscribers` — add `unsubscribe_token UUID`, `unsubscribed_at TIMESTAMPTZ`
+- `publisher_email_campaigns` — broadcast sends; `segment_filter JSONB`, status lifecycle (draft→scheduled→sending→sent)
+- `publisher_email_automations` — trigger_type, trigger_config JSONB, subject/body, status (draft→active→paused)
+- `email_automation_runs` — dedup log (unique per automation+subscriber+day); prevents duplicate sends
+- `email_events` — open/click/bounce/complaint per send (campaign or automation run)
+
+#### `lib/email/`
+| File | Responsibility |
+|------|---------------|
+| `provider.ts` | `sendEmail(...)` via Resend SDK — interface abstraction; swap to SES later without touching callers |
+| `segments.ts` | `getSubscribersForFilter(publisherId, filter)` — joins reader_subscribers + reader_profiles; excludes unsubscribed |
+| `tracking.ts` | `injectTracking(html, campaignId, subscriberId)` — wraps links + inserts 1×1 pixel |
+| `unsubscribe.ts` | `handleUnsubscribe(token)` — sets unsubscribed_at; returns publisher context for confirmation page |
+| `automations/engine.ts` | `evaluateAutomations(publisherId, event)` — queries matching active automations, deduplicates via email_automation_runs, enqueues sends |
+| `automations/triggers.ts` | Per-trigger condition matchers |
+
+#### API routes
+| Route | Purpose |
+|-------|---------|
+| `POST /api/email/send-campaign` | Internal — called by Trigger.dev job; batch-sends via Resend (50/batch) |
+| `GET  /api/email/track/open/[token]` | 1×1 pixel; writes `email_events` type=opened |
+| `GET  /api/email/track/click/[token]` | Redirect proxy; writes `email_events` type=clicked |
+| `GET  /api/email/unsubscribe/[token]` | One-click unsubscribe; renders confirmation page |
+| `POST /api/email/verify-domain` | Polls Resend for DKIM/SPF status; updates `publisher_email_configs` |
+| `POST /api/email/webhook` | Resend webhook — handles bounces + complaints → auto-suppress |
+
+#### Dashboard UI — `/app/(dashboard)/email/`
+| Route | Content |
+|-------|---------|
+| `/email/` | Hub: subscriber count chip, last campaign stats, active automation count |
+| `/email/campaigns/` | List + create Sheet; subject, body HTML, segment picker, schedule datetime |
+| `/email/automations/` | List with active/paused toggle; create Sheet: trigger, delay, subject/body |
+| `/email/settings/` | Resend API key input, from_name/email, DNS instructions + live DKIM/SPF status chip |
+| `/subscribers/` | Extend existing CRM — unsubscribed_at column, email source badge |
+
+#### Trigger.dev jobs
+| Job | Trigger |
+|-----|---------|
+| `email-send-campaign` | On-demand when campaign status → sending; batch 50/call with 1s delay |
+| `email-evaluate-automations` | Called from existing signal/event jobs after profile recompute |
+| `email-inactivity-check` | Daily cron; finds subscribers with no page_signal in configured N days |
+
+### Privacy
+- `unsubscribe_token` is a random UUID (not reader_id); cannot reverse-engineer identity
+- One-click unsubscribe link mandatory in every email footer
+- Bounce + complaint webhook from Resend → immediate suppression, no publisher action required
+- `resend_api_key` encrypted at rest via existing `PG_ENCRYPTION_KEY` pattern
+
+### Integration points in existing code
+| File | Change |
+|------|--------|
+| `app/api/embed/event/route.ts` | After gate_event write, call `evaluateAutomations` for `ad_engaged` trigger |
+| `app/api/embed/lead-capture/route.ts` | After reader_subscribers insert, call `evaluateAutomations` for `new_subscriber` |
+| `lib/intelligence/computeProfile.ts` | After segment changes, call `evaluateAutomations` for `segment_entered` |
+
+---
+
+## Phase 6 — Audience Marketplace (Network Effect Monetization)
 
 Monetize the cross-publisher intelligence graph for advertisers. This is the long-term moat.
 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { gateEvents, gates } from "@/lib/db/schema"
+import { gateEvents, gates, domains } from "@/lib/db/schema"
 import { getReaderByToken } from "@/lib/embed/readerToken"
 import { computeProfileForReader } from "@/trigger/compute-profiles"
+import { evaluateAutomations } from "@/lib/email/automations/engine"
 
 const VALID_EVENT_TYPES = new Set([
   "gate_shown", "step_shown", "gate_passed",
@@ -50,6 +51,22 @@ export async function POST(req: NextRequest) {
   // These events signal meaningful monetization intent — enqueue a profile recompute
   if (body.eventType === "gate_passed" || body.eventType === "ad_complete") {
     void computeProfileForReader.trigger({ readerId: reader.readerId }).catch(() => {})
+  }
+
+  // Trigger ad_engaged automations
+  if (body.eventType === "ad_complete" || body.eventType === "ad_skip") {
+    const [domainRow] = await db
+      .select({ publisherId: domains.publisherId })
+      .from(domains)
+      .where(eq(domains.id, reader.domainId))
+      .limit(1)
+    if (domainRow) {
+      void evaluateAutomations({
+        type:        "ad_engaged",
+        publisherId: domainRow.publisherId,
+        readerId:    reader.readerId,
+      }).catch(() => {})
+    }
   }
 
   return new NextResponse(null, { status: 204 })

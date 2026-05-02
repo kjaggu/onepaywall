@@ -11,9 +11,11 @@ import {
   Globe,
   LayoutGrid,
   Lock,
+  Mail,
   Megaphone,
   Package,
   Settings,
+  Tag,
   Users,
   Users2,
   type LucideIcon,
@@ -43,21 +45,33 @@ const NAV: NavGroup[] = [
   {
     label: "Monetise",
     items: [
-      { label: "Brands",  href: "/brands",  icon: Briefcase },
-      { label: "Gates",   href: "/gates",   icon: Lock      },
-      { label: "Domains", href: "/domains", icon: Globe     },
-      { label: "Pricing", href: "/pricing", icon: Package   },
-      { label: "Ads",     href: "/ads",     icon: Megaphone },
+      { label: "Pricing",  href: "/pricing",          icon: Tag      },
+      { label: "Ads",      href: "/ads",              icon: Megaphone },
+      { label: "Products", href: "/digital-products", icon: Package  },
+      { label: "Email",    href: "/email",             icon: Mail     },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { label: "Subscribers", href: "/subscribers", icon: Users2 },
+      { label: "Audience",    href: "/audience",    icon: Users  },
     ],
   },
   {
     label: "Measure",
     items: [
-      { label: "Analytics",   href: "/analytics",         icon: BarChart2  },
-      { label: "Content",     href: "/analytics/content", icon: FileText   },
-      { label: "Revenue",     href: "/revenue",           icon: DollarSign },
-      { label: "Subscribers", href: "/subscribers",       icon: Users2     },
-      { label: "Audience",    href: "/audience",          icon: Users      },
+      { label: "Analytics", href: "/analytics",         icon: BarChart2  },
+      { label: "Content",   href: "/analytics/content", icon: FileText   },
+      { label: "Revenue",   href: "/revenue",           icon: DollarSign },
+    ],
+  },
+  {
+    label: "Configure",
+    items: [
+      { label: "Brands",  href: "/brands",  icon: Briefcase },
+      { label: "Gates",   href: "/gates",   icon: Lock      },
+      { label: "Domains", href: "/domains", icon: Globe     },
     ],
   },
   {

@@ -108,6 +108,8 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Gate check endpoint | `app/api/embed/gate-check/route.ts` |
 | Signal ingestion endpoint | `app/api/embed/signal/route.ts` |
 | Embed event reporting | `app/api/embed/event/route.ts` |
+| Lead capture embed API | `app/api/embed/lead-capture/route.ts` |
+| Digital product embed API (order + verify) | `app/api/embed/digital-product/route.ts` |
 | Reader fingerprinting | `lib/embed/fingerprint.ts` |
 | Reader token management | `lib/embed/readerToken.ts` |
 | Embed JS source | `public/embed/embed.js` (or build output) |
@@ -257,6 +259,99 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Platform health | `app/admin/health/page.tsx` |
 | Admin settings | `app/admin/settings/page.tsx` |
 | Admin API | not implemented yet |
+
+---
+
+## Subscribers & CRM
+
+| Task | Files |
+|------|-------|
+| Subscriptions list page | `app/(dashboard)/subscribers/page.tsx` |
+| Leads list page (CRM-lite: source filter, tags, notes, export) | `app/(dashboard)/subscribers/leads/page.tsx` |
+| Subscribers layout (tabs: Subscriptions / Leads) | `app/(dashboard)/subscribers/layout.tsx` |
+| Subscriptions API (list + stats) | `app/api/subscribers/route.ts` |
+| Subscription row actions (pause / cancel / activate) | `app/api/subscribers/[id]/route.ts` |
+| Bulk actions (pause / cancel) | `app/api/subscribers/bulk-action/route.ts` |
+| CRM subscriber list API (source filter, with tags) | `app/api/subscribers/crm/route.ts` |
+| Subscriber notes PATCH | `app/api/subscribers/crm/[id]/route.ts` |
+| Tag add / remove API | `app/api/subscribers/tags/route.ts` |
+| CSV export API | `app/api/subscribers/export/route.ts` |
+| Add subscriber sheet | `components/dashboard/subscribers/add-subscriber-sheet.tsx` |
+| Import CSV sheet | `components/dashboard/subscribers/import-subscribers-sheet.tsx` |
+| Subscriber query helpers | `lib/db/queries/reader-subscriptions.ts` (includes `listSubscribersCrm`) |
+| Subscriber tag query helpers | `lib/db/queries/subscriber-tags.ts` |
+| DB schema | `lib/db/schema.ts` → `readerSubscribers`, `subscriberTags` |
+
+---
+
+## Digital Products
+
+| Task | Files |
+|------|-------|
+| Digital products list page | `app/(dashboard)/digital-products/page.tsx` |
+| Digital products layout | `app/(dashboard)/digital-products/layout.tsx` |
+| Products API (list + create) | `app/api/digital-products/route.ts` |
+| Product PATCH / DELETE | `app/api/digital-products/[id]/route.ts` |
+| R2 presigned PUT URL for upload | `app/api/digital-products/upload/route.ts` |
+| Razorpay order creation | `lib/digital-products/createDownloadOrder.ts` |
+| Payment verify + R2 presigned GET + unlock record | `lib/digital-products/recordDownloadUnlock.ts` |
+| R2 presigned URL helpers (Sig V4, no SDK) | `lib/digital-products/r2.ts` |
+| Product CRUD query helpers | `lib/db/queries/digital-products.ts` |
+| DB schema | `lib/db/schema.ts` → `publisherDigitalProducts` |
+
+---
+
+## Lead Capture
+
+| Task | Files |
+|------|-------|
+| Lead email capture + unlock writer | `lib/leads/captureLeadEmail.ts` |
+| Fire-and-forget webhook delivery | `lib/leads/fireWebhooks.ts` |
+| Embed API endpoint | `app/api/embed/lead-capture/route.ts` |
+| DB schema | `lib/db/schema.ts` → `readerSubscribers` (`source`, `notes` columns) |
+
+---
+
+## Outbound Webhooks
+
+| Task | Files |
+|------|-------|
+| Webhook settings page (list + add) | `app/(dashboard)/settings/webhooks/page.tsx` |
+| Webhooks API (list + create) | `app/api/publisher-webhooks/route.ts` |
+| Webhook toggle / delete | `app/api/publisher-webhooks/[id]/route.ts` |
+| Webhook CRUD query helpers | `lib/db/queries/publisher-webhooks.ts` |
+| DB schema | `lib/db/schema.ts` → `publisherWebhooks` |
+| Migration | `db/migrations/0017_phase4_lead_digital.sql` |
+
+---
+
+## Email & Automation (Phase 5)
+
+| Task | Files |
+|------|-------|
+| Email hub page | `app/(dashboard)/email/page.tsx` |
+| Campaigns list + create | `app/(dashboard)/email/campaigns/page.tsx` |
+| Automations list + create | `app/(dashboard)/email/automations/page.tsx` |
+| Email settings (API key, domain) | `app/(dashboard)/email/settings/page.tsx` |
+| Campaigns API (list + create) | `app/api/email/campaigns/route.ts` |
+| Campaign PATCH (status, edit) | `app/api/email/campaigns/[id]/route.ts` |
+| Automations API (list + create) | `app/api/email/automations/route.ts` |
+| Automation PATCH (status, edit) | `app/api/email/automations/[id]/route.ts` |
+| Email config GET/PUT | `app/api/email/config/route.ts` |
+| Domain verification | `app/api/email/verify-domain/route.ts` |
+| Send campaign (internal, Trigger.dev) | `app/api/email/send-campaign/route.ts` |
+| Open pixel | `app/api/email/track/open/[token]/route.ts` |
+| Click redirect | `app/api/email/track/click/[token]/route.ts` |
+| Unsubscribe page | `app/api/email/unsubscribe/[token]/route.ts` |
+| Resend bounce/complaint webhook | `app/api/email/webhook/route.ts` |
+| Resend adapter | `lib/email/provider.ts` |
+| Subscriber segment filter | `lib/email/segments.ts` |
+| Open/click tracking injection | `lib/email/tracking.ts` |
+| Unsubscribe handler | `lib/email/unsubscribe.ts` |
+| Automation event evaluation | `lib/email/automations/engine.ts` |
+| Trigger condition matchers | `lib/email/automations/triggers.ts` |
+| DB schema | `lib/db/schema.ts` → `publisherEmailConfigs`, `publisherEmailCampaigns`, `publisherEmailAutomations`, `emailAutomationRuns`, `emailEvents` |
+| Migration | `db/migrations/0018_email_automation.sql` |
 
 ---
 

@@ -1,7 +1,8 @@
 import { eq, gte, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { readerPageVisits, readerProfiles, gateEvents } from "@/lib/db/schema"
+import { readerPageVisits, readerProfiles, gateEvents, readerTokens, domains } from "@/lib/db/schema"
 import { classifyContentBatch, type ContentCategory } from "./classifyContent"
+import { evaluateAutomations } from "@/lib/email/automations/engine"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -177,7 +178,16 @@ export async function computeProfile(readerId: string): Promise<void> {
   // 11. Segment
   const segment = determineSegment(totalVisits, monetizationProbability)
 
-  // 12. Upsert reader_profiles
+  // 12. Read previous segment before upsert to detect transitions
+  const [prevProfile] = await db
+    .select({ segment: readerProfiles.segment })
+    .from(readerProfiles)
+    .where(eq(readerProfiles.readerId, readerId))
+    .limit(1)
+
+  const prevSegment = prevProfile?.segment ?? null
+
+  // 13. Upsert reader_profiles
   await db
     .insert(readerProfiles)
     .values({
@@ -211,5 +221,32 @@ export async function computeProfile(readerId: string): Promise<void> {
         updatedAt: new Date(),
       },
     })
+
+  // 14. Fire segment_entered automations if segment changed
+  if (segment !== prevSegment) {
+    // Resolve all publisher IDs this reader has tokens for
+    const tokens = await db
+      .select({ domainId: readerTokens.domainId })
+      .from(readerTokens)
+      .where(eq(readerTokens.readerId, readerId))
+
+    if (tokens.length > 0) {
+      const domainIds = [...new Set(tokens.map(t => t.domainId))]
+      const publisherRows = await db
+        .select({ publisherId: domains.publisherId })
+        .from(domains)
+        .where(eq(domains.id, domainIds[0]))  // primary domain for segment trigger
+        .limit(1)
+
+      if (publisherRows[0]) {
+        void evaluateAutomations({
+          type:        "segment_entered",
+          publisherId: publisherRows[0].publisherId,
+          readerId,
+          segment,
+        }).catch(() => {})
+      }
+    }
+  }
 }
 

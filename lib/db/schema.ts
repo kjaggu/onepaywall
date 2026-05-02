@@ -20,11 +20,11 @@ export const memberRoleEnum      = pgEnum("member_role",      ["owner", "admin",
 export const planSlugEnum        = pgEnum("plan_slug",        ["trial", "lite", "starter", "growth", "scale"])
 export const subStatusEnum       = pgEnum("sub_status",       ["trialing", "active", "past_due", "cancelled", "suspended"])
 export const domainStatusEnum    = pgEnum("domain_status",    ["active", "paused", "removed"])
-export const stepTypeEnum        = pgEnum("step_type",        ["ad", "subscription_cta", "one_time_unlock"])
+export const stepTypeEnum        = pgEnum("step_type",        ["ad", "subscription_cta", "one_time_unlock", "lead_capture", "digital_product", "newsletter_optin"])
 export const stepActionEnum      = pgEnum("step_action",      ["proceed", "next_step"])
 export const matchTypeEnum       = pgEnum("match_type",       ["path_glob", "content_type"])
 export const deviceTypeEnum      = pgEnum("device_type",      ["mobile", "desktop", "tablet"])
-export const unlockTypeEnum      = pgEnum("unlock_type",      ["ad_completion", "one_time_payment", "subscription"])
+export const unlockTypeEnum      = pgEnum("unlock_type",      ["ad_completion", "one_time_payment", "subscription", "lead_capture", "digital_product_purchase"])
 export const readerSegmentEnum   = pgEnum("reader_segment",   ["new", "casual", "regular", "power_user"])
 export const visitFrequencyEnum  = pgEnum("visit_frequency",  ["unknown", "one_time", "occasional", "weekly", "daily"])
 export const adProviderEnum      = pgEnum("ad_provider",      ["google_adsense", "google_ad_manager"])
@@ -494,11 +494,16 @@ export const readerSubscribers = pgTable("reader_subscribers", {
   emailHash:          text("email_hash").notNull(),
   encryptedEmail:     text("encrypted_email").notNull(),
   razorpayCustomerId: text("razorpay_customer_id"),
+  source:             text("source").notNull().default("subscription"),
+  notes:              text("notes"),
   active:             boolean("active").notNull().default(true),
+  unsubscribeToken:   text("unsubscribe_token").notNull().default(sql`gen_random_uuid()`),
+  unsubscribedAt:     timestamp("unsubscribed_at"),
   createdAt:          timestamp("created_at").notNull().defaultNow(),
   updatedAt:          timestamp("updated_at").notNull().defaultNow(),
 }, t => [
   uniqueIndex("reader_subscribers_brand_email_idx").on(t.brandId, t.emailHash),
+  uniqueIndex("reader_subscribers_unsubscribe_token_idx").on(t.unsubscribeToken),
   index("reader_subscribers_publisher_idx").on(t.publisherId),
   index("reader_subscribers_brand_idx").on(t.brandId),
 ])
@@ -604,4 +609,133 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt:    timestamp("used_at"),
 }, t => [
   index("prt_user_idx").on(t.userId),
+])
+
+// ─── Phase 4: Digital products ────────────────────────────────────────────────
+
+export const publisherDigitalProducts = pgTable("publisher_digital_products", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:  text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  brandId:      text("brand_id").references(() => brands.id, { onDelete: "cascade" }),
+  title:        text("title").notNull(),
+  description:  text("description"),
+  r2Key:        text("r2_key").notNull(),
+  fileName:     text("file_name").notNull(),
+  mimeType:     text("mime_type").notNull().default("application/octet-stream"),
+  priceInPaise: integer("price_in_paise").notNull(),
+  downloadCount:integer("download_count").notNull().default(0),
+  active:       boolean("active").notNull().default(true),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("publisher_digital_products_publisher_idx").on(t.publisherId),
+  index("publisher_digital_products_brand_idx").on(t.brandId),
+])
+
+// ─── Phase 4: Subscriber tags ─────────────────────────────────────────────────
+
+export const subscriberTags = pgTable("subscriber_tags", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  publisherId:  text("publisher_id").notNull(),
+  tag:          text("tag").notNull(),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("subscriber_tags_subscriber_tag_idx").on(t.subscriberId, t.tag),
+  index("subscriber_tags_subscriber_idx").on(t.subscriberId),
+  index("subscriber_tags_publisher_idx").on(t.publisherId),
+])
+
+// ─── Phase 4: Publisher webhooks ─────────────────────────────────────────────
+
+export const publisherWebhooks = pgTable("publisher_webhooks", {
+  id:          text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId: text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  event:       text("event").notNull(),
+  url:         text("url").notNull(),
+  active:      boolean("active").notNull().default(true),
+  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  updatedAt:   timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("publisher_webhooks_publisher_idx").on(t.publisherId),
+])
+
+// ─── Phase 5: Email & Automation ─────────────────────────────────────────────
+
+export const publisherEmailConfigs = pgTable("publisher_email_configs", {
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:      text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  resendApiKey:     text("resend_api_key").notNull(),
+  fromName:         text("from_name").notNull(),
+  fromEmail:        text("from_email").notNull(),
+  replyTo:          text("reply_to"),
+  domainVerifiedAt: timestamp("domain_verified_at"),
+  createdAt:        timestamp("created_at").notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  uniqueIndex("publisher_email_configs_publisher_idx").on(t.publisherId),
+])
+
+export const publisherEmailCampaigns = pgTable("publisher_email_campaigns", {
+  id:             text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:    text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:           text("name").notNull(),
+  subject:        text("subject").notNull(),
+  bodyHtml:       text("body_html").notNull(),
+  bodyText:       text("body_text"),
+  segmentFilter:  jsonb("segment_filter"),
+  status:         text("status").notNull().default("draft"),
+  scheduledAt:    timestamp("scheduled_at"),
+  sentAt:         timestamp("sent_at"),
+  recipientCount: integer("recipient_count"),
+  createdAt:      timestamp("created_at").notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("publisher_email_campaigns_publisher_idx").on(t.publisherId),
+  index("publisher_email_campaigns_status_idx").on(t.publisherId, t.status),
+])
+
+export const publisherEmailAutomations = pgTable("publisher_email_automations", {
+  id:            text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:   text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  name:          text("name").notNull(),
+  triggerType:   text("trigger_type").notNull(),
+  triggerConfig: jsonb("trigger_config").notNull().default(sql`'{}'::jsonb`),
+  subject:       text("subject").notNull(),
+  bodyHtml:      text("body_html").notNull(),
+  bodyText:      text("body_text"),
+  status:        text("status").notNull().default("draft"),
+  createdAt:     timestamp("created_at").notNull().defaultNow(),
+  updatedAt:     timestamp("updated_at").notNull().defaultNow(),
+}, t => [
+  index("publisher_email_automations_publisher_idx").on(t.publisherId),
+  index("publisher_email_automations_trigger_idx").on(t.publisherId, t.triggerType, t.status),
+])
+
+export const emailAutomationRuns = pgTable("email_automation_runs", {
+  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
+  automationId: text("automation_id").notNull().references(() => publisherEmailAutomations.id, { onDelete: "cascade" }),
+  subscriberId: text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  triggeredAt:  timestamp("triggered_at").notNull(),
+  sentAt:       timestamp("sent_at"),
+  status:       text("status").notNull().default("pending"),
+  createdAt:    timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("email_automation_runs_automation_idx").on(t.automationId),
+  index("email_automation_runs_subscriber_idx").on(t.subscriberId),
+])
+
+export const emailEvents = pgTable("email_events", {
+  id:               text("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId:       text("campaign_id").references(() => publisherEmailCampaigns.id, { onDelete: "set null" }),
+  automationRunId:  text("automation_run_id").references(() => emailAutomationRuns.id, { onDelete: "set null" }),
+  subscriberId:     text("subscriber_id").notNull().references(() => readerSubscribers.id, { onDelete: "cascade" }),
+  eventType:        text("event_type").notNull(),
+  metadata:         jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+  occurredAt:       timestamp("occurred_at").notNull().defaultNow(),
+}, t => [
+  index("email_events_campaign_idx").on(t.campaignId),
+  index("email_events_automation_run_idx").on(t.automationRunId),
+  index("email_events_subscriber_idx").on(t.subscriberId),
+  index("email_events_type_idx").on(t.subscriberId, t.eventType, t.occurredAt),
 ])

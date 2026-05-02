@@ -193,6 +193,38 @@ Updated at the end of every meaningful session. Read this before starting work t
 
 ---
 
+## Phase 4 — Lead Capture + Digital Products
+| Area | Status | Notes |
+|------|--------|-------|
+| DB migration | `done` | `db/migrations/0017_phase4_lead_digital.sql` — extends step_type + unlock_type enums, adds source/notes to reader_subscribers, new tables: publisher_digital_products, subscriber_tags, publisher_webhooks |
+| Schema.ts updates | `done` | publisherDigitalProducts, subscriberTags, publisherWebhooks tables; updated enums |
+| Lead capture lib | `done` | `lib/leads/captureLeadEmail.ts` — upserts subscriber with source='lead_capture', links reader, writes gate_unlock |
+| Webhook fire lib | `done` | `lib/leads/fireWebhooks.ts` — fire-and-forget POST to active publisher webhooks on lead_captured |
+| Embed route: lead capture | `done` | `app/api/embed/lead-capture/route.ts` — POST validates token, creates subscriber, fires webhooks async |
+| Embed JS: lead_capture step | `done` | `public/embed/embed.js` — email + optional name + GDPR checkbox + CTA form |
+| R2 presigned URL helper | `done` | `lib/digital-products/r2.ts` — AWS Sig V4 presigned GET URL (Node.js crypto, no external SDK) |
+| Digital products DB queries | `done` | `lib/db/queries/digital-products.ts` — CRUD + incrementDownloadCount |
+| Digital products lib | `done` | `lib/digital-products/createDownloadOrder.ts`, `lib/digital-products/recordDownloadUnlock.ts` |
+| Embed route: digital product | `done` | `app/api/embed/digital-product/route.ts` — create/verify actions; verify returns presigned R2 download URL |
+| Embed JS: digital_product step | `done` | `public/embed/embed.js` — product card, Razorpay checkout, auto-download on success |
+| Digital products upload API | `done` | `app/api/digital-products/upload/route.ts` — presigned PUT URL with AWS Sig V4 |
+| Digital products CRUD API | `done` | `app/api/digital-products/route.ts`, `app/api/digital-products/[id]/route.ts` |
+| Digital products dashboard | `done` | `app/(dashboard)/digital-products/page.tsx` + `layout.tsx` — list + add sheet with file upload |
+| Sidebar nav update | `done` | "Products" link added under Monetise group |
+| Subscriber CRM queries | `done` | `listSubscribersCrm` + `updateSubscriberNotes` added to `lib/db/queries/reader-subscriptions.ts` |
+| Subscriber tags queries | `done` | `lib/db/queries/subscriber-tags.ts` — add/remove/get tags |
+| Subscribers CRM API | `done` | `app/api/subscribers/crm/route.ts`, `app/api/subscribers/crm/[id]/route.ts` |
+| Tags API | `done` | `app/api/subscribers/tags/route.ts` — POST/DELETE |
+| Export API | `done` | `app/api/subscribers/export/route.ts` — CSV with segment filter |
+| Subscribers Leads page | `done` | `app/(dashboard)/subscribers/leads/page.tsx` — segment filter, tags, inline notes, export |
+| Subscribers layout (tabs) | `done` | `app/(dashboard)/subscribers/layout.tsx` — Subscriptions / Leads tabs |
+| Publisher webhooks queries | `done` | `lib/db/queries/publisher-webhooks.ts` — CRUD |
+| Publisher webhooks API | `done` | `app/api/publisher-webhooks/route.ts`, `app/api/publisher-webhooks/[id]/route.ts` |
+| Webhook settings page | `done` | `app/(dashboard)/settings/webhooks/page.tsx` — replaces "coming soon" with full CRUD UI |
+| Gate step editor extension | `done` | `components/dashboard/gates/gate-steps.tsx` — lead_capture + digital_product config editors; product selector loads from API |
+
+---
+
 ## Admin panel
 | Area | Status | Notes |
 |------|--------|-------|

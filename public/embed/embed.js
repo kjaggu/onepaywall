@@ -580,6 +580,205 @@
       card.appendChild(timerLabel3);
       card.appendChild(continueBtn3);
       if (skipSecs3) card.appendChild(skipBtn3);
+
+    } else if (step.stepType === "lead_capture") {
+      var cfg4 = step.config || {};
+
+      var title4 = document.createElement("div");
+      title4.className = "opw-title";
+      title4.textContent = cfg4.heading || "Get free access";
+      card.appendChild(title4);
+
+      var emailIn4 = document.createElement("input");
+      emailIn4.className = "opw-input";
+      emailIn4.type = "email";
+      emailIn4.placeholder = "Your email address";
+      card.appendChild(emailIn4);
+
+      var nameIn4 = null;
+      if (cfg4.nameRequired) {
+        nameIn4 = document.createElement("input");
+        nameIn4.className = "opw-input";
+        nameIn4.type = "text";
+        nameIn4.placeholder = "Your name";
+        nameIn4.style.marginTop = "8px";
+        card.appendChild(nameIn4);
+      }
+
+      var gdprRow4 = document.createElement("label");
+      gdprRow4.style.cssText = "display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#666;margin:10px 0;cursor:pointer;";
+      var gdprCheck4 = document.createElement("input");
+      gdprCheck4.type = "checkbox";
+      gdprCheck4.style.marginTop = "2px";
+      var gdprSpan4 = document.createElement("span");
+      gdprSpan4.textContent = cfg4.gdprText || "I agree to receive emails from this publisher.";
+      gdprRow4.appendChild(gdprCheck4);
+      gdprRow4.appendChild(gdprSpan4);
+      card.appendChild(gdprRow4);
+
+      var cta4 = document.createElement("button");
+      cta4.className = "opw-btn opw-btn-primary";
+      cta4.textContent = cfg4.ctaLabel || "Get access";
+      cta4.onclick = function () {
+        if (!emailIn4.value || emailIn4.value.indexOf("@") === -1) { emailIn4.focus(); return; }
+        if (cfg4.nameRequired && nameIn4 && !nameIn4.value.trim()) { nameIn4.focus(); return; }
+        if (!gdprCheck4.checked) { gdprCheck4.focus(); return; }
+        cta4.disabled = true;
+        cta4.textContent = "Submitting…";
+        fetch(_base + "/api/embed/lead-capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: token,
+            gateId: gateId,
+            stepId: step.id,
+            email: emailIn4.value,
+            name: nameIn4 ? nameIn4.value.trim() : null,
+            gdprConsent: true,
+          }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              removeOverlay();
+              onComplete();
+            } else {
+              cta4.disabled = false;
+              cta4.textContent = cfg4.ctaLabel || "Get access";
+            }
+          })
+          .catch(function () {
+            cta4.disabled = false;
+            cta4.textContent = cfg4.ctaLabel || "Get access";
+          });
+      };
+      card.appendChild(cta4);
+
+    } else if (step.stepType === "digital_product") {
+      var cfg5 = step.config || {};
+      var dpPaise = cfg5.priceInPaise || 0;
+      var dpRupees = (dpPaise / 100).toFixed(0);
+
+      var title5 = document.createElement("div");
+      title5.className = "opw-title";
+      title5.textContent = cfg5.productTitle || cfg5.label || "Download";
+      card.appendChild(title5);
+
+      if (cfg5.productDescription) {
+        var desc5 = document.createElement("div");
+        desc5.className = "opw-sub";
+        desc5.textContent = cfg5.productDescription;
+        card.appendChild(desc5);
+      }
+
+      var sub5 = document.createElement("div");
+      sub5.className = "opw-sub";
+      sub5.textContent = "One-time purchase — ₹" + dpRupees;
+      card.appendChild(sub5);
+
+      var buyEmail5 = document.createElement("input");
+      buyEmail5.className = "opw-input";
+      buyEmail5.type = "email";
+      buyEmail5.placeholder = "Email for download link";
+      card.appendChild(buyEmail5);
+
+      var buy5 = document.createElement("button");
+      buy5.className = "opw-btn opw-btn-primary";
+      buy5.textContent = "Buy & Download — ₹" + dpRupees;
+      buy5.onclick = function () {
+        if (!buyEmail5.value || buyEmail5.value.indexOf("@") === -1) { buyEmail5.focus(); return; }
+        buy5.disabled = true;
+        buy5.textContent = "Opening payment…";
+        fetch(_base + "/api/embed/digital-product?action=create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token, gateId: gateId, stepId: step.id, email: buyEmail5.value }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (order) {
+            if (order.error) {
+              buy5.disabled = false;
+              buy5.textContent = "Buy & Download — ₹" + dpRupees;
+              return;
+            }
+            loadRazorpay(function () {
+              try {
+                var rzp5 = new window.Razorpay({
+                  key: order.keyId,
+                  amount: order.amount,
+                  currency: order.currency,
+                  order_id: order.orderId,
+                  name: "OnePaywall",
+                  description: cfg5.productTitle || "Digital download",
+                  handler: function (response) {
+                    fetch(_base + "/api/embed/digital-product?action=verify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        token: token,
+                        gateId: gateId,
+                        stepId: step.id,
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        signature: response.razorpay_signature,
+                        email: buyEmail5.value,
+                      }),
+                    })
+                      .then(function (r) { return r.json(); })
+                      .then(function (result) {
+                        if (result.downloadUrl) {
+                          var a = document.createElement("a");
+                          a.href = result.downloadUrl;
+                          a.download = cfg5.fileName || "download";
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          removeOverlay();
+                          onComplete();
+                        } else {
+                          buy5.disabled = false;
+                          buy5.textContent = "Buy & Download — ₹" + dpRupees;
+                        }
+                      })
+                      .catch(function () {
+                        buy5.disabled = false;
+                        buy5.textContent = "Buy & Download — ₹" + dpRupees;
+                      });
+                  },
+                  modal: {
+                    ondismiss: function () {
+                      buy5.disabled = false;
+                      buy5.textContent = "Buy & Download — ₹" + dpRupees;
+                    },
+                  },
+                });
+                rzp5.open();
+              } catch (e) {
+                buy5.disabled = false;
+                buy5.textContent = "Buy & Download — ₹" + dpRupees;
+              }
+            }, function () {
+              buy5.disabled = false;
+              buy5.textContent = "Buy & Download — ₹" + dpRupees;
+            });
+          })
+          .catch(function () {
+            buy5.disabled = false;
+            buy5.textContent = "Buy & Download — ₹" + dpRupees;
+          });
+      };
+      card.appendChild(buy5);
+
+      if (!cfg5.hideSkip) {
+        var skip5 = document.createElement("button");
+        skip5.className = "opw-btn opw-btn-secondary";
+        skip5.textContent = "Skip";
+        skip5.onclick = function () {
+          if (step.onSkip === "proceed") { removeOverlay(); onComplete(); }
+          else onComplete();
+        };
+        card.appendChild(skip5);
+      }
     }
 
     return card;
