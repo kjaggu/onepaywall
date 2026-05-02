@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  if (!session?.publisherId) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
 
   const { id } = await params
   const invoice = await getInvoice(id, session.publisherId)
