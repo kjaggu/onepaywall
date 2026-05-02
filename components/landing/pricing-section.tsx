@@ -3,7 +3,6 @@ import Link from "next/link"
 import { useState } from "react"
 import { useScrollReveal } from "./hooks/use-scroll-reveal"
 
-// [TBD] — actual pricing to be confirmed before launch
 const PLANS = [
   {
     name: "Starter",
@@ -56,36 +55,36 @@ export function PricingSection() {
   const cardsRef = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section className="lp-section" style={{ background: "#06080a" }}>
+    <section id="pricing" className="lp-section" style={{ background: "var(--color-surface)" }}>
       <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "var(--color-brand)", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
             Transparent pricing
           </div>
-          <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, color: "#fff", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+          <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
             Pricing that scales with your readers,
             <br />
             not your revenue.
           </h2>
-          <p style={{ fontSize: 17, color: "rgba(255,255,255,0.4)", maxWidth: 480, margin: "0 auto 28px", lineHeight: 1.65 }}>
+          <p style={{ fontSize: 17, color: "var(--color-text-secondary)", maxWidth: 480, margin: "0 auto 28px", lineHeight: 1.65 }}>
             Every plan includes a 14-day free trial. No credit card required to start.
           </p>
 
           {/* Toggle */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "4px 6px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--color-surface-hover)", border: "1px solid var(--color-border)", borderRadius: 100, padding: "4px 6px" }}>
             <button
               onClick={() => setAnnual(false)}
-              style={{ background: !annual ? "#fff" : "transparent", color: !annual ? "#111" : "rgba(255,255,255,0.4)", border: "none", borderRadius: 100, padding: "6px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease" }}
+              style={{ background: !annual ? "#fff" : "transparent", color: !annual ? "var(--color-text)" : "var(--color-text-secondary)", border: !annual ? "1px solid var(--color-border)" : "1px solid transparent", borderRadius: 100, padding: "6px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease" }}
             >
               Monthly
             </button>
             <button
               onClick={() => setAnnual(true)}
-              style={{ background: annual ? "#fff" : "transparent", color: annual ? "#111" : "rgba(255,255,255,0.4)", border: "none", borderRadius: 100, padding: "6px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6 }}
+              style={{ background: annual ? "#fff" : "transparent", color: annual ? "var(--color-text)" : "var(--color-text-secondary)", border: annual ? "1px solid var(--color-border)" : "1px solid transparent", borderRadius: 100, padding: "6px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6 }}
             >
               Annual
-              <span style={{ fontSize: 10, background: annual ? "#27adb0" : "rgba(39,173,176,0.2)", color: "#fff", padding: "1px 6px", borderRadius: 100, fontWeight: 700 }}>
+              <span style={{ fontSize: 10, background: "var(--color-brand)", color: "#fff", padding: "1px 6px", borderRadius: 100, fontWeight: 700 }}>
                 -20%
               </span>
             </button>
@@ -98,36 +97,39 @@ export function PricingSection() {
             <div
               key={plan.name}
               style={{
-                background: plan.highlight ? "rgba(39,173,176,0.06)" : "rgba(255,255,255,0.03)",
-                border: `1px solid ${plan.highlight ? "rgba(39,173,176,0.35)" : "rgba(255,255,255,0.07)"}`,
-                borderRadius: 20,
+                background: "#fff",
+                border: `1px solid ${plan.highlight ? "var(--color-brand)" : "var(--color-border)"}`,
+                borderRadius: 16,
                 padding: "32px 28px",
                 position: "relative",
-                boxShadow: plan.highlight ? "0 0 60px rgba(39,173,176,0.12)" : "none",
                 display: "flex",
                 flexDirection: "column",
+                boxShadow: plan.highlight ? "0 0 0 4px rgba(39,173,176,0.08)" : "none",
               }}
             >
               {plan.highlight && (
-                <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", fontSize: 11, background: "#27adb0", color: "#fff", padding: "4px 14px", borderRadius: 100, fontWeight: 700, whiteSpace: "nowrap" }}>
+                <div style={{ position: "absolute", top: -1, left: 0, right: 0, height: 3, background: "var(--color-brand)", borderRadius: "16px 16px 0 0" }} />
+              )}
+              {plan.highlight && (
+                <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", fontSize: 11, background: "var(--color-brand)", color: "#fff", padding: "4px 14px", borderRadius: 100, fontWeight: 700, whiteSpace: "nowrap" }}>
                   Most popular
                 </div>
               )}
 
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", marginBottom: 6 }}>{plan.name}</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{plan.desc}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", marginBottom: 6 }}>{plan.name}</div>
+                <div style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>{plan.desc}</div>
               </div>
 
               {/* Price placeholder */}
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 32, fontWeight: 800, color: plan.highlight ? "#27adb0" : "rgba(255,255,255,0.6)", letterSpacing: "-0.03em" }}>
+                <div style={{ fontSize: 32, fontWeight: 800, color: plan.highlight ? "var(--color-brand)" : "var(--color-text)", letterSpacing: "-0.03em" }}>
                   Early access
                 </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>Pricing confirmed at GA</div>
+                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>Pricing confirmed at GA</div>
               </div>
 
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 24, background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "6px 10px", display: "inline-block" }}>
+              <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 24, background: "var(--color-surface)", borderRadius: 8, padding: "6px 10px", display: "inline-block", border: "1px solid var(--color-border)" }}>
                 {plan.readers}
               </div>
 
@@ -135,17 +137,17 @@ export function PricingSection() {
               <div style={{ display: "flex", flexDirection: "column", gap: 11, flex: 1 }}>
                 {plan.features.map(f => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "#27adb0" : "rgba(255,255,255,0.35)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "var(--color-brand)" : "var(--color-text-secondary)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>{f}</span>
+                    <span style={{ fontSize: 13, color: "var(--color-text)" }}>{f}</span>
                   </div>
                 ))}
               </div>
 
               <Link
                 href="/register"
-                className={plan.highlight ? "lp-btn-primary" : "lp-btn-ghost"}
+                className={plan.highlight ? "lp-btn-primary" : "lp-btn-ghost-light"}
                 style={{
                   display: "block",
                   textAlign: "center",
@@ -165,7 +167,7 @@ export function PricingSection() {
 
         {/* Footer note */}
         <div style={{ textAlign: "center", marginTop: 40 }}>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.2)", margin: 0 }}>
+          <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
             All plans include a 14-day free trial. No credit card required. Cancel anytime.
           </p>
         </div>

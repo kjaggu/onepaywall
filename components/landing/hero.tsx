@@ -20,7 +20,7 @@ export function Hero() {
       ref={containerRef as React.RefObject<HTMLElement>}
       style={{
         minHeight: "100vh",
-        background: "#080a0b",
+        background: "#fff",
         display: "flex",
         alignItems: "center",
         position: "relative",
@@ -28,28 +28,35 @@ export function Hero() {
         paddingTop: 80,
       }}
     >
+      {/* Subtle teal gradient wash — top right */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "radial-gradient(ellipse 60% 70% at 90% 10%, rgba(39,173,176,0.07) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Dot grid */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, rgba(39,173,176,0.08) 1px, transparent 1px)",
           backgroundSize: "28px 28px",
           maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, #000 40%, transparent 100%)",
           WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, #000 40%, transparent 100%)",
+          pointerEvents: "none",
         }}
       />
-
-      {/* Glow orbs */}
-      <div style={{ position: "absolute", top: "15%", left: "30%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,173,176,0.18) 0%, transparent 70%)", animation: "lp-orb-drift 18s ease-in-out infinite", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "10%", right: "25%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,173,176,0.12) 0%, transparent 70%)", animation: "lp-orb-drift 24s ease-in-out infinite reverse", pointerEvents: "none" }} />
 
       <div className="lp-hero-grid">
         {/* Left: text */}
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {/* Trial badge */}
           <div style={{ animation: "lp-slide-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(39,173,176,0.4)", borderRadius: 100, padding: "6px 14px", fontSize: 12, color: "#27adb0", fontWeight: 600, background: "rgba(39,173,176,0.08)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(39,173,176,0.35)", borderRadius: 100, padding: "6px 14px", fontSize: 12, color: "#27adb0", fontWeight: 600, background: "rgba(39,173,176,0.07)" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#27adb0", display: "inline-block", animation: "lp-glow-pulse 2s ease-in-out infinite" }} />
               14-day free trial · No credit card required
             </span>
@@ -57,18 +64,18 @@ export function Hero() {
 
           {/* Headline */}
           <div style={{ animation: "lp-slide-up 0.65s cubic-bezier(0.16,1,0.3,1) 0.2s both" }}>
-            <h1 style={{ fontSize: "clamp(40px, 5vw, 62px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff", margin: 0 }}>
-              Turn every reader
+            <h1 style={{ fontSize: "clamp(40px, 5vw, 62px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.03em", color: "var(--color-text)", margin: 0 }}>
+              Every reader.
               <br />
-              into{" "}
-              <span className="lp-gradient-text">revenue.</span>
+              The right{" "}
+              <span className="lp-gradient-text">gate.</span>
             </h1>
           </div>
 
           {/* Sub */}
           <div style={{ animation: "lp-slide-up 0.65s cubic-bezier(0.16,1,0.3,1) 0.3s both" }}>
-            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.55)", lineHeight: 1.65, margin: 0, maxWidth: 480 }}>
-              OnePaywall sits between your content and your readers, deciding in 38 ms whether to show a paywall, serve an ad, or let them through. Built for publishers who take monetisation seriously.
+            <p style={{ fontSize: 17, color: "var(--color-text-secondary)", lineHeight: 1.65, margin: 0, maxWidth: 480 }}>
+              OnePaywall reads each visitor in 38 ms and decides the right move — subscription prompt, article unlock, ad gate, or free pass. One script tag. Zero configuration tax.
             </p>
           </div>
 
@@ -79,7 +86,7 @@ export function Hero() {
             </Link>
             <a
               href="#features"
-              className="lp-btn-ghost"
+              className="lp-btn-ghost-light"
               style={{ padding: "14px 24px", fontSize: 15, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               See how it works
@@ -87,16 +94,6 @@ export function Hero() {
                 <path d="M19 9l-7 7-7-7"/>
               </svg>
             </a>
-          </div>
-
-          {/* Trust line */}
-          <div style={{ animation: "lp-slide-up 0.65s cubic-bezier(0.16,1,0.3,1) 0.5s both", display: "flex", alignItems: "center", gap: 14 }}>
-            {["The Courier", "DiveWire", "PressHub", "Latitude"].map((pub, i) => (
-              <span key={pub} style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>
-                {i > 0 && <span style={{ marginRight: 14, opacity: 0.3 }}>·</span>}
-                {pub}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -122,17 +119,15 @@ export function Hero() {
               }}
             >
               <div style={{
-                background: "rgba(15,18,20,0.9)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "#fff",
+                border: "1px solid var(--color-border)",
                 borderRadius: 10,
                 padding: "8px 14px",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                 whiteSpace: "nowrap",
               }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "#27adb0", letterSpacing: "-0.03em" }}>{b.label}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 1 }}>{b.sub}</div>
+                <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginTop: 1 }}>{b.sub}</div>
               </div>
             </div>
           ))}
@@ -143,7 +138,7 @@ export function Hero() {
               style={{
                 transform: `rotateX(${8 - tilt.x * 0.5}deg) rotateY(${-10 + tilt.y * 0.8}deg) rotateZ(1.5deg) scale(0.88)`,
                 transition: "transform 0.1s linear",
-                boxShadow: "0 60px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06), 0 0 60px rgba(39,173,176,0.12)",
+                boxShadow: "0 40px 80px rgba(0,0,0,0.12), 0 0 0 1px var(--color-border)",
                 borderRadius: 12,
               }}
             >
@@ -155,8 +150,8 @@ export function Hero() {
 
       {/* Scroll hint */}
       <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, animation: "lp-float 3s ease-in-out infinite" }}>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Scroll</div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ fontSize: 10, color: "rgba(0,0,0,0.2)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Scroll</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 9l-7 7-7-7"/>
         </svg>
       </div>

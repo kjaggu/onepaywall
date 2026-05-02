@@ -34,7 +34,7 @@ export const pgModeEnum          = pgEnum("pg_mode",          ["platform", "own"
 export const pgProviderEnum      = pgEnum("pg_provider",      ["razorpay"])
 export const gateEventTypeEnum   = pgEnum("gate_event_type",  [
   "gate_shown", "step_shown", "gate_passed",
-  "ad_start", "ad_complete", "ad_skip",
+  "ad_start", "ad_complete", "ad_skip", "ad_cta_click",
   "subscription_cta_click", "subscription_cta_skip",
   "one_time_unlock_start", "one_time_unlock_complete", "one_time_unlock_skip",
 ])

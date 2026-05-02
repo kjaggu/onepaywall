@@ -29,23 +29,27 @@ export function EmbedSection() {
   }
 
   return (
-    <section className="lp-section" style={{ background: "#080a0b" }}>
+    <section id="how-it-works" className="lp-section" style={{ background: "#fff" }}>
       <div className="lp-container">
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 72 }}>
-          <div style={{ fontSize: 11, color: "#27adb0", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "var(--color-brand)", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
             Dead simple setup
           </div>
-          <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, color: "#fff", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+          <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
             Live in under 5 minutes.
           </h2>
-          <p style={{ fontSize: 17, color: "rgba(255,255,255,0.45)", maxWidth: 500, margin: "0 auto", lineHeight: 1.65 }}>
+          <p style={{ fontSize: 17, color: "var(--color-text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.65 }}>
             One script tag. No SDK, no rebuild, no CMS plugin. OnePaywall runs on any website.
           </p>
           {/* CMS badges */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 24 }}>
             {CMS_BADGES.map(cms => (
-              <span key={cms} style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "4px 12px", fontWeight: 500 }}>
+              <span key={cms} style={{
+                fontSize: 12, color: "var(--color-text-secondary)",
+                background: "var(--color-surface)", border: "1px solid var(--color-border)",
+                borderRadius: 100, padding: "4px 12px", fontWeight: 500,
+              }}>
                 {cms}
               </span>
             ))}
@@ -57,12 +61,12 @@ export function EmbedSection() {
           <div ref={stepsRef} className="lp-stagger" style={{ display: "flex", flexDirection: "column", gap: 32 }}>
             {STEPS.map(s => (
               <div key={s.num} style={{ display: "flex", gap: 20 }}>
-                <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, border: "1px solid rgba(39,173,176,0.3)", background: "rgba(39,173,176,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#27adb0" }}>{s.num}</span>
+                <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: "var(--color-brand)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>{s.num}</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6 }}>{s.label}</div>
-                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>{s.body}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 6 }}>{s.label}</div>
+                  <div style={{ fontSize: 14, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>{s.body}</div>
                 </div>
               </div>
             ))}
@@ -71,18 +75,18 @@ export function EmbedSection() {
             <div style={{ display: "flex", gap: 24, paddingTop: 8 }}>
               {["11.7 KB raw", "3.4 KB gzip", "No dependencies"].map(tag => (
                 <div key={tag} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27adb0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>{tag}</span>
+                  <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontWeight: 500 }}>{tag}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Code block */}
+          {/* Code block — stays dark, appropriate for syntax display */}
           <div ref={codeRef} className="lp-reveal-scale">
-            <div style={{ background: "#0d1117", borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}>
+            <div style={{ background: "#0d1117", borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.12)" }}>
               {/* Code bar */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 <div style={{ display: "flex", gap: 6 }}>

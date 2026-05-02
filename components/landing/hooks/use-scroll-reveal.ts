@@ -11,10 +11,34 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current
     if (!el) return
 
+    function revealEl(target: Element) {
+      target.classList.add("is-visible")
+      // Propagate to sibling elements that have no ref of their own
+      let sib = target.nextElementSibling
+      while (sib) {
+        const cls = sib.classList
+        if (
+          cls.contains("lp-reveal-scale") ||
+          cls.contains("lp-stagger") ||
+          cls.contains("lp-reveal-right") ||
+          cls.contains("lp-reveal-left")
+        ) {
+          cls.add("is-visible")
+        }
+        sib = sib.nextElementSibling
+      }
+    }
+
+    const rect = el.getBoundingClientRect()
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      revealEl(el)
+      if (once) return
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.add("is-visible")
+          revealEl(el)
           if (once) observer.disconnect()
         } else if (!once) {
           el.classList.remove("is-visible")

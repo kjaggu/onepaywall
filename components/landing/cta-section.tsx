@@ -6,38 +6,51 @@ export function CtaSection() {
   const ref = useScrollReveal<HTMLDivElement>()
 
   return (
-    <section className="lp-section" style={{ background: "#080a0b" }}>
+    <section className="lp-section" style={{ background: "var(--color-brand)" }}>
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 32px", textAlign: "center" }}>
         <div ref={ref} className="lp-reveal" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
-          {/* Glowing orb behind */}
-          <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,173,176,0.14) 0%, transparent 70%)", pointerEvents: "none", animation: "lp-glow-pulse 4s ease-in-out infinite" }} />
+          <h2 style={{ fontSize: "clamp(36px, 5vw, 60px)", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+            Start turning readers
+            <br />
+            into{" "}
+            <span className="lp-gradient-text-white">revenue.</span>
+          </h2>
 
-          <div style={{ position: "relative" }}>
-            <h2 style={{ fontSize: "clamp(36px, 5vw, 60px)", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-              Start turning readers
-              <br />
-              into{" "}
-              <span className="lp-gradient-text">revenue.</span>
-            </h2>
-          </div>
-
-          <p style={{ fontSize: 18, color: "rgba(255,255,255,0.4)", margin: 0, lineHeight: 1.65 }}>
+          <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: 0, lineHeight: 1.65 }}>
             14-day free trial. No credit card. Cancel anytime.
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
             <Link
               href="/register"
-              className="lp-btn-primary"
-              style={{ padding: "16px 36px", fontSize: 16, fontWeight: 800, textDecoration: "none", display: "inline-block", borderRadius: 12, letterSpacing: "-0.01em" }}
+              style={{
+                padding: "16px 36px",
+                fontSize: 16,
+                fontWeight: 800,
+                textDecoration: "none",
+                display: "inline-block",
+                borderRadius: 12,
+                letterSpacing: "-0.01em",
+                background: "#fff",
+                color: "var(--color-brand)",
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"
+                ;(e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)"
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = "translateY(0)"
+                ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
+              }}
             >
-              Create your account
+              Start free trial
             </Link>
             <Link
               href="/login"
-              style={{ padding: "16px 24px", fontSize: 15, color: "rgba(255,255,255,0.4)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, transition: "color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+              style={{ padding: "16px 24px", fontSize: 15, color: "rgba(255,255,255,0.75)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, transition: "color 0.15s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.75)")}
             >
               Already have an account? Sign in
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -47,13 +60,13 @@ export function CtaSection() {
           </div>
 
           {/* Trust signals */}
-          <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center" }}>
             {["No credit card required", "Cancel anytime", "Data never sold"].map(signal => (
               <div key={signal} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27adb0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>{signal}</span>
+                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)" }}>{signal}</span>
               </div>
             ))}
           </div>

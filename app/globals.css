@@ -367,6 +367,40 @@
 .lp-stagger.is-visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 180ms; }
 .lp-stagger.is-visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 270ms; }
 .lp-stagger.is-visible > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 360ms; }
+.lp-stagger.is-visible > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 450ms; }
+
+/*
+ * Cascade reveal rules — no extra refs needed:
+ * When an lp-reveal heading becomes visible, propagate to adjacent sibling
+ * lp-reveal-scale wrappers and lp-stagger grids at the same DOM level.
+ */
+.lp-reveal.is-visible ~ .lp-reveal-scale {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0ms; }
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 90ms; }
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 180ms; }
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 270ms; }
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 360ms; }
+.lp-reveal.is-visible ~ .lp-stagger > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 450ms; }
+
+/* When stagger becomes visible, also show an adjacent sibling reveal-scale (e.g. RevenueMockup) */
+.lp-stagger.is-visible ~ .lp-reveal-scale {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Two-column: when left column is visible, show right column */
+.lp-reveal-left.is-visible ~ .lp-reveal-right {
+  opacity: 1;
+  transform: translateX(0);
+}
+/* Two-column: when right column is visible, show left column (:has has wide browser support) */
+div:has(> .lp-reveal-right.is-visible) > .lp-reveal-left {
+  opacity: 1;
+  transform: translateX(0);
+}
 
 /* Card 3D tilt */
 .lp-tilt-card {
@@ -431,6 +465,68 @@
   transform: translateY(-1px);
 }
 
+.lp-btn-ghost-light {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.lp-btn-ghost-light:hover {
+  border-color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+}
+
+.lp-gradient-text-white {
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.75) 50%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: lp-shimmer 4s linear infinite;
+}
+
+.lp-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+/* 5-item features grid: 3-col with last 2 items centered */
+.lp-features-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 20px;
+}
+.lp-features-grid > * { grid-column: span 2; }
+.lp-features-grid > *:nth-child(4) { grid-column: 2 / span 2; }
+.lp-features-grid > *:nth-child(5) { grid-column: 4 / span 2; }
+
+.lp-reveal-left {
+  opacity: 0;
+  transform: translateX(-24px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.lp-reveal-left.is-visible { opacity: 1; transform: translateX(0); }
+
+.lp-reveal-right {
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.lp-reveal-right.is-visible { opacity: 1; transform: translateX(0); }
+
+@media (max-width: 900px) { .lp-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .lp-grid-4 { grid-template-columns: 1fr; } }
+
+@media (max-width: 900px) {
+  .lp-features-grid { grid-template-columns: 1fr 1fr; }
+  .lp-features-grid > * { grid-column: span 1; }
+  .lp-features-grid > *:nth-child(4) { grid-column: span 1; }
+  .lp-features-grid > *:nth-child(5) { grid-column: span 1; }
+}
+@media (max-width: 540px) {
+  .lp-features-grid { grid-template-columns: 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal, .lp-reveal-scale, .lp-stagger > * {
     opacity: 1 !important;
@@ -492,6 +588,7 @@
 
 /* Nav links group */
 .lp-nav-links { display: flex; align-items: center; gap: 10px; }
+.lp-nav-center { display: flex; align-items: center; gap: 28px; }
 
 /* ─── Tablet (≤900px) ──────────────────────────────────────────── */
 @media (max-width: 900px) {

@@ -8,7 +8,7 @@ import { evaluateAutomations } from "@/lib/email/automations/engine"
 
 const VALID_EVENT_TYPES = new Set([
   "gate_shown", "step_shown", "gate_passed",
-  "ad_start", "ad_complete", "ad_skip",
+  "ad_start", "ad_complete", "ad_skip", "ad_cta_click",
   "subscription_cta_click", "subscription_cta_skip",
   "one_time_unlock_start", "one_time_unlock_complete", "one_time_unlock_skip",
 ])

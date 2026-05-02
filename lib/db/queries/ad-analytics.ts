@@ -8,8 +8,10 @@ export type AdUnitStat = {
   impressions: number
   completions: number
   skips: number
+  ctaClicks: number
   completionRate: number  // 0–100
   skipRate: number        // 0–100
+  ctr: number             // 0–100 — CTA clicks / impressions
   fillRate: number        // 0–100 — populated separately
 }
 
@@ -50,6 +52,7 @@ export async function getAdUnitStats(domainIds: string[], since: Date): Promise<
         impressions: sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'ad_start')`,
         completions: sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'ad_complete')`,
         skips:       sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'ad_skip')`,
+        ctaClicks:   sql<number>`COUNT(*) FILTER (WHERE ${gateEvents.eventType} = 'ad_cta_click')`,
       })
       .from(gateEvents)
       .innerJoin(adUnits, eq(gateEvents.adUnitId, adUnits.id))
@@ -85,14 +88,17 @@ export async function getAdUnitStats(domainIds: string[], since: Date): Promise<
       const impressions = Number(r.impressions ?? 0)
       const completions = Number(r.completions ?? 0)
       const skips = Number(r.skips ?? 0)
+      const ctaClicks = Number(r.ctaClicks ?? 0)
       return {
         adUnitId:       r.adUnitId!,
         adUnitName:     r.adUnitName,
         impressions,
         completions,
         skips,
+        ctaClicks,
         completionRate: impressions > 0 ? Math.round((completions / impressions) * 100) : 0,
         skipRate:       impressions > 0 ? Math.round((skips / impressions) * 100) : 0,
+        ctr:            impressions > 0 ? Math.round((ctaClicks / impressions) * 100) : 0,
         fillRate:       gateShown > 0 ? Math.round((impressions / gateShown) * 100) : 0,
       }
     })

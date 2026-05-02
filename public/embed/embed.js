@@ -565,6 +565,9 @@
             ctaLink3.target = "_blank";
             ctaLink3.rel = "noopener noreferrer";
             ctaLink3.textContent = cfg3.ctaLabel;
+            ctaLink3.addEventListener("click", function() {
+              sendEvent(token, gateId, step.id, "ad_cta_click", adUnitId3);
+            });
             card.appendChild(ctaLink3);
           }
         }

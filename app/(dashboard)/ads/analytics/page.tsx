@@ -41,6 +41,7 @@ function AdUnitTable({ rows }: { rows: AdUnitStat[] }) {
             <th className="px-4 py-3 font-medium text-right">Impressions</th>
             <th className="px-4 py-3 font-medium text-right">Completion %</th>
             <th className="px-4 py-3 font-medium text-right">Skip %</th>
+            <th className="px-4 py-3 font-medium text-right">CTA CTR</th>
             <th className="px-4 py-3 font-medium text-right">Fill %</th>
           </tr>
         </thead>
@@ -54,6 +55,7 @@ function AdUnitTable({ rows }: { rows: AdUnitStat[] }) {
               <td className="px-4 py-3 text-right text-[var(--color-text)]">{r.impressions.toLocaleString()}</td>
               <td className="px-4 py-3 text-right text-[var(--color-text)]">{r.completionRate}%</td>
               <td className="px-4 py-3 text-right text-[var(--color-text)]">{r.skipRate}%</td>
+              <td className="px-4 py-3 text-right text-[var(--color-text)]">{r.ctr > 0 ? `${r.ctr}%` : "—"}</td>
               <td className="px-4 py-3 text-right text-[var(--color-text)]">{r.fillRate}%</td>
             </tr>
           ))}
