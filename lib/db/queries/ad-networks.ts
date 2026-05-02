@@ -89,7 +89,7 @@ export async function deleteAdNetwork(id: string, publisherId: string): Promise<
 export async function getDecryptedCredentials(
   id: string,
   publisherId: string,
-): Promise<AdsenseCredentials | GAMCredentials | null> {
+): Promise<AdsenseCredentials | null> {
   const [row] = await db
     .select({ credentials: publisherAdNetworks.credentials })
     .from(publisherAdNetworks)
