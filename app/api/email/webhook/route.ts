@@ -1,21 +1,60 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createHmac, timingSafeEqual } from "crypto"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { readerSubscribers, emailEvents } from "@/lib/db/schema"
 import { normalizeSubscriberEmail, hashSubscriberEmail } from "@/lib/db/queries/reader-subscriptions"
 
+// Svix webhook signature verification (Resend uses Svix for webhook signing).
+// Protocol: HMAC-SHA256( secret, "${svix-id}.${svix-timestamp}.${rawBody}" )
+// Timestamp must be within 5 minutes to prevent replay attacks.
+function verifySvixSignature(
+  secret: string,
+  svixId: string,
+  svixTimestamp: string,
+  rawBody: string,
+  svixSignature: string,
+): boolean {
+  const tsMs = Number(svixTimestamp) * 1000
+  if (isNaN(tsMs) || Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) return false
+
+  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64")
+  const toSign = `${svixId}.${svixTimestamp}.${rawBody}`
+  const computed = createHmac("sha256", secretBytes).update(toSign).digest("base64")
+
+  // svix-signature can be a space-separated list of "v1,<base64>" values
+  return svixSignature.split(" ").some(part => {
+    const [version, sig] = part.split(",")
+    if (version !== "v1" || !sig) return false
+    const a = Buffer.from(computed)
+    const b = Buffer.from(sig)
+    if (a.length !== b.length) return false
+    return timingSafeEqual(a, b)
+  })
+}
+
 // Resend webhook — handles bounce and complaint events to auto-suppress
 // Configure in Resend dashboard: POST /api/email/webhook
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  const rawBody = await req.text()
+
   if (webhookSecret) {
-    const sig = req.headers.get("svix-signature")
-    if (!sig) return new NextResponse(null, { status: 401 })
-    // Resend uses Svix for webhook signing; full verification requires the svix package.
-    // In production, add `svix` to dependencies and verify here.
+    const svixId        = req.headers.get("svix-id") ?? ""
+    const svixTimestamp = req.headers.get("svix-timestamp") ?? ""
+    const svixSignature = req.headers.get("svix-signature") ?? ""
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return new NextResponse(null, { status: 401 })
+    }
+
+    if (!verifySvixSignature(webhookSecret, svixId, svixTimestamp, rawBody, svixSignature)) {
+      return new NextResponse(null, { status: 401 })
+    }
   }
 
-  const body = await req.json().catch(() => null)
+  let body: { type?: string; data?: { email?: string } } | null = null
+  try { body = JSON.parse(rawBody) } catch { /* fall through to 204 */ }
   if (!body?.type || !body?.data) return new NextResponse(null, { status: 204 })
 
   const eventType: string = body.type

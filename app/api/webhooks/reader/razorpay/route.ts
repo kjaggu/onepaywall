@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createHmac } from "crypto"
+import { createHmac, timingSafeEqual } from "crypto"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import { domains, gateUnlocks, pgWebhookEvents, readerTokens } from "@/lib/db/schema"
@@ -15,7 +15,10 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text()
   const provided = req.headers.get("x-razorpay-signature") ?? ""
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex")
-  if (expected !== provided) return NextResponse.json({ error: "invalid signature" }, { status: 400 })
+  const signaturesMatch =
+    expected.length === provided.length &&
+    timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(provided, "hex"))
+  if (!signaturesMatch) return NextResponse.json({ error: "invalid signature" }, { status: 400 })
 
   let event: { event?: string; id?: string; payload?: Record<string, unknown> }
   try { event = JSON.parse(rawBody) } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }) }

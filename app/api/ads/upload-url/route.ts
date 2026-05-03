@@ -12,6 +12,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "filename and contentType required" }, { status: 400 })
   }
 
+  const ALLOWED_MIME_TYPES = new Set([
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "video/mp4", "video/webm", "video/ogg",
+  ])
+  if (!ALLOWED_MIME_TYPES.has(contentType)) {
+    return NextResponse.json({ error: "File type not allowed" }, { status: 400 })
+  }
+
+  // Strip path separators and control characters from the filename
+  const safeFilename = filename.replace(/[^\w.\-]/g, "_")
+
   const accountId = process.env.R2_ACCOUNT_ID
   const bucket    = process.env.R2_BUCKET
   const accessKey = process.env.R2_ACCESS_KEY_ID
@@ -22,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "R2 storage not configured" }, { status: 503 })
   }
 
-  const storageKey = `ads/${session.publisherId}/${Date.now()}-${filename}`
+  const storageKey = `ads/${session.publisherId}/${Date.now()}-${safeFilename}`
   const cdnUrl     = CDN_BASE ? `${CDN_BASE}/${storageKey}` : null
   const host       = `${accountId}.r2.cloudflarestorage.com`
   const now        = new Date()

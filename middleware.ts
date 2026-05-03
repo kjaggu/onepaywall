@@ -9,6 +9,8 @@ const EMBED_CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 }
 
+const CSRF_SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"])
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
@@ -22,17 +24,52 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
+  // CSRF guard: verify Origin header on mutating requests to non-embed API routes.
+  // Webhook endpoints and email tracking are excluded — they come from third-party servers.
+  if (
+    pathname.startsWith("/api/") &&
+    !CSRF_SAFE_METHODS.has(req.method) &&
+    !pathname.startsWith("/api/webhooks/") &&
+    !pathname.startsWith("/api/email/webhook") &&
+    !pathname.startsWith("/api/email/track/")
+  ) {
+    const origin = req.headers.get("origin")
+    const host   = req.headers.get("host")
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host
+        if (originHost !== host) {
+          return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          })
+        }
+      } catch {
+        return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+    }
+  }
+
   const token = req.cookies.get("session")?.value ?? null
   const session = token ? await verifySession(token) : null
 
   const isAdminPath     = pathname === "/admin" || pathname.startsWith("/admin/")
   const isDashboardPath = DASHBOARD_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
-  const isAuthPath      = ["/login", "/forgot-password", "/reset-password"].some(p => pathname.startsWith(p))
+  const isAuthPath      = ["/login", "/forgot-password", "/reset-password", "/verify-email"].some(p => pathname.startsWith(p))
 
-  // Redirect logged-in users away from auth pages
-  if (isAuthPath && session) {
+  // Redirect logged-in users away from auth pages (except verify-email — they must stay there)
+  if (isAuthPath && session && !pathname.startsWith("/verify-email")) {
+    if (!session.emailVerified) return NextResponse.redirect(new URL("/verify-email", req.url))
     const dest = session.role === "superadmin" ? "/admin" : "/overview"
     return NextResponse.redirect(new URL(dest, req.url))
+  }
+
+  // Block unverified users from the dashboard
+  if (isDashboardPath && session && !session.emailVerified) {
+    return NextResponse.redirect(new URL("/verify-email", req.url))
   }
 
   // Protect admin paths
@@ -51,7 +88,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/api/embed/:path*",
+    "/api/:path*",
     "/admin/:path*",
     "/overview/:path*", "/overview",
     "/domains/:path*",  "/domains",
@@ -63,5 +100,6 @@ export const config = {
     "/login",
     "/forgot-password",
     "/reset-password",
+    "/verify-email",
   ],
 }

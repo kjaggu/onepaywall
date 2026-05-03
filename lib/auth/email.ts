@@ -63,6 +63,33 @@ export async function sendWelcomeEmail(to: string, name: string, publicationName
   })
 }
 
+export async function sendVerificationEmail(to: string, verifyUrl: string) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Verify your OnePaywall email",
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+        <div style="margin-bottom:28px">
+          <span style="font-weight:700;font-size:15px;color:#111">OnePaywall</span>
+        </div>
+        <h1 style="font-size:20px;font-weight:600;color:#111;margin-bottom:8px">Verify your email</h1>
+        <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:28px">
+          Click the button below to confirm your email address and activate your account.
+          This link expires in 24 hours.
+        </p>
+        <a href="${verifyUrl}"
+           style="display:inline-block;padding:10px 22px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600">
+          Verify email
+        </a>
+        <p style="font-size:12px;color:#aaa;margin-top:28px">
+          If you didn't create a OnePaywall account, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   await resend.emails.send({
     from: FROM,

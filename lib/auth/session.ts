@@ -2,18 +2,20 @@ import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 
 const COOKIE_NAME = "session"
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
+const COOKIE_MAX_AGE = 60 * 60 * 8 // 8 hours
 
 export type SessionPayload = {
   sub: string
   email: string
   role: "superadmin" | "publisher"
   publisherId?: string
+  emailVerified: boolean
 }
 
 function secret() {
   const s = process.env.JWT_SECRET
   if (!s) throw new Error("JWT_SECRET not set")
+  if (s.length < 32) throw new Error("JWT_SECRET must be at least 32 characters")
   return new TextEncoder().encode(s)
 }
 
@@ -21,7 +23,7 @@ export async function signSession(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("8h")
     .sign(secret())
 }
 
@@ -45,7 +47,7 @@ export async function setSessionCookie(token: string) {
   const jar = await cookies()
   jar.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV !== "development",
     sameSite: "lax",
     path: "/",
     maxAge: COOKIE_MAX_AGE,

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 404 })
   }
 
-  const hash = await bcrypt.hash(password, 10)
+  const hash = await bcrypt.hash(password, 12)
   await updatePasswordHash(user.id, hash)
 
   return NextResponse.json({ ok: true })

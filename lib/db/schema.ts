@@ -42,15 +42,16 @@ export const gateEventTypeEnum   = pgEnum("gate_event_type",  [
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
-  id:           text("id").primaryKey().default(sql`gen_random_uuid()`),
-  email:        text("email").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  name:         text("name").notNull(),
-  role:         userRoleEnum("role").notNull().default("publisher"),
-  avatarUrl:    text("avatar_url"),
-  createdAt:    timestamp("created_at").notNull().defaultNow(),
-  updatedAt:    timestamp("updated_at").notNull().defaultNow(),
-  deletedAt:    timestamp("deleted_at"),
+  id:              text("id").primaryKey().default(sql`gen_random_uuid()`),
+  email:           text("email").notNull(),
+  passwordHash:    text("password_hash").notNull(),
+  name:            text("name").notNull(),
+  role:            userRoleEnum("role").notNull().default("publisher"),
+  avatarUrl:       text("avatar_url"),
+  emailVerifiedAt: timestamp("email_verified_at"),
+  createdAt:       timestamp("created_at").notNull().defaultNow(),
+  updatedAt:       timestamp("updated_at").notNull().defaultNow(),
+  deletedAt:       timestamp("deleted_at"),
 }, t => [
   uniqueIndex("users_email_idx").on(t.email),
 ])
@@ -632,6 +633,15 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt:    timestamp("used_at"),
 }, t => [
   index("prt_user_idx").on(t.userId),
+])
+
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  token:     text("token").primaryKey(),
+  userId:    text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt:    timestamp("used_at"),
+}, t => [
+  index("evt_user_idx").on(t.userId),
 ])
 
 // ─── Phase 4: Digital products ────────────────────────────────────────────────

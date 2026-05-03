@@ -9,6 +9,7 @@ export type AuthUser = {
   role: "superadmin" | "publisher"
   name: string
   publisherId?: string
+  emailVerified: boolean
 }
 
 export async function verifyUser(email: string, password: string): Promise<AuthUser | null> {
@@ -29,7 +30,7 @@ export async function verifyUser(email: string, password: string): Promise<AuthU
     publisherId = membership?.publisherId
   }
 
-  return { id: user.id, email: user.email, role: user.role, name: user.name, publisherId }
+  return { id: user.id, email: user.email, role: user.role, name: user.name, publisherId, emailVerified: !!user.emailVerifiedAt }
 }
 
 export async function createUser(email: string, password: string, name: string) {
@@ -48,4 +49,8 @@ export async function getUserByEmail(email: string) {
 
 export async function updatePasswordHash(userId: string, newHash: string) {
   await db.update(users).set({ passwordHash: newHash, updatedAt: new Date() }).where(eq(users.id, userId))
+}
+
+export async function markEmailVerified(userId: string) {
+  await db.update(users).set({ emailVerifiedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, userId))
 }
