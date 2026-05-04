@@ -6,10 +6,10 @@ import { AnalyticsMockup } from "./mockups/analytics-mockup"
 interface Badge { label: string; sub: string; top: string; left?: string; right?: string; delay: string }
 
 const BADGES: Badge[] = [
-  { label: "38 ms", sub: "decision time",     top: "12%", left: "-5%",  delay: "0s" },
-  { label: "4.1×",  sub: "conversion lift",   top: "55%", left: "-8%",  delay: "0.3s" },
-  { label: "0 PII", sub: "for anon. readers", top: "82%", left: "5%",   delay: "0.6s" },
-  { label: "5 min", sub: "to first gate",     top: "8%",  right: "0%",  delay: "0.2s" },
+  { label: "4.1×",  sub: "more conversions", top: "12%", left: "-5%",  delay: "0s" },
+  { label: "38 ms", sub: "decision speed",   top: "55%", left: "-8%",  delay: "0.3s" },
+  { label: "0 PII", sub: "reader privacy",   top: "82%", left: "5%",   delay: "0.6s" },
+  { label: "5 min", sub: "to first gate",    top: "8%",  right: "0%",  delay: "0.2s" },
 ]
 
 export function Hero() {
@@ -58,24 +58,24 @@ export function Hero() {
           <div style={{ animation: "lp-slide-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(39,173,176,0.35)", borderRadius: 100, padding: "6px 14px", fontSize: 12, color: "#27adb0", fontWeight: 600, background: "rgba(39,173,176,0.07)" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#27adb0", display: "inline-block", animation: "lp-glow-pulse 2s ease-in-out infinite" }} />
-              14-day free trial · No credit card required
+              Now in early access · Join 100+ publishers
             </span>
           </div>
 
           {/* Headline */}
           <div style={{ animation: "lp-slide-up 0.65s cubic-bezier(0.16,1,0.3,1) 0.2s both" }}>
             <h1 style={{ fontSize: "clamp(40px, 5vw, 62px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.03em", color: "var(--color-text)", margin: 0 }}>
-              Every reader.
+              Most readers won&rsquo;t pay.
               <br />
-              The right{" "}
-              <span className="lp-gradient-text">gate.</span>
+              OnePaywall earns from{" "}
+              <span className="lp-gradient-text">all of them.</span>
             </h1>
           </div>
 
           {/* Sub */}
           <div style={{ animation: "lp-slide-up 0.65s cubic-bezier(0.16,1,0.3,1) 0.3s both" }}>
             <p style={{ fontSize: 17, color: "var(--color-text-secondary)", lineHeight: 1.65, margin: 0, maxWidth: 480 }}>
-              OnePaywall reads each visitor in 38 ms and decides the right move — subscription prompt, article unlock, ad gate, or free pass. One script tag. Zero configuration tax.
+              Serve ads to browsers, unlock prompts to casual readers, and subscriptions to loyalists — automatically. Every visitor becomes revenue. One script tag, any CMS, live in 5 minutes.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export function Hero() {
               className="lp-btn-ghost-light"
               style={{ padding: "14px 24px", fontSize: 15, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              See how it works
+              See it in action
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 9l-7 7-7-7"/>
               </svg>

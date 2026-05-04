@@ -45,6 +45,16 @@ export function LandingNav() {
             onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-secondary)")}>
             Features
           </a>
+          <Link href="/case-studies" style={{ fontSize: 13, color: "var(--color-text-secondary)", textDecoration: "none", fontWeight: 500, transition: "color 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-secondary)")}>
+            Case Studies
+          </Link>
+          <Link href="/customers" style={{ fontSize: 13, color: "var(--color-text-secondary)", textDecoration: "none", fontWeight: 500, transition: "color 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-secondary)")}>
+            Customers
+          </Link>
           <a href="#pricing" style={{ fontSize: 13, color: "var(--color-text-secondary)", textDecoration: "none", fontWeight: 500, transition: "color 0.15s" }}
             onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text)")}
             onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-secondary)")}>

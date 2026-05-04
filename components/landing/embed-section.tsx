@@ -34,13 +34,13 @@ export function EmbedSection() {
         {/* Heading */}
         <div ref={headRef} className="lp-reveal" style={{ textAlign: "center", marginBottom: 72 }}>
           <div style={{ fontSize: 11, color: "var(--color-brand)", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>
-            Dead simple setup
+            Zero friction integration
           </div>
           <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
             Live in under 5 minutes.
           </h2>
           <p style={{ fontSize: 17, color: "var(--color-text-secondary)", maxWidth: 500, margin: "0 auto", lineHeight: 1.65 }}>
-            One script tag. No SDK, no rebuild, no CMS plugin. OnePaywall runs on any website.
+            No build process, no plugin to maintain, no CMS dependency. OnePaywall runs everywhere JavaScript runs.
           </p>
           {/* CMS badges */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 24 }}>

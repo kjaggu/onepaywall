@@ -4,6 +4,7 @@ import { StatsBar } from "@/components/landing/stats-bar"
 import { FeaturesSection } from "@/components/landing/features"
 import { EmbedSection } from "@/components/landing/embed-section"
 import { PricingSection } from "@/components/landing/pricing-section"
+import { FaqSection } from "@/components/landing/faq-section"
 import { CtaSection } from "@/components/landing/cta-section"
 import { LandingFooter } from "@/components/landing/footer"
 
@@ -16,6 +17,7 @@ export default function LandingPage() {
       <FeaturesSection />
       <EmbedSection />
       <PricingSection />
+      <FaqSection />
       <CtaSection />
       <LandingFooter />
     </div>

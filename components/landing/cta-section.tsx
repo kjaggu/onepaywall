@@ -10,14 +10,14 @@ export function CtaSection() {
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 32px", textAlign: "center" }}>
         <div ref={ref} className="lp-reveal" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
           <h2 style={{ fontSize: "clamp(36px, 5vw, 60px)", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-            Start turning readers
+            Your readers are ready.
             <br />
-            into{" "}
-            <span className="lp-gradient-text-white">revenue.</span>
+            Are{" "}
+            <span className="lp-gradient-text-white">you?</span>
           </h2>
 
           <p style={{ fontSize: 18, color: "rgba(255,255,255,0.75)", margin: 0, lineHeight: 1.65 }}>
-            14-day free trial. No credit card. Cancel anytime.
+            Join publishers already earning more with adaptive gates. No credit card, no commitment — live in 5 minutes.
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
@@ -44,7 +44,7 @@ export function CtaSection() {
                 ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
               }}
             >
-              Start free trial
+              Get started free →
             </Link>
             <Link
               href="/login"
@@ -61,7 +61,7 @@ export function CtaSection() {
 
           {/* Trust signals */}
           <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center" }}>
-            {["No credit card required", "Cancel anytime", "Data never sold"].map(signal => (
+            {["No credit card required", "Cancel anytime", "Trusted by publishers in 12+ countries"].map(signal => (
               <div key={signal} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>

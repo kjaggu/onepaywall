@@ -13,8 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OnePaywall",
-  description: "Every reader. The right gate.",
+  title: "OnePaywall — Intelligent Paywall Software for Publishers",
+  description:
+    "Turn every reader into revenue. OnePaywall adapts its paywall strategy in real time — subscriptions, ads, and unlocks — based on each reader's behavior profile. 5-minute setup, any CMS.",
+  openGraph: {
+    title: "OnePaywall — Intelligent Paywall Software for Publishers",
+    description:
+      "Turn every reader into revenue. OnePaywall adapts its paywall strategy in real time — subscriptions, ads, and unlocks — based on each reader's behavior profile.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -26,6 +33,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geist.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full">{children}</body>
     </html>

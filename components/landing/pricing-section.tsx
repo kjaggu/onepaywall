@@ -10,6 +10,7 @@ const PLANS = [
     price: null,
     readers: "Up to 10K readers / mo",
     highlight: false,
+    cta: "Join early access",
     features: [
       "1 domain",
       "All gate types (paywall, ad, free pass)",
@@ -24,6 +25,7 @@ const PLANS = [
     price: null,
     readers: "Up to 250K readers / mo",
     highlight: true,
+    cta: "Get started free",
     features: [
       "Up to 10 domains",
       "Everything in Starter",
@@ -39,6 +41,7 @@ const PLANS = [
     price: null,
     readers: "Unlimited readers",
     highlight: false,
+    cta: "Join early access",
     features: [
       "Unlimited domains",
       "Everything in Growth",
@@ -91,6 +94,11 @@ export function PricingSection() {
           </div>
         </div>
 
+        {/* Scarcity line */}
+        <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-brand)", fontWeight: 600, marginBottom: 24, marginTop: 8 }}>
+          Founding publisher spots are limited. Early access members lock in the lowest price forever.
+        </p>
+
         {/* Plan cards */}
         <div ref={cardsRef} className="lp-stagger lp-grid-3">
           {PLANS.map(plan => (
@@ -124,9 +132,9 @@ export function PricingSection() {
               {/* Price placeholder */}
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: 32, fontWeight: 800, color: plan.highlight ? "var(--color-brand)" : "var(--color-text)", letterSpacing: "-0.03em" }}>
-                  Early access
+                  Free to join
                 </div>
-                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>Pricing confirmed at GA</div>
+                <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>Founding publisher pricing locked in at GA</div>
               </div>
 
               <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 24, background: "var(--color-surface)", borderRadius: 8, padding: "6px 10px", display: "inline-block", border: "1px solid var(--color-border)" }}>
@@ -159,7 +167,7 @@ export function PricingSection() {
                   textDecoration: "none",
                 }}
               >
-                Start free trial
+                {plan.cta}
               </Link>
             </div>
           ))}
@@ -168,7 +176,7 @@ export function PricingSection() {
         {/* Footer note */}
         <div style={{ textAlign: "center", marginTop: 40 }}>
           <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
-            All plans include a 14-day free trial. No credit card required. Cancel anytime.
+            In early access: all features unlocked, no billing until GA. No credit card required.
           </p>
         </div>
       </div>

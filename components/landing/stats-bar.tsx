@@ -4,10 +4,10 @@ import { useScrollReveal } from "./hooks/use-scroll-reveal"
 import { useCounter } from "./hooks/use-counter"
 
 const STATS = [
-  { raw: 38,   suffix: " ms",  label: "Gate decision time",           note: "p95 latency on the hot path" },
-  { raw: 41,   suffix: "×",    label: "Avg. conversion lift",         note: "vs. static paywalls", decimals: 1 },
-  { raw: 60,   suffix: "%+",   label: "Readers leave without paying", note: "opportunity you can capture" },
-  { raw: 5,    suffix: " min", label: "Time to first gate",           note: "one script tag, any CMS" },
+  { raw: 41,  suffix: "×",    label: "Avg. conversion lift",                    note: "vs. static paywalls", decimals: 1 },
+  { raw: 3,   suffix: "+",    label: "Revenue streams per reader",              note: "ads, subscriptions, and unlocks working together" },
+  { raw: 60,  suffix: "%+",   label: "Readers monetised without a subscription", note: "via ad gates and unlocks" },
+  { raw: 5,   suffix: " min", label: "Time to first gate",                      note: "one script tag, any CMS" },
 ]
 
 function StatItem({ raw, suffix, label, note, active, decimals }: typeof STATS[0] & { active: boolean }) {
