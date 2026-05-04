@@ -60,9 +60,14 @@ export async function middleware(req: NextRequest) {
   const isDashboardPath = DASHBOARD_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
   const isAuthPath      = ["/login", "/forgot-password", "/reset-password", "/verify-email"].some(p => pathname.startsWith(p))
 
-  // Redirect logged-in users away from auth pages (except verify-email — they must stay there)
-  if (isAuthPath && session && !pathname.startsWith("/verify-email")) {
+  // Redirect logged-in users away from auth pages (except verify-email and login —
+  // unverified users must be able to return to /login to switch accounts or clear their session)
+  if (isAuthPath && session && !pathname.startsWith("/verify-email") && !pathname.startsWith("/login")) {
     if (!session.emailVerified) return NextResponse.redirect(new URL("/verify-email", req.url))
+    const dest = session.role === "superadmin" ? "/admin" : "/overview"
+    return NextResponse.redirect(new URL(dest, req.url))
+  }
+  if (pathname.startsWith("/login") && session?.emailVerified) {
     const dest = session.role === "superadmin" ? "/admin" : "/overview"
     return NextResponse.redirect(new URL(dest, req.url))
   }
