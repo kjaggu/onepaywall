@@ -6,6 +6,7 @@ import { getSubscribersForFilter, type SegmentFilter } from "@/lib/email/segment
 import { sendEmail } from "@/lib/email/provider"
 import { injectTracking } from "@/lib/email/tracking"
 import { decrypt } from "@/lib/payments/encrypt"
+import { appendUnsubscribeFooter } from "@/lib/email/send-utils"
 
 // Internal endpoint — called by Trigger.dev job, not directly by users.
 // Requires CRON_SECRET header to prevent unauthenticated access.
@@ -43,22 +44,13 @@ export async function POST(req: NextRequest) {
   )
 
   let sent = 0
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? ""
 
   for (const subscriber of subscribers) {
     const htmlWithTracking = injectTracking(campaign.bodyHtml, {
       campaignId:   campaign.id,
       subscriberId: subscriber.id,
     })
-
-    const htmlWithFooter = htmlWithTracking.includes("/api/email/unsubscribe/")
-      ? htmlWithTracking
-      : htmlWithTracking.replace(
-          "</body>",
-          `<p style="font-size:11px;color:#999;margin-top:32px">
-            <a href="${BASE_URL}/api/email/unsubscribe/${subscriber.unsubscribeToken}">Unsubscribe</a>
-          </p></body>`,
-        )
+    const htmlWithFooter = appendUnsubscribeFooter(htmlWithTracking, subscriber.unsubscribeToken)
 
     try {
       await sendEmail(
