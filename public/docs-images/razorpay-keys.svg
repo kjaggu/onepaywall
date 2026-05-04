@@ -1,0 +1,60 @@
+<svg width="900" height="460" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <rect width="900" height="460" rx="10" fill="#f5f5f5"/>
+  <rect width="900" height="38" rx="10" fill="#e8e8e8"/>
+  <rect y="28" width="900" height="10" fill="#e8e8e8"/>
+  <circle cx="22" cy="19" r="6" fill="#fc5f57"/>
+  <circle cx="42" cy="19" r="6" fill="#fdbd2e"/>
+  <circle cx="62" cy="19" r="6" fill="#27c840"/>
+  <rect x="120" y="8" width="500" height="22" rx="4" fill="#fff"/>
+  <text x="370" y="23" text-anchor="middle" font-size="12" fill="#888">dashboard.razorpay.com/app/keys</text>
+
+  <rect x="0" y="38" width="900" height="422" fill="#fff"/>
+
+  <!-- Razorpay sidebar -->
+  <rect x="0" y="38" width="220" height="422" fill="#0e3460" />
+  <text x="110" y="78" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">razorpay</text>
+
+  <text x="30" y="114" font-size="11" fill="#8ca8c8">SETTINGS</text>
+  <rect x="16" y="122" width="188" height="28" rx="4" fill="#1a4a7a"/>
+  <text x="30" y="140" font-size="12" fill="#fff">API Keys</text>
+  <text x="30" y="170" font-size="12" fill="#8ca8c8">Webhooks</text>
+  <text x="30" y="195" font-size="12" fill="#8ca8c8">Team</text>
+  <text x="30" y="220" font-size="12" fill="#8ca8c8">Account</text>
+
+  <!-- Main content -->
+  <text x="248" y="78" font-size="18" font-weight="600" fill="#111">API Keys</text>
+  <text x="248" y="98" font-size="13" fill="#888">Use these keys to authenticate your server with Razorpay.</text>
+
+  <!-- Test mode toggle -->
+  <rect x="248" y="110" width="200" height="28" rx="4" fill="#f5f5f5" stroke="#e0e0e0"/>
+  <rect x="250" y="112" width="96" height="24" rx="3" fill="#fff" stroke="#d0d0d0"/>
+  <text x="298" y="128" text-anchor="middle" font-size="11" fill="#111" font-weight="500">Test Mode</text>
+  <text x="396" y="128" text-anchor="middle" font-size="11" fill="#888">Live Mode</text>
+
+  <!-- Keys section -->
+  <rect x="248" y="150" width="620" height="130" rx="8" fill="#fff" stroke="#ebebeb"/>
+
+  <text x="272" y="180" font-size="12" font-weight="600" fill="#444">Key ID</text>
+  <rect x="272" y="190" width="480" height="36" rx="5" fill="#f5f5f5" stroke="#e0e0e0"/>
+  <text x="292" y="212" font-size="12" fill="#111" font-family="'SF Mono', monospace">rzp_test_AbCdEfGhIjKlMn</text>
+  <rect x="736" y="198" width="56" height="22" rx="4" fill="#0e3460"/>
+  <text x="764" y="213" text-anchor="middle" font-size="11" fill="#fff">Copy</text>
+
+  <text x="272" y="240" font-size="12" font-weight="600" fill="#444">Key Secret</text>
+  <rect x="272" y="250" width="480" height="36" rx="5" fill="#f5f5f5" stroke="#e0e0e0"/>
+  <text x="292" y="272" font-size="12" fill="#999" font-family="'SF Mono', monospace">● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●</text>
+  <rect x="736" y="258" width="56" height="22" rx="4" fill="#0e3460"/>
+  <text x="764" y="273" text-anchor="middle" font-size="11" fill="#fff">Show</text>
+
+  <!-- Regenerate section -->
+  <rect x="248" y="298" width="620" height="56" rx="8" fill="#fff8f0" stroke="#f0d0a0"/>
+  <text x="272" y="322" font-size="12" font-weight="600" fill="#b06000">Regenerate API keys</text>
+  <text x="272" y="340" font-size="11" fill="#888">This will invalidate your existing keys. Make sure to update all integrations before regenerating.</text>
+
+  <!-- Steps annotation -->
+  <rect x="248" y="370" width="620" height="88" rx="8" fill="#f0fbfb" stroke="#17a2a4"/>
+  <text x="272" y="394" font-size="12" font-weight="600" fill="#17a2a4">Copy these to OnePaywall</text>
+  <text x="272" y="414" font-size="11" fill="#444">1. Copy the Key ID → paste into OnePaywall Settings → Payment Gateway → Razorpay Key ID</text>
+  <text x="272" y="434" font-size="11" fill="#444">2. Click Show, copy the Key Secret → paste into Razorpay Key Secret field</text>
+  <text x="272" y="450" font-size="11" fill="#444">3. Click Save. OnePaywall will verify the keys immediately.</text>
+</svg>

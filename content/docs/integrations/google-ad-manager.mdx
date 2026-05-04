@@ -1,0 +1,67 @@
+---
+title: Google Ad Manager
+description: Connect Google Ad Manager (GAM) to serve programmatic ads inside your gate steps.
+---
+
+Google Ad Manager (GAM) lets you sell ad inventory directly or via programmatic demand. Connecting it to OnePaywall lets you serve GAM line items and programmatic ads inside gate steps.
+
+## Prerequisites
+
+- A Google Ad Manager account (Standard or Premium / 360)
+- A verified domain in GAM
+- API access enabled on your GAM account
+
+## Step 1 — Find your Network Code
+
+1. Sign in to [Google Ad Manager](https://admanager.google.com)
+2. Go to **Admin ��� Global settings**
+3. Your **Network code** is shown on this page — it's a numeric ID like `12345678`
+
+## Step 2 — Enable API access
+
+1. In GAM, go to **Admin �� Global settings**
+2. Scroll to **API access** and click **Enable API access**
+3. Check the box to agree to the API Terms
+
+## Step 3 — Create a service account
+
+GAM uses a Google Cloud service account for API authentication.
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com)
+2. Create a project (or use an existing one)
+3. Go to **APIs & Services → Credentials**
+4. Click **Create credentials → Service account**
+5. Give it a name (e.g. `onepaywall-gam`)
+6. Click **Create and continue** → skip optional steps → **Done**
+7. Click the service account you just created
+8. Go to the **Keys** tab → **Add key → Create new key → JSON**
+9. Download the JSON credentials file — keep this safe, it grants API access to your GAM account
+
+## Step 4 — Add the service account to GAM
+
+1. Copy the **service account email** from the JSON file (field: `client_email`)
+2. In GAM, go to **Admin → Users**
+3. Click **New user**
+4. Paste the service account email
+5. Assign the role **Read & report** (minimum required) or **Administrator**
+6. Click **Save**
+
+## Step 5 — Connect GAM in OnePaywall
+
+1. Go to **Dashboard → Advertising → Networks**
+2. Click **Connect Google Ad Manager**
+3. Enter your **Network code**
+4. Upload the **JSON credentials file** you downloaded
+5. Click **Save**
+
+OnePaywall encrypts the credentials — the JSON file is never stored in plaintext.
+
+## Step 6 — Create a GAM ad unit in OnePaywall
+
+1. Go to **Dashboard → Advertising → New ad unit**
+2. Set **Source** to Google Ad Manager
+3. Enter the **Ad unit path** (from GAM → Inventory → Ad units)
+4. Set dimensions
+5. Click **Save**
+
+You can now use this unit in gate Ad steps (see [Ad units](/docs/advertising)).

@@ -1,0 +1,66 @@
+---
+title: Resend
+description: Get your Resend API key and verify your sending domain to enable email campaigns and automations.
+---
+
+OnePaywall uses [Resend](https://resend.com) to deliver email. You need a Resend account and at least one verified sending domain.
+
+## Step 1 — Create a Resend account
+
+Go to [resend.com](https://resend.com) and sign up. The free plan allows 100 emails/day.
+
+## Step 2 — Get an API key
+
+1. In Resend, click **API Keys** in the left sidebar
+2. Click **Create API key**
+3. Name it (e.g. "OnePaywall")
+4. Set **Permission** to **Full access** or **Sending access**
+5. Click **Add**
+6. Copy the API key — it starts with `re_` and is only shown once
+
+## Step 3 — Add a sending domain
+
+You must send email from an address on a domain you own.
+
+1. In Resend, go to **Domains**
+2. Click **Add domain**
+3. Enter your domain (e.g. `yourblog.com`)
+4. Resend shows DNS records to add to your domain
+
+### Required DNS records
+
+| Type | Name | Value |
+|------|------|-------|
+| TXT | `resend._domainkey.yourdomain.com` | DKIM public key from Resend |
+| MX | `send.yourdomain.com` | `feedback-smtp.us-east-1.amazonses.com` |
+| TXT | `send.yourdomain.com` | `v=spf1 include:amazonses.com ~all` |
+
+Add these records in your domain registrar's DNS settings (e.g. Cloudflare, Route53, GoDaddy, Namecheap).
+
+DNS propagation can take up to 48 hours.
+
+### Verify in Resend
+
+Once DNS records are in place, click **Verify** in Resend's domain settings. A green checkmark confirms verification.
+
+## Step 4 — Configure in OnePaywall
+
+1. Go to **Dashboard → Email → Settings**
+2. Paste your **Resend API key**
+3. Enter your verified **From domain** (e.g. `yourblog.com`)
+4. Enter the default **From name** and **From email** (e.g. `Your Name <hello@yourblog.com>`)
+5. Click **Save and verify** — OnePaywall confirms the API key and domain verification status
+
+A green **Connected** status means you're ready to send campaigns and automations.
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| "Domain not verified" | Wait for DNS to propagate; click Verify in Resend again |
+| "Invalid API key" | Re-check the key; API keys start with `re_` |
+| Emails landing in spam | Confirm SPF and DKIM are both verified; avoid spam trigger words in subject lines |
+
+---
+
+[→ Open Email Settings in Dashboard](/email/settings)

@@ -1,0 +1,54 @@
+---
+title: Email Settings
+description: Connect Resend, verify your sending domain, and configure DKIM and SPF records.
+---
+
+OnePaywall uses [Resend](https://resend.com) to send email. You need a Resend account and a verified sending domain before you can send campaigns or automations.
+
+## Getting a Resend API key
+
+1. Go to [resend.com](https://resend.com) and sign in (or create a free account)
+2. Click **API Keys** in the left sidebar
+3. Click **Create API key**
+4. Give it a name (e.g. "OnePaywall")
+5. Set permissions to **Full access** or **Sending access**
+6. Click **Add** — copy the key immediately (it won't be shown again)
+
+## Adding your API key to OnePaywall
+
+1. Go to **Dashboard → Email → Settings**
+2. Paste your Resend API key into the **API key** field
+3. Click **Save**
+
+## Verifying your sending domain
+
+You must send from an email address on a domain you own and have verified with Resend.
+
+### Step 1 — Add your domain in Resend
+
+1. In Resend, go to **Domains → Add domain**
+2. Enter your domain (e.g. `yourblog.com`)
+3. Resend shows you DNS records to add
+
+### Step 2 — Add DNS records
+
+Add the following records to your domain's DNS:
+
+| Type | Name | Value |
+|------|------|-------|
+| TXT | `resend._domainkey` | DKIM public key (from Resend) |
+| TXT | `@` | SPF record: `v=spf1 include:amazonses.com ~all` |
+
+DNS changes can take up to 48 hours to propagate.
+
+### Step 3 — Verify in OnePaywall
+
+1. Go to **Dashboard → Email → Settings**
+2. Enter your verified sending domain
+3. Click **Check verification** — OnePaywall confirms the DKIM and SPF records are in place
+
+A green **Verified** status means you're ready to send.
+
+## Sending limits
+
+Resend's free plan allows 100 emails/day and 3,000/month. Paid plans start at $20/month for 50,000 emails. Check [resend.com/pricing](https://resend.com/pricing) for current limits.

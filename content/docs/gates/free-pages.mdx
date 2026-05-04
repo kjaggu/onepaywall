@@ -1,0 +1,36 @@
+---
+title: Free Pages
+description: Whitelist specific URLs so they are never gated, regardless of your trigger rules.
+---
+
+Free pages are URLs that should always be accessible — even if a gate trigger would otherwise match them.
+
+## Adding a free page
+
+1. Go to **Dashboard → Domains → [your domain] → Free Pages**
+2. Click **Add URL**
+3. Enter the exact path (e.g. `/about`, `/contact`, `/subscribe/confirmed`)
+
+Free pages apply domain-wide and override any gate trigger.
+
+## Common free pages to add
+
+| URL | Reason |
+|-----|--------|
+| `/` | Homepage — readers should always see it |
+| `/about` | About page — important for trust |
+| `/subscribe` | Your subscription landing page |
+| `/subscribe/confirmed` | Post-payment confirmation |
+| `/sitemap.xml` | Search engine crawlers |
+| `/robots.txt` | Search engine crawlers |
+| `/privacy`, `/terms` | Legal pages — required to be free |
+
+## Free pages vs gate triggers
+
+Free pages take precedence over all gate triggers. If a URL is both in your free pages list and matched by a gate trigger, the gate does **not** fire.
+
+Use free pages for:
+- Navigational pages (homepage, about, contact)
+- Subscription management pages (so paying readers can manage their account)
+- Legal / compliance pages
+- Any URL you want search engines to fully crawl and index

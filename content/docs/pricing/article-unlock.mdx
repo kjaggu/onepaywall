@@ -1,0 +1,37 @@
+---
+title: Article Unlock Pricing
+description: Let readers pay once to access a single article — without a full subscription.
+---
+
+Article unlocks let readers pay a one-time fee for access to a specific URL. This is useful for casual readers who aren't ready to subscribe.
+
+## Setting up article unlock pricing
+
+1. Go to **Dashboard → Pricing → Article Unlocks**
+2. Set a **default price** — this applies to all URLs unless overridden
+3. Optionally, add **per-URL prices** for specific articles
+
+## Per-URL pricing
+
+To set a different price for a specific article:
+
+1. Click **Add URL price**
+2. Enter the article URL (exact path, e.g. `/articles/my-premium-report`)
+3. Enter the price for that article
+4. Click **Save**
+
+Per-URL prices override the default. Use them for high-value content like research reports or exclusive interviews.
+
+## Using article unlock in a gate
+
+Add an **Article unlock** step to your gate (see [Gate steps](/docs/gates/gate-steps)). When this step fires, the reader sees the unlock price for the current URL and can pay immediately.
+
+After a successful payment, the unlock is stored against the reader's fingerprint. They don't pay again if they return to the same URL later.
+
+## Access duration
+
+Article unlocks grant permanent access to the specific URL. There is no expiry — once unlocked, always unlocked.
+
+## Revenue from unlocks
+
+Article unlock payments appear in **Dashboard → Revenue** and are included in the daily/monthly revenue totals on your analytics dashboard.

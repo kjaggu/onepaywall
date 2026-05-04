@@ -1,0 +1,43 @@
+---
+title: Digital Products
+description: Sell downloadable files — e-books, reports, templates ��� directly to your readers.
+---
+
+Digital products let you upload and sell downloadable files as a standalone product or as a gate step.
+
+## Uploading a digital product
+
+1. Go to **Dashboard → Digital Products**
+2. Click **New product**
+3. Fill in:
+   - **Name** — shown to readers at purchase
+   - **Description** — what the reader gets
+   - **Price** — one-time purchase price
+   - **File** — upload the file (PDF, EPUB, ZIP, etc., up to 100 MB)
+   - **Cover image** — optional thumbnail shown in the gate
+4. Click **Save**
+
+The file is stored securely and is only accessible to paying readers via a time-limited download link.
+
+## Using a digital product in a gate
+
+Add a **Digital product** step to any gate (see [Gate steps](/docs/gates/gate-steps)). When a reader reaches this step, they see the product name, description, price, and cover image. After purchasing, they receive a download link and access to the gated content.
+
+## Managing products
+
+From the **Digital Products** list you can:
+- **Edit** the name, description, price, or cover image
+- **Replace the file** — existing purchasers retain access to the old file; new purchasers get the new one
+- **Archive** — hides the product from new gate flows (existing purchasers are not affected)
+
+## Purchase history
+
+Click a product to see a list of all readers who have purchased it, with purchase dates and payment amounts.
+
+## Download links
+
+After purchase, readers receive a download link valid for 24 hours. They can re-request a link by revisiting the page where they purchased the product.
+
+## File storage
+
+Files are stored in Cloudflare R2 and served from Cloudflare's CDN — not through the OnePaywall app server. This keeps delivery fast regardless of file size.

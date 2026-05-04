@@ -1,0 +1,58 @@
+---
+title: Connect Ad Networks
+description: Link Google AdSense or Google Ad Manager to serve network-sourced ads in your gates.
+---
+
+OnePaywall supports Google AdSense and Google Ad Manager as ad sources. Once connected, you can use network-served ads inside gate steps.
+
+## Google AdSense
+
+### What you need
+
+- A Google AdSense account
+- Your **Publisher ID** (format: `pub-XXXXXXXXXXXXXXXX`)
+- Your **Ad client ID** (format: `ca-pub-XXXXXXXXXXXXXXXX`)
+
+### How to find your AdSense credentials
+
+1. Sign in to [Google AdSense](https://www.google.com/adsense)
+2. Click the **Account** icon → **Account information**
+3. Your **Publisher ID** is shown as `pub-XXXXXXXXXXXXXXXX`
+4. To get an ad unit code, go to **Ads → By ad unit** → create or select a unit — the `data-ad-client` value is your ad client ID
+
+### Connecting AdSense in OnePaywall
+
+1. Go to **Dashboard → Advertising → Networks**
+2. Click **Connect AdSense**
+3. Enter your Publisher ID and Ad client ID
+4. Click **Save**
+
+## Google Ad Manager (GAM)
+
+### What you need
+
+- A Google Ad Manager account (standard or premium)
+- Your **Network code** (the number in your GAM URL, e.g. `12345678`)
+
+### How to find your GAM credentials
+
+1. Sign in to [Google Ad Manager](https://admanager.google.com)
+2. Go to **Admin → Global settings**
+3. Your **Network code** is shown in the Network code field
+
+For API access (required for programmatic ad serving):
+1. Go to **Admin → Global settings → API access**
+2. Enable API access and create a service account
+3. Download the JSON credentials file
+
+### Connecting GAM in OnePaywall
+
+1. Go to **Dashboard → Advertising → Networks**
+2. Click **Connect Google Ad Manager**
+3. Enter your Network code
+4. Upload the service account JSON credentials file
+5. Click **Save**
+
+## After connecting
+
+Once connected, the network appears as an option when creating an ad unit. Select it as the source and choose the ad unit or tag you want to serve.

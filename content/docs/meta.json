@@ -1,0 +1,16 @@
+{
+  "title": "OnePaywall Docs",
+  "pages": [
+    "index",
+    "getting-started",
+    "gates",
+    "pricing",
+    "readers",
+    "advertising",
+    "email",
+    "analytics",
+    "digital-products",
+    "integrations",
+    "settings"
+  ]
+}

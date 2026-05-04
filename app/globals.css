@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -110,6 +112,13 @@
   --sidebar-accent-foreground: oklch(0.141 0 0);
   --sidebar-border: oklch(0.925 0 0);
   --sidebar-ring: oklch(0.655 0.093 194.4);
+
+  /* Fumadocs brand overrides */
+  --color-fd-primary: oklch(0.655 0.093 194.4);
+  --color-fd-primary-foreground: oklch(1 0 0);
+  --color-fd-background: oklch(1 0 0);
+  --color-fd-muted: oklch(0.982 0 0);
+  --color-fd-border: oklch(0.925 0 0);
 
   /* OnePaywall extras */
   --accent-teal: oklch(0.655 0.093 194.4);

@@ -1,0 +1,65 @@
+---
+title: Google AdSense
+description: Connect your AdSense account to serve Google display ads inside your gate steps.
+---
+
+Connecting Google AdSense lets you use AdSense display ads as a gate step — readers view an ad in exchange for access to your content.
+
+## Prerequisites
+
+- An approved Google AdSense account
+- A site added and approved in AdSense (your domain must be verified by Google)
+
+## Step 1 — Find your Publisher ID
+
+1. Sign in to [Google AdSense](https://www.google.com/adsense)
+2. Click your account avatar → **Account information**
+3. Your **Publisher ID** is shown in the format `pub-XXXXXXXXXXXXXXXX`
+
+## Step 2 — Get your Ad Client ID
+
+Your Ad client ID is the same as your Publisher ID in a different format: `ca-pub-XXXXXXXXXXXXXXXX`.
+
+To confirm:
+1. In AdSense, go to **Ads → By ad unit**
+2. Click **Create new ad unit** (or open an existing one)
+3. Look at the ad code — the `data-ad-client` attribute value is your ad client ID
+
+## Step 3 — Create an ad unit
+
+1. In AdSense, go to **Ads → By ad unit → Display ads**
+2. Give the unit a name (e.g. "OnePaywall Gate Ad")
+3. Choose **Responsive** size
+4. Click **Create** — AdSense shows you the ad slot code
+5. Copy the **data-ad-slot** value (a number like `1234567890`)
+
+## Step 4 — Connect AdSense in OnePaywall
+
+1. Go to **Dashboard → Advertising → Networks**
+2. Click **Connect AdSense**
+3. Enter:
+   - **Publisher ID** (e.g. `pub-1234567890123456`)
+   - **Ad client ID** (e.g. `ca-pub-1234567890123456`)
+4. Click **Save**
+
+## Step 5 — Create an ad unit in OnePaywall
+
+1. Go to **Dashboard → Advertising → New ad unit**
+2. Set **Source** to AdSense
+3. Enter your **Ad slot ID**
+4. Click **Save**
+
+You can now add this ad unit to a gate's Ad step (see [Ad units](/docs/advertising)).
+
+## AdSense policies
+
+Using AdSense inside a paywall gate is subject to Google's policies. Specifically:
+- Ads must be visible and not covered by other content
+- Readers must be able to scroll past the ad; auto-close mechanisms that bypass viewing are not permitted
+- Your site must have original content �� AdSense does not approve sites with thin or copied content
+
+Review [Google's AdSense program policies](https://support.google.com/adsense/answer/48182) before going live.
+
+---
+
+[→ Open Ad Networks in Dashboard](/ads/networks)

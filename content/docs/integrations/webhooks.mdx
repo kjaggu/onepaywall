@@ -1,0 +1,77 @@
+---
+title: Webhooks
+description: Receive real-time event notifications from OnePaywall to sync with your CRM, database, or custom systems.
+---
+
+Webhooks let OnePaywall notify your systems when important events happen — new subscribers, cancellations, lead captures, and more.
+
+## Setting up a webhook
+
+1. Go to **Dashboard → Settings → Webhooks**
+2. Click **New webhook**
+3. Enter your **Endpoint URL** — a publicly accessible HTTPS URL that accepts POST requests
+4. Select the **events** you want to receive (see below)
+5. Click **Save**
+
+OnePaywall generates a **signing secret** for each webhook. Use it to verify that requests came from OnePaywall.
+
+## Available events
+
+| Event | When it fires |
+|-------|---------------|
+| `lead.captured` | A reader submitted their email via a lead-capture gate step |
+| `subscription.created` | A reader subscribed to a plan |
+| `subscription.renewed` | A subscription was successfully renewed |
+| `subscription.cancelled` | A reader cancelled their subscription |
+| `subscription.paused` | A subscription was paused |
+| `subscription.reactivated` | A paused or cancelled subscription was reactivated |
+| `payment.failed` | A subscription renewal payment failed |
+| `article_unlock.created` | A reader unlocked an article |
+| `digital_product.purchased` | A reader purchased a digital product |
+
+## Payload format
+
+Each webhook request is a POST with `Content-Type: application/json`:
+
+```json
+{
+  "event": "subscription.created",
+  "timestamp": "2025-05-04T10:30:00Z",
+  "data": {
+    "subscriber_id": "sub_abc123",
+    "email": "reader@example.com",
+    "plan": "monthly",
+    "domain": "yourblog.com",
+    "started_at": "2025-05-04T10:30:00Z"
+  }
+}
+```
+
+## Verifying webhook signatures
+
+Each request includes an `X-OnePaywall-Signature` header. To verify:
+
+```js
+const crypto = require('crypto');
+
+function verifySignature(payload, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+```
+
+Always verify signatures before processing webhook payloads.
+
+## Retries
+
+If your endpoint returns a non-2xx status, OnePaywall retries the webhook up to 5 times with exponential backoff (1 min, 5 min, 30 min, 2 hours, 8 hours).
+
+## Testing webhooks
+
+Use [webhook.site](https://webhook.site) to inspect webhook payloads during development. Paste the webhook.site URL as your endpoint and trigger a test event from OnePaywall's webhook settings.

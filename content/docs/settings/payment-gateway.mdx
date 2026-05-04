@@ -1,0 +1,29 @@
+---
+title: Payment Gateway
+description: Connect your Razorpay account to accept reader payments for subscriptions and article unlocks.
+---
+
+Go to **Dashboard → Settings → Payment Gateway** to configure your reader payment processor.
+
+## Connecting Razorpay
+
+OnePaywall uses Razorpay to process reader payments. You need your own Razorpay account — this is separate from OnePaywall's own billing.
+
+For step-by-step instructions on getting your Razorpay API keys, see [Razorpay integration](/docs/integrations/razorpay).
+
+## Test mode vs. live mode
+
+| Mode | When to use |
+|------|-------------|
+| **Test** | During setup and testing — no real money changes hands |
+| **Live** | When you're ready to accept real reader payments |
+
+Always test with a test payment before switching to live mode.
+
+## Updating credentials
+
+If you rotate your Razorpay API keys, update them here. OnePaywall will use the new keys for all future transactions. Existing active subscriptions are not affected — Razorpay continues to process renewals under the existing subscription IDs.
+
+## Key storage
+
+Your API key and secret are encrypted at rest using AES-256 with a platform-managed encryption key. They are never stored in plaintext and are never exposed to readers.

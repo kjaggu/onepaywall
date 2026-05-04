@@ -1,0 +1,55 @@
+---
+title: Triggers
+description: Define which URLs activate a gate using path patterns and domain rules.
+---
+
+Triggers tell OnePaywall which URLs should show a gate. You configure triggers on the **Triggers** tab of any gate.
+
+## Rule types
+
+### Exact path
+
+Matches a single URL exactly.
+
+```
+/articles/my-article-slug
+```
+
+Use this for specific premium content you want to gate individually.
+
+### Path prefix
+
+Matches any URL that starts with the given path.
+
+```
+/articles/*
+/premium/*
+/members/*
+```
+
+The `*` wildcard matches anything after the prefix. This is the most common rule type for section-wide gating.
+
+### Domain-wide
+
+Use `*` alone to gate every page on the domain (except pages on your [free pages](/docs/gates/free-pages) list).
+
+## Rule priority
+
+When a URL matches multiple rules, the most specific rule wins:
+
+1. Exact path (highest priority)
+2. Path prefix (longer prefixes win over shorter ones)
+3. Domain-wide (lowest priority)
+
+## Examples
+
+| Goal | Rule |
+|------|------|
+| Gate all articles | `/articles/*` |
+| Gate a specific post | `/articles/my-premium-post` |
+| Gate everything except the homepage | `*` + add `/` to Free Pages |
+| Gate a tag archive | `/tag/premium/*` |
+
+## Combining rules
+
+A gate can have multiple trigger rules — the gate fires if any rule matches the current URL. This lets you gate multiple sections with a single gate configuration.

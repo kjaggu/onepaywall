@@ -1,0 +1,4 @@
+{
+  "title": "Settings",
+  "pages": ["general", "team", "payment-gateway", "billing", "brands", "domains", "danger-zone"]
+}

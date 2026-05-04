@@ -1,0 +1,39 @@
+---
+title: Gates
+description: Gates are the core of OnePaywall — they define what readers see when they hit a content wall.
+---
+
+A **gate** is a paywall configuration. It controls:
+
+- **Which URLs are gated** — defined by trigger rules (URL patterns, domain, path prefix)
+- **What readers see** — a sequence of steps (subscription offer, ad, lead capture, etc.)
+- **Who gets through** — readers with an active subscription, an article unlock, or a completed ad view
+
+## Gate anatomy
+
+```
+Gate
+├── Triggers       → which URLs activate this gate
+├── Steps          → what the reader sees (in order)
+│   ├── Step 1: Subscription offer
+│   ├── Step 2: Ad (fallback if reader won't subscribe)
+│   └── Step 3: Lead capture (final fallback)
+└── Free pages     → URLs exempt from this gate
+```
+
+## Gate list
+
+Go to **Dashboard → Gates** to see all your gates. Each gate shows:
+
+- **Name** — your internal label
+- **Domain** — the site this gate applies to
+- **Active subscribers** acquired through this gate
+- **Conversion rate** — % of gate impressions that resulted in access
+
+## Creating a gate
+
+Click **New gate** to open the gate builder. You'll configure triggers and steps. See [Create a gate](/docs/gates/create-gate) for a step-by-step walkthrough.
+
+## One gate per page
+
+A URL can only match one gate. If multiple gate triggers match a URL, the most specific match wins (exact path > prefix > domain-wide).

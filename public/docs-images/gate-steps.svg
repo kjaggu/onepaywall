@@ -1,0 +1,71 @@
+<svg width="900" height="460" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <rect width="900" height="460" rx="10" fill="#f5f5f5"/>
+  <rect width="900" height="38" rx="10" fill="#e8e8e8"/>
+  <rect y="28" width="900" height="10" fill="#e8e8e8"/>
+  <circle cx="22" cy="19" r="6" fill="#fc5f57"/>
+  <circle cx="42" cy="19" r="6" fill="#fdbd2e"/>
+  <circle cx="62" cy="19" r="6" fill="#27c840"/>
+
+  <!-- Header -->
+  <rect x="0" y="38" width="900" height="422" fill="#fff"/>
+  <text x="48" y="82" font-size="18" font-weight="600" fill="#111">Gate steps — step type selector</text>
+  <text x="48" y="102" font-size="13" fill="#888">Each step defines what a reader sees when the gate fires. Steps execute in order.</text>
+
+  <!-- Step type cards -->
+  <!-- Subscription -->
+  <rect x="48" y="120" width="180" height="130" rx="8" fill="#fff" stroke="#17a2a4" stroke-width="2"/>
+  <rect x="48" y="120" width="180" height="130" rx="8" fill="#f0fbfb"/>
+  <text x="138" y="158" text-anchor="middle" font-size="22">💳</text>
+  <text x="138" y="184" text-anchor="middle" font-size="13" font-weight="600" fill="#111">Subscription</text>
+  <text x="138" y="202" text-anchor="middle" font-size="11" fill="#888">Show monthly /</text>
+  <text x="138" y="218" text-anchor="middle" font-size="11" fill="#888">annual plans</text>
+  <rect x="68" y="232" width="140" height="8" rx="3" fill="#17a2a4"/>
+
+  <!-- Article unlock -->
+  <rect x="252" y="120" width="180" height="130" rx="8" fill="#fff" stroke="#e5e5e5"/>
+  <text x="342" y="158" text-anchor="middle" font-size="22">🔓</text>
+  <text x="342" y="184" text-anchor="middle" font-size="13" font-weight="600" fill="#111">Article unlock</text>
+  <text x="342" y="202" text-anchor="middle" font-size="11" fill="#888">Pay once for</text>
+  <text x="342" y="218" text-anchor="middle" font-size="11" fill="#888">this article only</text>
+  <rect x="272" y="232" width="140" height="8" rx="3" fill="#e5e5e5"/>
+
+  <!-- Ad interstitial -->
+  <rect x="456" y="120" width="180" height="130" rx="8" fill="#fff" stroke="#e5e5e5"/>
+  <text x="546" y="158" text-anchor="middle" font-size="22">📺</text>
+  <text x="546" y="184" text-anchor="middle" font-size="13" font-weight="600" fill="#111">Ad interstitial</text>
+  <text x="546" y="202" text-anchor="middle" font-size="11" fill="#888">Watch an ad,</text>
+  <text x="546" y="218" text-anchor="middle" font-size="11" fill="#888">unlock access</text>
+  <rect x="476" y="232" width="140" height="8" rx="3" fill="#e5e5e5"/>
+
+  <!-- Lead capture -->
+  <rect x="660" y="120" width="180" height="130" rx="8" fill="#fff" stroke="#e5e5e5"/>
+  <text x="750" y="158" text-anchor="middle" font-size="22">📧</text>
+  <text x="750" y="184" text-anchor="middle" font-size="13" font-weight="600" fill="#111">Lead capture</text>
+  <text x="750" y="202" text-anchor="middle" font-size="11" fill="#888">Email for</text>
+  <text x="750" y="218" text-anchor="middle" font-size="11" fill="#888">free access</text>
+  <rect x="680" y="232" width="140" height="8" rx="3" fill="#e5e5e5"/>
+
+  <!-- Step ordering diagram -->
+  <text x="48" y="296" font-size="14" font-weight="600" fill="#111">Example sequence</text>
+
+  <rect x="48" y="312" width="130" height="40" rx="6" fill="#e0f4f4" stroke="#17a2a4"/>
+  <text x="113" y="336" text-anchor="middle" font-size="12" fill="#17a2a4" font-weight="500">1 · Subscription</text>
+
+  <text x="188" y="336" font-size="18" fill="#ccc">→</text>
+
+  <rect x="208" y="312" width="130" height="40" rx="6" fill="#fff4e0" stroke="#e09000"/>
+  <text x="273" y="336" text-anchor="middle" font-size="12" fill="#c07000" font-weight="500">2 · Ad interstitial</text>
+
+  <text x="348" y="336" font-size="18" fill="#ccc">→</text>
+
+  <rect x="368" y="312" width="130" height="40" rx="6" fill="#f0f0ff" stroke="#9090e0"/>
+  <text x="433" y="336" text-anchor="middle" font-size="12" fill="#5050c0" font-weight="500">3 · Lead capture</text>
+
+  <text x="508" y="336" font-size="18" fill="#ccc">→</text>
+
+  <rect x="528" y="312" width="130" height="40" rx="6" fill="#f0fff0" stroke="#40a040"/>
+  <text x="593" y="336" text-anchor="middle" font-size="12" fill="#207020" font-weight="500">Content unlocked</text>
+
+  <text x="48" y="390" font-size="12" fill="#888">Readers try each step in order. Once any step is satisfied, they get access.</text>
+  <text x="48" y="410" font-size="12" fill="#888">Drag to reorder steps. Delete a step to remove it from the sequence.</text>
+</svg>

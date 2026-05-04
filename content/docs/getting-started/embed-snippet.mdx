@@ -1,0 +1,49 @@
+---
+title: Embed Snippet Reference
+description: Full reference for the OnePaywall embed script — attributes, behavior, and troubleshooting.
+---
+
+## Snippet format
+
+```html
+<script
+  src="https://cdn.onepaywall.com/embed.js"
+  data-site-key="YOUR_SITE_KEY"
+  defer
+></script>
+```
+
+The script is served from Cloudflare's CDN and is under 15 KB gzipped. It does not block page rendering.
+
+## Finding your site key
+
+1. Go to **Dashboard → Domains**
+2. Click the domain you want
+3. Select the **Embed** tab
+4. Copy the site key shown — it looks like `opw_live_abc123...`
+
+Each domain has its own unique site key. Do not share site keys between domains.
+
+## How the embed works
+
+When the script loads on a reader's page, it:
+
+1. Fingerprints the reader anonymously (no cookies, no login required)
+2. Fetches the gate configuration for the current URL from the CDN edge
+3. Evaluates whether the reader has an active subscription or unlock
+4. Renders the gate overlay if access is not granted — or does nothing if the reader already has access
+
+All of this happens in under 100 ms. The gate overlay is injected before the page's main content becomes visible.
+
+## Verifying the installation
+
+Go to **Dashboard → Domains → [domain] → Embed** and click **Verify**. If verification fails:
+
+- Make sure the snippet is in the `<head>` (not at the bottom of `<body>`)
+- Check that the `data-site-key` attribute matches exactly — no extra spaces
+- Confirm the site is publicly accessible (not behind a login or VPN)
+- Check the browser console for errors
+
+## Free pages (bypass list)
+
+Any URL you add to the **Free Pages** list will never be gated, regardless of your gate triggers. Use this for your homepage, contact page, subscription confirmation pages, etc. See [Free pages](/docs/gates/free-pages).

@@ -1,0 +1,55 @@
+---
+title: Add Your First Domain
+description: Register your site with OnePaywall and install the embed snippet to start gating content.
+---
+
+## Step 1 — Register your domain
+
+1. Go to **Dashboard → Domains**
+2. Click **Add domain**
+3. Enter your site's base URL (e.g. `https://yourblog.com`)
+4. Click **Save**
+
+OnePaywall generates a unique **site key** for each domain. You'll use this key in the embed snippet.
+
+## Step 2 — Install the embed snippet
+
+Copy the snippet from **Dashboard → Domains → [your domain] → Embed** and paste it into the `<head>` of every page on your site.
+
+```html
+<script
+  src="https://cdn.onepaywall.com/embed.js"
+  data-site-key="YOUR_SITE_KEY"
+  defer
+></script>
+```
+
+Replace `YOUR_SITE_KEY` with the key shown in your dashboard.
+
+<img src="/docs-images/embed-snippet.svg" alt="Domain settings showing the embed snippet with your site key" style={{width:"100%",borderRadius:8,border:"1px solid #e5e5e5",marginTop:12,marginBottom:12}} />
+
+### CMS-specific placement
+
+| CMS | Where to add the snippet |
+|-----|--------------------------|
+| WordPress | Appearance → Theme Editor → `header.php`, inside `<head>` |
+| Ghost | Settings → Code injection → Site header |
+| Webflow | Project settings → Custom code → Head code |
+| Squarespace | Settings → Advanced → Code injection → Header |
+| Custom HTML | Inside the `<head>` tag of your base template |
+
+## Step 3 — Verify the installation
+
+After adding the snippet, go back to **Dashboard → Domains → [your domain]** and click **Verify**. OnePaywall checks that the script is loading correctly on your site.
+
+A green **Verified** badge means the embed is active. You're ready to create gates.
+
+## Next steps
+
+- [Create your first gate](/docs/gates/create-gate) — Define which content is gated and what readers see
+- [Set up subscription pricing](/docs/pricing) — Choose your plans and prices
+- [Connect a payment gateway](/docs/integrations/razorpay) — Accept reader payments
+
+---
+
+[→ Open Domains in Dashboard](/domains)

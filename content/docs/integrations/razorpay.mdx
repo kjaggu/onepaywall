@@ -1,0 +1,62 @@
+---
+title: Razorpay
+description: Connect Razorpay to accept subscription payments and article unlock payments from your readers.
+---
+
+OnePaywall uses Razorpay to process reader payments — subscriptions, article unlocks, and digital product purchases. You need a Razorpay account with your own API keys.
+
+## Step 1 — Create a Razorpay account
+
+If you don't have one, sign up at [razorpay.com](https://razorpay.com). Business verification is required to accept live payments (typically takes 1–3 business days).
+
+## Step 2 — Get your API keys
+
+1. Log in to the [Razorpay Dashboard](https://dashboard.razorpay.com)
+2. Go to **Settings → API Keys**
+3. Click **Generate Test Key** (for testing) or **Generate Live Key** (for production)
+4. You'll see:
+   - **Key ID** — starts with `rzp_test_` (test) or `rzp_live_` (production)
+   - **Key Secret** — shown once; copy it immediately
+
+<img src="/docs-images/razorpay-keys.svg" alt="Razorpay API Keys page showing Key ID and masked Key Secret fields with copy buttons" style={{width:"100%",borderRadius:8,border:"1px solid #e5e5e5",marginTop:12,marginBottom:12}} />
+
+Keep your Key Secret private — never share it or commit it to source code.
+
+## Step 3 — Add keys to OnePaywall
+
+1. Go to **Dashboard → Settings → Payment Gateway**
+2. Select **Razorpay**
+3. Paste your **Key ID** and **Key Secret**
+4. Choose the mode: **Test** or **Live**
+5. Click **Save**
+
+OnePaywall encrypts your credentials at rest. They are never exposed to readers.
+
+## Step 4 — Test a payment
+
+With test mode enabled:
+
+1. Create a subscription plan (see [Pricing](/docs/pricing))
+2. Create a gate with a Subscription step
+3. Visit a gated URL in your browser
+4. Complete a payment using Razorpay's test card: `4111 1111 1111 1111`, any future expiry, any CVV
+
+The test payment should succeed and grant access to the gated content.
+
+## Switching to live mode
+
+Once you've tested successfully:
+
+1. Generate live API keys from the Razorpay Dashboard
+2. Replace the test keys in **OnePaywall → Settings → Payment Gateway**
+3. Switch the mode from **Test** to **Live**
+
+## Webhooks (Razorpay → OnePaywall)
+
+OnePaywall automatically configures the Razorpay webhook endpoint when you save your credentials. This allows subscription renewals, cancellations, and payment failures to be processed automatically.
+
+You don't need to manually configure Razorpay webhooks unless you reset your credentials.
+
+---
+
+[→ Open Payment Gateway Settings in Dashboard](/settings/payment-gateway)

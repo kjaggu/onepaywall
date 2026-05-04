@@ -1,0 +1,58 @@
+// @ts-nocheck
+import * as __fd_glob_47 from "../content/docs/settings/team.mdx?collection=docs"
+import * as __fd_glob_46 from "../content/docs/settings/payment-gateway.mdx?collection=docs"
+import * as __fd_glob_45 from "../content/docs/settings/general.mdx?collection=docs"
+import * as __fd_glob_44 from "../content/docs/settings/domains.mdx?collection=docs"
+import * as __fd_glob_43 from "../content/docs/settings/danger-zone.mdx?collection=docs"
+import * as __fd_glob_42 from "../content/docs/settings/brands.mdx?collection=docs"
+import * as __fd_glob_41 from "../content/docs/settings/billing.mdx?collection=docs"
+import * as __fd_glob_40 from "../content/docs/email/index.mdx?collection=docs"
+import * as __fd_glob_39 from "../content/docs/email/email-settings.mdx?collection=docs"
+import * as __fd_glob_38 from "../content/docs/email/campaigns.mdx?collection=docs"
+import * as __fd_glob_37 from "../content/docs/email/automations.mdx?collection=docs"
+import * as __fd_glob_36 from "../content/docs/readers/subscribers.mdx?collection=docs"
+import * as __fd_glob_35 from "../content/docs/readers/leads.mdx?collection=docs"
+import * as __fd_glob_34 from "../content/docs/readers/audience.mdx?collection=docs"
+import * as __fd_glob_33 from "../content/docs/pricing/index.mdx?collection=docs"
+import * as __fd_glob_32 from "../content/docs/pricing/article-unlock.mdx?collection=docs"
+import * as __fd_glob_31 from "../content/docs/integrations/webhooks.mdx?collection=docs"
+import * as __fd_glob_30 from "../content/docs/integrations/resend.mdx?collection=docs"
+import * as __fd_glob_29 from "../content/docs/integrations/razorpay.mdx?collection=docs"
+import * as __fd_glob_28 from "../content/docs/integrations/index.mdx?collection=docs"
+import * as __fd_glob_27 from "../content/docs/integrations/google-ad-manager.mdx?collection=docs"
+import * as __fd_glob_26 from "../content/docs/integrations/adsense.mdx?collection=docs"
+import * as __fd_glob_25 from "../content/docs/getting-started/index.mdx?collection=docs"
+import * as __fd_glob_24 from "../content/docs/getting-started/embed-snippet.mdx?collection=docs"
+import * as __fd_glob_23 from "../content/docs/gates/triggers.mdx?collection=docs"
+import * as __fd_glob_22 from "../content/docs/gates/index.mdx?collection=docs"
+import * as __fd_glob_21 from "../content/docs/gates/gate-steps.mdx?collection=docs"
+import * as __fd_glob_20 from "../content/docs/gates/free-pages.mdx?collection=docs"
+import * as __fd_glob_19 from "../content/docs/gates/create-gate.mdx?collection=docs"
+import * as __fd_glob_18 from "../content/docs/digital-products/index.mdx?collection=docs"
+import * as __fd_glob_17 from "../content/docs/analytics/index.mdx?collection=docs"
+import * as __fd_glob_16 from "../content/docs/analytics/domain-analytics.mdx?collection=docs"
+import * as __fd_glob_15 from "../content/docs/analytics/content-analytics.mdx?collection=docs"
+import * as __fd_glob_14 from "../content/docs/advertising/index.mdx?collection=docs"
+import * as __fd_glob_13 from "../content/docs/advertising/ad-networks.mdx?collection=docs"
+import * as __fd_glob_12 from "../content/docs/advertising/ad-analytics.mdx?collection=docs"
+import * as __fd_glob_11 from "../content/docs/index.mdx?collection=docs"
+import { default as __fd_glob_10 } from "../content/docs/email/meta.json?collection=docs"
+import { default as __fd_glob_9 } from "../content/docs/readers/meta.json?collection=docs"
+import { default as __fd_glob_8 } from "../content/docs/advertising/meta.json?collection=docs"
+import { default as __fd_glob_7 } from "../content/docs/settings/meta.json?collection=docs"
+import { default as __fd_glob_6 } from "../content/docs/pricing/meta.json?collection=docs"
+import { default as __fd_glob_5 } from "../content/docs/integrations/meta.json?collection=docs"
+import { default as __fd_glob_4 } from "../content/docs/gates/meta.json?collection=docs"
+import { default as __fd_glob_3 } from "../content/docs/getting-started/meta.json?collection=docs"
+import { default as __fd_glob_2 } from "../content/docs/digital-products/meta.json?collection=docs"
+import { default as __fd_glob_1 } from "../content/docs/analytics/meta.json?collection=docs"
+import { default as __fd_glob_0 } from "../content/docs/meta.json?collection=docs"
+import { server } from 'fumadocs-mdx/runtime/server';
+import type * as Config from '../source.config';
+
+const create = server<typeof Config, import("fumadocs-mdx/runtime/types").InternalTypeConfig & {
+  DocData: {
+  }
+}>({"doc":{"passthroughs":["extractedReferences"]}});
+
+export const docs = await create.docs("docs", "content/docs", {"meta.json": __fd_glob_0, "analytics/meta.json": __fd_glob_1, "digital-products/meta.json": __fd_glob_2, "getting-started/meta.json": __fd_glob_3, "gates/meta.json": __fd_glob_4, "integrations/meta.json": __fd_glob_5, "pricing/meta.json": __fd_glob_6, "settings/meta.json": __fd_glob_7, "advertising/meta.json": __fd_glob_8, "readers/meta.json": __fd_glob_9, "email/meta.json": __fd_glob_10, }, {"index.mdx": __fd_glob_11, "advertising/ad-analytics.mdx": __fd_glob_12, "advertising/ad-networks.mdx": __fd_glob_13, "advertising/index.mdx": __fd_glob_14, "analytics/content-analytics.mdx": __fd_glob_15, "analytics/domain-analytics.mdx": __fd_glob_16, "analytics/index.mdx": __fd_glob_17, "digital-products/index.mdx": __fd_glob_18, "gates/create-gate.mdx": __fd_glob_19, "gates/free-pages.mdx": __fd_glob_20, "gates/gate-steps.mdx": __fd_glob_21, "gates/index.mdx": __fd_glob_22, "gates/triggers.mdx": __fd_glob_23, "getting-started/embed-snippet.mdx": __fd_glob_24, "getting-started/index.mdx": __fd_glob_25, "integrations/adsense.mdx": __fd_glob_26, "integrations/google-ad-manager.mdx": __fd_glob_27, "integrations/index.mdx": __fd_glob_28, "integrations/razorpay.mdx": __fd_glob_29, "integrations/resend.mdx": __fd_glob_30, "integrations/webhooks.mdx": __fd_glob_31, "pricing/article-unlock.mdx": __fd_glob_32, "pricing/index.mdx": __fd_glob_33, "readers/audience.mdx": __fd_glob_34, "readers/leads.mdx": __fd_glob_35, "readers/subscribers.mdx": __fd_glob_36, "email/automations.mdx": __fd_glob_37, "email/campaigns.mdx": __fd_glob_38, "email/email-settings.mdx": __fd_glob_39, "email/index.mdx": __fd_glob_40, "settings/billing.mdx": __fd_glob_41, "settings/brands.mdx": __fd_glob_42, "settings/danger-zone.mdx": __fd_glob_43, "settings/domains.mdx": __fd_glob_44, "settings/general.mdx": __fd_glob_45, "settings/payment-gateway.mdx": __fd_glob_46, "settings/team.mdx": __fd_glob_47, });

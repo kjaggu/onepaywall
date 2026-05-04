@@ -1,0 +1,74 @@
+<svg width="900" height="480" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <rect width="900" height="480" rx="10" fill="#f5f5f5"/>
+  <rect width="900" height="38" rx="10" fill="#e8e8e8"/>
+  <rect y="28" width="900" height="10" fill="#e8e8e8"/>
+  <circle cx="22" cy="19" r="6" fill="#fc5f57"/>
+  <circle cx="42" cy="19" r="6" fill="#fdbd2e"/>
+  <circle cx="62" cy="19" r="6" fill="#27c840"/>
+
+  <rect x="0" y="38" width="900" height="442" fill="#fff"/>
+
+  <text x="48" y="78" font-size="18" font-weight="600" fill="#111">Analytics</text>
+  <text x="48" y="98" font-size="13" fill="#888">Revenue and gate performance for the last 30 days</text>
+
+  <!-- KPI cards -->
+  <rect x="48" y="114" width="188" height="80" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="68" y="140" font-size="11" fill="#888" font-weight="500">REVENUE (30D)</text>
+  <text x="68" y="168" font-size="24" font-weight="700" fill="#111">$4,820</text>
+  <text x="68" y="185" font-size="11" fill="#17a2a4">↑ 12% vs last month</text>
+
+  <rect x="252" y="114" width="188" height="80" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="272" y="140" font-size="11" fill="#888" font-weight="500">GATE VIEWS</text>
+  <text x="272" y="168" font-size="24" font-weight="700" fill="#111">28,402</text>
+  <text x="272" y="185" font-size="11" fill="#17a2a4">↑ 8% vs last month</text>
+
+  <rect x="456" y="114" width="188" height="80" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="476" y="140" font-size="11" fill="#888" font-weight="500">CONVERSION RATE</text>
+  <text x="476" y="168" font-size="24" font-weight="700" fill="#111">3.4%</text>
+  <text x="476" y="185" font-size="11" fill="#17a2a4">↑ 0.4pp vs last month</text>
+
+  <rect x="660" y="114" width="188" height="80" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="680" y="140" font-size="11" fill="#888" font-weight="500">NEW SUBSCRIBERS</text>
+  <text x="680" y="168" font-size="24" font-weight="700" fill="#111">96</text>
+  <text x="680" y="185" font-size="11" fill="#e05050">↓ 3% vs last month</text>
+
+  <!-- Revenue chart -->
+  <rect x="48" y="210" width="540" height="220" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="68" y="238" font-size="13" font-weight="600" fill="#111">Revenue over time</text>
+
+  <!-- Chart bars -->
+  <rect x="80" y="370" width="28" height="40" rx="3" fill="#e0f4f4"/>
+  <rect x="116" y="350" width="28" height="60" rx="3" fill="#e0f4f4"/>
+  <rect x="152" y="340" width="28" height="70" rx="3" fill="#e0f4f4"/>
+  <rect x="188" y="320" width="28" height="90" rx="3" fill="#17a2a4"/>
+  <rect x="224" y="360" width="28" height="50" rx="3" fill="#e0f4f4"/>
+  <rect x="260" y="330" width="28" height="80" rx="3" fill="#e0f4f4"/>
+  <rect x="296" y="310" width="28" height="100" rx="3" fill="#17a2a4"/>
+  <rect x="332" y="345" width="28" height="65" rx="3" fill="#e0f4f4"/>
+  <rect x="368" y="290" width="28" height="120" rx="3" fill="#17a2a4"/>
+  <rect x="404" y="335" width="28" height="75" rx="3" fill="#e0f4f4"/>
+  <rect x="440" y="315" width="28" height="95" rx="3" fill="#e0f4f4"/>
+  <rect x="476" y="270" width="28" height="140" rx="3" fill="#17a2a4"/>
+
+  <line x1="68" y1="410" x2="528" y2="410" stroke="#ebebeb"/>
+  <text x="80" y="424" font-size="9" fill="#aaa" text-anchor="middle">Apr 1</text>
+  <text x="188" y="424" font-size="9" fill="#aaa" text-anchor="middle">Apr 10</text>
+  <text x="296" y="424" font-size="9" fill="#aaa" text-anchor="middle">Apr 19</text>
+  <text x="404" y="424" font-size="9" fill="#aaa" text-anchor="middle">Apr 28</text>
+
+  <!-- Gate funnel -->
+  <rect x="608" y="210" width="240" height="220" rx="8" fill="#fff" stroke="#ebebeb"/>
+  <text x="628" y="238" font-size="13" font-weight="600" fill="#111">Gate funnel</text>
+
+  <rect x="628" y="252" width="200" height="28" rx="4" fill="#e0f4f4"/>
+  <text x="728" y="270" text-anchor="middle" font-size="11" fill="#17a2a4">Viewed gate · 28,402</text>
+
+  <rect x="648" y="292" width="160" height="28" rx="4" fill="#b0e8e8"/>
+  <text x="728" y="310" text-anchor="middle" font-size="11" fill="#0a8080">Interacted · 9,610 (34%)</text>
+
+  <rect x="668" y="332" width="120" height="28" rx="4" fill="#50b0b0"/>
+  <text x="728" y="350" text-anchor="middle" font-size="11" fill="#fff">Converted · 964 (3.4%)</text>
+
+  <rect x="688" y="372" width="80" height="28" rx="4" fill="#17a2a4"/>
+  <text x="728" y="390" text-anchor="middle" font-size="11" fill="#fff">Revenue · $4,820</text>
+</svg>
