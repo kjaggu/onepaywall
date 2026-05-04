@@ -191,7 +191,7 @@ Check this before exploring the codebase. Find your feature area, then go direct
 | Billing query helpers | `lib/db/queries/billing.ts` |
 | Billing settings UI | `app/(dashboard)/settings/billing/page.tsx`, `components/dashboard/settings/billing-manager.tsx` |
 | Billing banner/topbar state | `components/dashboard/billing-banner.tsx`, `components/dashboard/topbar.tsx` |
-| Billing enforcement cron | `app/api/cron/billing-enforcement/route.ts` |
+| Billing enforcement cron | `trigger/billing-enforcement.ts` (Trigger.dev, hourly) |
 | Razorpay webhook (platform) | `app/api/webhooks/billing/route.ts` |
 | DB schema | `lib/db/schema.ts` → `plans`, `publisher_subscriptions`, `pg_webhook_events` |
 | Data model reference | `docs/data-model/payments.md` |

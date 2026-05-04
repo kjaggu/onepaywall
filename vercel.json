@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/billing-enforcement",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
+{}
