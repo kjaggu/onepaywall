@@ -1,6 +1,6 @@
 import { eq, and, isNull, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { brands, domains, publishers } from "@/lib/db/schema"
+import { brands, domains, publishers, readerPageVisits } from "@/lib/db/schema"
 import { generateSiteKey } from "@/lib/embed/siteKey"
 
 export async function listDomains(publisherId: string, brandId?: string) {
@@ -125,5 +125,17 @@ export async function countActiveDomains(publisherId: string): Promise<number> {
     .select({ count: sql<number>`count(*)::int` })
     .from(domains)
     .where(and(eq(domains.publisherId, publisherId), isNull(domains.deletedAt)))
+  return row?.count ?? 0
+}
+
+// Unique readers on a domain in the current calendar month — used by billing enforcement.
+export async function getDomainMauCurrentMonth(domainId: string): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(distinct ${readerPageVisits.readerId})::int` })
+    .from(readerPageVisits)
+    .where(and(
+      eq(readerPageVisits.domainId, domainId),
+      sql`${readerPageVisits.occurredAt} >= date_trunc('month', now())`,
+    ))
   return row?.count ?? 0
 }

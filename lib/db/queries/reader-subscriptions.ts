@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from "crypto"
+import { randomBytes } from "crypto"
+import { normalizeEmail, hashEmail } from "@/lib/email/hash"
 import { and, asc, desc, eq, gt, inArray, isNull, or } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import {
@@ -16,11 +17,11 @@ export type ReaderBillingInterval = "monthly" | "quarterly" | "annual"
 const ACTIVE_STATUSES = ["active", "authenticated"] as const
 
 export function normalizeSubscriberEmail(email: string): string {
-  return email.trim().toLowerCase()
+  return normalizeEmail(email)
 }
 
 export function hashSubscriberEmail(email: string): string {
-  return createHash("sha256").update(normalizeSubscriberEmail(email)).digest("hex")
+  return hashEmail(email)
 }
 
 export async function getOrCreateSubscriber(brandId: string, publisherId: string, email: string) {

@@ -55,25 +55,30 @@ export async function updatePgConfig(
   return row ?? null
 }
 
-// Returns decrypted secrets — only for server-side payment processing
-export async function resolveDecryptedConfig(brandId: string, publisherId: string) {
-  const config = await getOrCreatePgConfig(brandId, publisherId)
-  if (config.mode === "platform") {
-    return {
-      mode: "platform" as const,
-      provider: "razorpay" as const,
-      keyId: process.env.RAZORPAY_KEY_ID ?? process.env.RAZORPAY_PLATFORM_KEY_ID ?? "",
-      keySecret: process.env.RAZORPAY_KEY_SECRET ?? process.env.RAZORPAY_PLATFORM_KEY_SECRET ?? "",
-      webhookSecret: process.env.RAZORPAY_READER_WEBHOOK_SECRET ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? process.env.RAZORPAY_PLATFORM_WEBHOOK_SECRET ?? "",
-    }
+function platformConfig() {
+  return {
+    mode: "platform" as const,
+    provider: "razorpay" as const,
+    keyId: process.env.RAZORPAY_KEY_ID ?? process.env.RAZORPAY_PLATFORM_KEY_ID ?? "",
+    keySecret: process.env.RAZORPAY_KEY_SECRET ?? process.env.RAZORPAY_PLATFORM_KEY_SECRET ?? "",
+    webhookSecret: process.env.RAZORPAY_READER_WEBHOOK_SECRET ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? process.env.RAZORPAY_PLATFORM_WEBHOOK_SECRET ?? "",
   }
+}
+
+function ownConfig(row: { keyId: string | null; keySecret: string | null; webhookSecret: string | null }) {
   return {
     mode: "own" as const,
     provider: "razorpay" as const,
-    keyId: config.keyId ?? "",
-    keySecret: config.keySecret ? decrypt(config.keySecret) : "",
-    webhookSecret: config.webhookSecret ? decrypt(config.webhookSecret) : "",
+    keyId: row.keyId ?? "",
+    keySecret: row.keySecret ? decrypt(row.keySecret) : "",
+    webhookSecret: row.webhookSecret ? decrypt(row.webhookSecret) : "",
   }
+}
+
+// Returns decrypted secrets — only for server-side payment processing
+export async function resolveDecryptedConfig(brandId: string, publisherId: string) {
+  const config = await getOrCreatePgConfig(brandId, publisherId)
+  return config.mode === "platform" ? platformConfig() : ownConfig(config)
 }
 
 // Resolve config from a Razorpay subscription ID via our stored subscription record
@@ -85,20 +90,6 @@ export async function resolveDecryptedConfigByPublisher(publisherId: string) {
     .where(eq(publisherPgConfigs.publisherId, publisherId))
     .limit(1)
 
-  if (!existing || existing.mode === "platform") {
-    return {
-      mode: "platform" as const,
-      provider: "razorpay" as const,
-      keyId: process.env.RAZORPAY_KEY_ID ?? process.env.RAZORPAY_PLATFORM_KEY_ID ?? "",
-      keySecret: process.env.RAZORPAY_KEY_SECRET ?? process.env.RAZORPAY_PLATFORM_KEY_SECRET ?? "",
-      webhookSecret: process.env.RAZORPAY_READER_WEBHOOK_SECRET ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? process.env.RAZORPAY_PLATFORM_WEBHOOK_SECRET ?? "",
-    }
-  }
-  return {
-    mode: "own" as const,
-    provider: "razorpay" as const,
-    keyId: existing.keyId ?? "",
-    keySecret: existing.keySecret ? decrypt(existing.keySecret) : "",
-    webhookSecret: existing.webhookSecret ? decrypt(existing.webhookSecret) : "",
-  }
+  if (!existing || existing.mode === "platform") return platformConfig()
+  return ownConfig(existing)
 }

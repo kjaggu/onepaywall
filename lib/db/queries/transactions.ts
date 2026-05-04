@@ -2,8 +2,8 @@ import { db } from "@/lib/db/client"
 import { readerTransactions, domains } from "@/lib/db/schema"
 import { eq, and, gte, lte, desc, or, inArray } from "drizzle-orm"
 import { encrypt, decrypt } from "@/lib/payments/encrypt"
-import { createHash } from "crypto"
 import type { SQL } from "drizzle-orm"
+import { normalizeEmail, hashEmail } from "@/lib/email/hash"
 
 export type TransactionFilter = {
   type?: "subscription" | "one_time_unlock"
@@ -11,14 +11,6 @@ export type TransactionFilter = {
   domainId?: string
   from?: Date
   to?: Date
-}
-
-function normalizeReaderEmail(email: string): string {
-  return email.trim().toLowerCase()
-}
-
-function hashReaderEmail(email: string): string {
-  return createHash("sha256").update(normalizeReaderEmail(email)).digest("hex")
 }
 
 export async function listTransactions(publisherId: string, filter: TransactionFilter = {}) {
@@ -107,7 +99,7 @@ export async function createPendingReaderTransaction(input: {
   readerEmail?: string | null
   metadata?: Record<string, unknown>
 }) {
-  const email = input.readerEmail ? normalizeReaderEmail(input.readerEmail) : null
+  const email = input.readerEmail ? normalizeEmail(input.readerEmail) : null
   const [row] = await db.insert(readerTransactions).values({
     publisherId: input.publisherId,
     domainId: input.domainId ?? undefined,
@@ -119,7 +111,7 @@ export async function createPendingReaderTransaction(input: {
     razorpayOrderId: input.razorpayOrderId ?? undefined,
     razorpaySubscriptionId: input.razorpaySubscriptionId ?? undefined,
     contentUrl: input.contentUrl ?? undefined,
-    readerEmailHash: email ? hashReaderEmail(email) : undefined,
+    readerEmailHash: email ? hashEmail(email) : undefined,
     encryptedReaderEmail: email ? encrypt(email) : undefined,
     metadata: input.metadata ?? {},
   }).returning()
@@ -153,7 +145,7 @@ export async function markReaderTransactionCompleted(input: {
     ))
     .limit(1)
 
-  const email = input.readerEmail ? normalizeReaderEmail(input.readerEmail) : null
+  const email = input.readerEmail ? normalizeEmail(input.readerEmail) : null
   const patch = {
     status: "completed" as const,
     razorpayPaymentId: input.razorpayPaymentId,
@@ -165,7 +157,7 @@ export async function markReaderTransactionCompleted(input: {
     domainId: input.domainId ?? existing[0]?.domainId ?? null,
     readerId: input.readerId ?? existing[0]?.readerId ?? null,
     contentUrl: input.contentUrl ?? existing[0]?.contentUrl ?? null,
-    readerEmailHash: email ? hashReaderEmail(email) : existing[0]?.readerEmailHash ?? null,
+    readerEmailHash: email ? hashEmail(email) : existing[0]?.readerEmailHash ?? null,
     encryptedReaderEmail: email ? encrypt(email) : existing[0]?.encryptedReaderEmail ?? null,
     failureReason: null,
     metadata: { ...((existing[0]?.metadata as Record<string, unknown> | undefined) ?? {}), ...(input.metadata ?? {}) },
@@ -218,7 +210,7 @@ export async function markReaderTransactionFailed(input: {
       .limit(1)
     : []
 
-  const email = input.readerEmail ? normalizeReaderEmail(input.readerEmail) : null
+  const email = input.readerEmail ? normalizeEmail(input.readerEmail) : null
   const patch = {
     status: "failed" as const,
     amount: input.amount ?? existing[0]?.amount ?? 0,
@@ -228,7 +220,7 @@ export async function markReaderTransactionFailed(input: {
     razorpaySubscriptionId: input.razorpaySubscriptionId ?? existing[0]?.razorpaySubscriptionId ?? null,
     readerId: input.readerId ?? existing[0]?.readerId ?? null,
     contentUrl: input.contentUrl ?? existing[0]?.contentUrl ?? null,
-    readerEmailHash: email ? hashReaderEmail(email) : existing[0]?.readerEmailHash ?? null,
+    readerEmailHash: email ? hashEmail(email) : existing[0]?.readerEmailHash ?? null,
     encryptedReaderEmail: email ? encrypt(email) : existing[0]?.encryptedReaderEmail ?? null,
     failureReason: input.failureReason ?? "Payment failed",
     metadata: { ...((existing[0]?.metadata as Record<string, unknown> | undefined) ?? {}), ...(input.metadata ?? {}) },
