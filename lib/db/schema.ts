@@ -169,14 +169,33 @@ export const gateSteps = pgTable("gate_steps", {
 export const plans = pgTable("plans", {
   slug:              planSlugEnum("slug").primaryKey(),
   name:              text("name").notNull(),
+  // INR base price (paise). Kept as-is for backward compat; logically = priceMonthlyInr.
   priceMonthly:      integer("price_monthly"),
+  // USD base price (cents)
+  priceMonthlyUsd:   integer("price_monthly_usd"),
   maxBrands:         integer("max_brands"),
-  maxDomains:        integer("max_domains"),
-  maxMauPerDomain:   integer("max_mau_per_domain"),
+  maxDomains:        integer("max_domains"),        // NULL = unlimited (all plans)
+  maxMauPerDomain:   integer("max_mau_per_domain"), // legacy, superseded by maxMonthlyGateTriggers
   maxGates:          integer("max_gates"),
   trialDays:         integer("trial_days").default(0),
   active:            boolean("active").notNull().default(true),
   razorpayPlanId:    text("razorpay_plan_id"),
+  razorpayPlanIdUsd: text("razorpay_plan_id_usd"),
+  // Commission in basis points applied to platform-PG reader transactions (400 = 4%)
+  commissionBps:     integer("commission_bps").notNull().default(0),
+  // BYOK addon prices (paise / cents). NULL = not offered on this plan.
+  byokAddonPriceInr: integer("byok_addon_price_inr"),
+  byokAddonPriceUsd: integer("byok_addon_price_usd"),
+  // Gate trigger quota: monthly bot-filtered gate_shown events. NULL = unlimited.
+  maxMonthlyGateTriggers: integer("max_monthly_gate_triggers"),
+  // Subscriber seat quota: active paying reader subscriptions. NULL = unlimited.
+  maxPayingSubscribers:       integer("max_paying_subscribers"),
+  subscriberOveragePriceInr:  integer("subscriber_overage_price_inr"),
+  subscriberOveragePriceUsd:  integer("subscriber_overage_price_usd"),
+  // Ad impression billing: free tier + overage rate per 1,000 ad_start events.
+  maxFreeAdImpressions:       integer("max_free_ad_impressions"),       // NULL = unlimited
+  adOveragePricePerMilleInr:  integer("ad_overage_price_per_mille_inr"),
+  adOveragePricePerMilleUsd:  integer("ad_overage_price_per_mille_usd"),
 })
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
@@ -192,11 +211,41 @@ export const subscriptions = pgTable("subscriptions", {
   cancelledAt:        timestamp("cancelled_at"),
   cancelAtCycleEnd:   boolean("cancel_at_cycle_end").notNull().default(false),
   dunningStartedAt:   timestamp("dunning_started_at"),
+  // BYOK entitlement — set true when publisher pays the BYOK addon
+  byokEnabled:        boolean("byok_enabled").notNull().default(false),
+  billingInterval:    text("billing_interval").notNull().default("monthly"),
   createdAt:          timestamp("created_at").notNull().defaultNow(),
   updatedAt:          timestamp("updated_at").notNull().defaultNow(),
 }, t => [
   index("subscriptions_publisher_idx").on(t.publisherId),
   index("subscriptions_status_idx").on(t.status),
+])
+
+// ─── Publisher overage charges ────────────────────────────────────────────────
+
+export const publisherOverageCharges = pgTable("publisher_overage_charges", {
+  id:                       text("id").primaryKey().default(sql`gen_random_uuid()`),
+  publisherId:              text("publisher_id").notNull().references(() => publishers.id, { onDelete: "cascade" }),
+  billingPeriodStart:       timestamp("billing_period_start").notNull(),
+  billingPeriodEnd:         timestamp("billing_period_end").notNull(),
+  // Subscriber seat overage
+  payingSubscriberCount:    integer("paying_subscriber_count").notNull().default(0),
+  subscriberOverageCount:   integer("subscriber_overage_count").notNull().default(0),
+  subscriberOverageAmount:  integer("subscriber_overage_amount").notNull().default(0),
+  // Ad impression billing
+  adImpressionCount:        integer("ad_impression_count").notNull().default(0),
+  adImpressionFreeQuota:    integer("ad_impression_free_quota").notNull().default(0),
+  adImpressionOverage:      integer("ad_impression_overage").notNull().default(0),
+  adImpressionAmount:       integer("ad_impression_amount").notNull().default(0),
+  // Totals
+  totalAmount:              integer("total_amount").notNull().default(0),
+  currency:                 text("currency").notNull().default("INR"),
+  status:                   text("status").notNull().default("pending"),
+  razorpayOrderId:          text("razorpay_order_id"),
+  createdAt:                timestamp("created_at").notNull().defaultNow(),
+}, t => [
+  index("overage_charges_publisher_idx").on(t.publisherId),
+  index("overage_charges_period_idx").on(t.billingPeriodStart),
 ])
 
 // ─── Readers ──────────────────────────────────────────────────────────────────
