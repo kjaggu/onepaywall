@@ -244,3 +244,21 @@ These conditions are ignored if the reader has no computed profile yet (new read
 | `app/api/embed/gate-check/route.ts` | Extended — pass profile to gate eval; return segment in response |
 | `lib/db/schema.ts` | Extended — `crossPublisherInterests`, `profileVersion` on `readerProfiles` |
 | `db/migrations/0014_reader_intelligence.sql` | New — columns + indexes |
+
+---
+
+## Phase 7 — Audience Marketplace (Planned)
+
+**Goal:** Monetise OnePaywall's cross-publisher reader intelligence graph by enabling advertisers to reach anonymised, interest-verified audience segments directly — without cookie-based tracking.
+
+**Components:**
+- Advertiser portal: campaign creation, segment targeting, budget management
+- Segment API: serve anonymised audience profiles to demand-side platforms
+- Programmatic integration: GAM/DV360 audience segment sync
+- Publisher revenue share: 70% of segment deal value flows to contributing publishers
+- OnePaywall take rate: 30% of audience marketplace revenue
+- Privacy: all data served as probabilistic segments — no PII, no individual profiles
+
+**Prerequisites:** ≥ 6 months of cross-publisher signal data (Phase 1 data, maturing now)
+
+**When to build:** After Scale-tier publisher count ≥ 20 (sufficient data density for quality segments)

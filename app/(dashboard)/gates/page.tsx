@@ -42,7 +42,10 @@ export default async function GatesPage() {
         <div>
           <h1 className="text-h1 text-[var(--color-text)]">Gates</h1>
           <p className="text-body-sm text-[var(--color-text-secondary)] mt-1">
-            Configure paywall gates and the step sequences readers see.
+            Configure paywall gates and the step sequences readers see.{" "}
+            <Link href="/docs/gates" className="text-[var(--color-teal)] hover:underline">
+              Learn more →
+            </Link>
           </p>
         </div>
         <CreateGateSheet domains={domainOptions} />

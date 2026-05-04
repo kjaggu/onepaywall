@@ -1,9 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { RefreshCw, Users2, MoreHorizontal } from "lucide-react"
 import { AddSubscriberSheet } from "@/components/dashboard/subscribers/add-subscriber-sheet"
 import { ImportSubscribersSheet } from "@/components/dashboard/subscribers/import-subscribers-sheet"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type Subscriber = {
   id: string
@@ -73,62 +75,41 @@ function tenure(since: string) {
   return rem > 0 ? `${years}y ${rem}mo` : `${years}y`
 }
 
-// Simple row action dropdown
 function RowActions({ sub, onAction }: { sub: Subscriber; onAction: (id: string, action: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [open])
-
-  const canCancel = sub.status !== "cancelled"
-  const canPause  = sub.status === "active" || sub.status === "authenticated" || sub.status === "past_due"
+  const canCancel   = sub.status !== "cancelled"
+  const canPause    = sub.status === "active" || sub.status === "authenticated" || sub.status === "past_due"
   const canActivate = sub.status === "paused" || sub.status === "cancelled"
+  const hasActions  = canCancel || canPause || canActivate
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
-      <button
-        onClick={() => setOpen(v => !v)}
+    <DropdownMenu>
+      <DropdownMenuTrigger
         style={{ padding: "4px 6px", border: "none", background: "none", cursor: "pointer", color: "#aaa", borderRadius: 4, display: "flex", alignItems: "center" }}
         title="Actions"
       >
         <MoreHorizontal size={15} />
-      </button>
-      {open && (
-        <div style={{
-          position: "absolute", right: 0, top: "100%", zIndex: 50,
-          background: "#fff", border: "1px solid #e5e5e5", borderRadius: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)", minWidth: 130, padding: "4px 0",
-        }}>
-          {canActivate && (
-            <button onClick={() => { onAction(sub.id, "activate"); setOpen(false) }}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 14px", fontSize: 13, color: "#16a34a", background: "none", border: "none", cursor: "pointer" }}>
-              Activate
-            </button>
-          )}
-          {canPause && (
-            <button onClick={() => { onAction(sub.id, "pause"); setOpen(false) }}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 14px", fontSize: 13, color: "#ca8a04", background: "none", border: "none", cursor: "pointer" }}>
-              Pause
-            </button>
-          )}
-          {canCancel && (
-            <button onClick={() => { onAction(sub.id, "cancel"); setOpen(false) }}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 14px", fontSize: 13, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>
-              Cancel
-            </button>
-          )}
-          {!canCancel && !canPause && !canActivate && (
-            <div style={{ padding: "7px 14px", fontSize: 12, color: "#bbb" }}>No actions</div>
-          )}
-        </div>
-      )}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {canActivate && (
+          <DropdownMenuItem onClick={() => onAction(sub.id, "activate")} className="text-[#16a34a]">
+            Activate
+          </DropdownMenuItem>
+        )}
+        {canPause && (
+          <DropdownMenuItem onClick={() => onAction(sub.id, "pause")} className="text-[#ca8a04]">
+            Pause
+          </DropdownMenuItem>
+        )}
+        {canCancel && (
+          <DropdownMenuItem onClick={() => onAction(sub.id, "cancel")} variant="destructive">
+            Cancel
+          </DropdownMenuItem>
+        )}
+        {!hasActions && (
+          <DropdownMenuItem disabled>No actions</DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -207,7 +188,10 @@ export default function SubscribersPage() {
   return (
     <div>
       {/* Header actions */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16, gap: 8 }}>
+        <Link href="/docs/readers/subscribers" className="text-[12px] text-[#17a2a4] hover:underline">
+          Docs →
+        </Link>
         <ImportSubscribersSheet onImported={load} />
         <AddSubscriberSheet onAdded={load} />
       </div>

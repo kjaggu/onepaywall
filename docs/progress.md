@@ -112,7 +112,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 |------|--------|-------|
 | DB schema | `done` | ad_units, publisher_ad_networks in schema.ts |
 | Ad unit CRUD API | `done` | `app/api/ads/route.ts`, `app/api/ads/[id]/route.ts`, `lib/db/queries/ads.ts` — includes `listActiveAdUnits` for rotation engine |
-| Upload signed URL | `partial` | `app/api/ads/upload-url/route.ts` returns R2 storage key/CDN URL, but the presigned PUT implementation needs completion/verification |
+| Upload signed URL | `done` | `app/api/ads/upload-url/route.ts` — AWS SigV4 presigned PUT URL; try-catch on request body |
 | Ad selection engine | `done` | `lib/ads/rotate.ts` — weighted relevance scoring against reader crossPublisherInterests; 9 unit tests passing |
 | Google AdSense adapter | `done` | `lib/ads/networks/adsense.ts` — pure render config resolver |
 | Google Ad Manager adapter | `done` | `lib/ads/networks/gam.ts` — pure render config resolver |
@@ -141,7 +141,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Payment gateway settings UI | `done` | `app/(dashboard)/settings/payment-gateway/page.tsx` + `components/dashboard/settings/pg-config-form.tsx` |
 | OnePaywall billing — schema + API + webhook | `done` | Session 2a — migration `0006`, `lib/payments/billing.ts`, `app/api/billing/route.ts`, `app/api/webhooks/billing/route.ts`, signup hook in `lib/auth/register.ts`, `/api/me` extended for sub state |
 | OnePaywall billing — UI | `done` | Session 2b — `/settings/billing` plan picker + manage view, `BillingBanner`, topbar plan-tone badge, Razorpay Checkout integration |
-| OnePaywall billing — enforcement (Session 2c) | `partial` | Cron worker exists at `app/api/cron/billing-enforcement/route.ts`; `gate-check` skips inactive/suspended publishers; max domain/gate checks exist. Max MAU per domain enforcement is still pending. |
+| OnePaywall billing — enforcement (Session 2c) | `done` | Cron worker at `app/api/cron/billing-enforcement/route.ts`; suspends past-due/expired-trial publishers; MAU per domain enforcement added — pauses domains over limit using `getDomainMauCurrentMonth` |
 | One-time unlock flow | `done` | `app/api/embed/unlock/route.ts` create+verify; embed checkout; price resolution via `lib/payments/resolveUnlockPrice.ts` (URL override → publisher default → step config); revenue + unlock recorded atomically via `lib/payments/recordUnlock.ts`, idempotent on `razorpay_payment_id` |
 | Reader subscriptions | `done` | Publisher membership intervals sync to Razorpay in platform or own-key mode; embed checkout + email magic-link restore; publisher-wide access bypass in gate-check |
 | Reader subscription APIs | `done` | `app/api/embed/subscription/route.ts` — create, verify, restore-request, restore-confirm |
@@ -237,7 +237,7 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Subscription management | `done` | `app/admin/subscriptions/page.tsx` — client component fetches `/api/admin/subscriptions`; status filter + search |
 | Admin query helpers | `done` | `lib/db/queries/admin.ts` — getPlatformStats, listAllPublishers, getPublisherDetail, listAllSubscriptions, getPlansWithStats |
 | Admin API routes | `done` | `app/api/admin/publishers/route.ts`, `app/api/admin/subscriptions/route.ts` — superadmin-guarded |
-| Platform health | `partial` | `app/admin/health/page.tsx` — static/mock monitoring UI |
+| Platform health | `done` | `app/admin/health/page.tsx` — async server component with real data; `getDomainsHealth()` in admin.ts drives per-domain last-ping, calls/day, health status |
 
 ---
 
@@ -248,6 +248,39 @@ Updated at the end of every meaningful session. Read this before starting work t
 | Dashboard mockup components | `done` | `components/landing/mockups/` — AnalyticsMockup, IntelligenceMockup, RevenueMockup with dummy data |
 | Motion system | `done` | CSS keyframes + scroll-reveal hook (IntersectionObserver) + counter hook (rAF) + mouse-parallax hook; 3D CSS perspective on hero mockup, tilt on feature cards |
 | Landing CSS utilities | `done` | `app/globals.css` — lp-* keyframes, scroll reveal classes, stagger utilities, gradient text, btn-primary/ghost classes |
+
+---
+
+## Phase 5 — Publisher Email & Automation
+| Area | Status | Notes |
+|------|--------|-------|
+| DB migration | `done` | `db/migrations/0018_email_automation.sql` — publisher_email_configs, campaigns, automations, email_automation_runs, email_events; unsubscribe_token + unsubscribed_at on reader_subscribers |
+| Schema.ts updates | `done` | publisherEmailConfigs, publisherEmailCampaigns, publisherEmailAutomations, emailAutomationRuns, emailEvents tables |
+| Email provider lib | `done` | `lib/email/provider.ts` — Resend wrapper with API key decryption |
+| Segment filter lib | `done` | `lib/email/segments.ts` — joins reader_subscribers + reader_profiles; 4 filter dimensions |
+| Tracking lib | `done` | `lib/email/tracking.ts` — Base64 token, wraps links + 1×1 pixel injection |
+| Unsubscribe lib | `done` | `lib/email/unsubscribe.ts` — token validation, sets unsubscribed_at |
+| Automation engine | `done` | `lib/email/automations/engine.ts` — evaluateAutomations; dedup via email_automation_runs |
+| Automation triggers | `done` | `lib/email/automations/triggers.ts` — 4 trigger types + eventMatchesAutomation |
+| Config API | `done` | `app/api/email/config/route.ts` — GET/PUT; encrypts Resend API key |
+| Campaigns API | `done` | `app/api/email/campaigns/route.ts` + `[id]/route.ts` — CRUD |
+| Automations API | `done` | `app/api/email/automations/route.ts` + `[id]/route.ts` — CRUD + status toggle |
+| Send-campaign API | `done` | `app/api/email/send-campaign/route.ts` — internal; batch send to segment; guarded by CRON_SECRET |
+| Open/click tracking | `done` | `app/api/email/track/open/[token]/route.ts`, `click/[token]/route.ts` — write email_events |
+| Unsubscribe API | `done` | `app/api/email/unsubscribe/[token]/route.ts` — marks subscriber inactive, returns confirmation page |
+| Domain verification API | `done` | `app/api/email/verify-domain/route.ts` — polls Resend DKIM/SPF, updates domain_verified_at |
+| Resend webhook | `done` | `app/api/email/webhook/route.ts` — Svix signature, bounces + complaints → auto-suppress |
+| Email hub page | `done` | `app/(dashboard)/email/page.tsx` — subscriber count, last campaign, active automation count |
+| Campaigns page | `done` | `app/(dashboard)/email/campaigns/page.tsx` — list + create + send-now button |
+| Automations page | `done` | `app/(dashboard)/email/automations/page.tsx` — list + activate/pause + create sheet |
+| Settings page | `done` | `app/(dashboard)/email/settings/page.tsx` — Resend key, from fields, DKIM/SPF status chip |
+| Email layout | `done` | `app/(dashboard)/email/layout.tsx` — Overview / Campaigns / Automations / Settings tabs |
+| Sidebar nav | `done` | "Email" link added under Monetise group in sidebar.tsx |
+| Integration: lead capture | `done` | `app/api/embed/lead-capture/route.ts` — fires new_subscriber automation after subscriber insert |
+| Integration: ad engaged | `done` | `app/api/embed/event/route.ts` — fires ad_engaged automation on ad_complete/ad_skip |
+| Integration: segment changed | `done` | `lib/intelligence/computeProfile.ts` — fires segment_entered automation on segment transition |
+| Trigger.dev: campaign scheduler | `done` | `trigger/email-campaigns.ts` — every 5 min cron; sends scheduled campaigns atomically |
+| Trigger.dev: inactivity check | `done` | `trigger/email-inactivity.ts` — daily 06:00 UTC; fires inactivity automation for dormant subscribers |
 
 ---
 

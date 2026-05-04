@@ -6,7 +6,9 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session?.publisherId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { filename, contentType } = await req.json()
+  let body: { filename?: string; contentType?: string }
+  try { body = await req.json() } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }) }
+  const { filename, contentType } = body
 
   if (!filename || !contentType) {
     return NextResponse.json({ error: "filename and contentType required" }, { status: 400 })

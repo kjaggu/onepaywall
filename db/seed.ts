@@ -10,13 +10,68 @@ const db = drizzle(sql, { schema })
 async function seed() {
   console.log("Seeding…")
 
-  // ── Plans ──────────────────────────────────────────────────────────────────
+  // ── Plans (v2 pricing) ─────────────────────────────────────────────────────
   await db.insert(schema.plans).values([
-    { slug: "trial",   name: "Trial",   priceMonthly: null,    maxDomains: 1,    maxMauPerDomain: 5000,    maxGates: 2,    trialDays: 30, active: true },
-    { slug: "lite",    name: "Lite",    priceMonthly: 149900,  maxDomains: 1,    maxMauPerDomain: 5000,    maxGates: 2,    trialDays: 0,  active: true },
-    { slug: "starter", name: "Starter", priceMonthly: 299900,  maxDomains: 3,    maxMauPerDomain: 25000,   maxGates: 10,   trialDays: 0,  active: true },
-    { slug: "growth",  name: "Growth",  priceMonthly: 799900,  maxDomains: 10,   maxMauPerDomain: 100000,  maxGates: null, trialDays: 0,  active: true },
-    { slug: "scale",   name: "Scale",   priceMonthly: 1999900, maxDomains: null, maxMauPerDomain: null,    maxGates: null, trialDays: 0,  active: true },
+    {
+      slug: "trial", name: "Trial",
+      priceMonthly: null, priceMonthlyUsd: null,
+      commissionBps: 0,
+      byokAddonPriceInr: null, byokAddonPriceUsd: null,
+      maxMonthlyGateTriggers: 1_000,
+      maxDomains: null, maxGates: 2, trialDays: 14, active: true,
+      maxPayingSubscribers: 50,
+      subscriberOveragePriceInr: null, subscriberOveragePriceUsd: null,
+      maxFreeAdImpressions: 10_000,
+      adOveragePricePerMilleInr: 1500, adOveragePricePerMilleUsd: 20,
+    },
+    {
+      slug: "lite", name: "Lite",
+      priceMonthly: 299900, priceMonthlyUsd: 2900,
+      commissionBps: 400,
+      byokAddonPriceInr: 149900, byokAddonPriceUsd: 1500,
+      maxMonthlyGateTriggers: 10_000,
+      maxDomains: null, maxGates: 5, trialDays: 14, active: true,
+      maxPayingSubscribers: 250,
+      subscriberOveragePriceInr: 800, subscriberOveragePriceUsd: 10,
+      maxFreeAdImpressions: 10_000,
+      adOveragePricePerMilleInr: 1500, adOveragePricePerMilleUsd: 20,
+    },
+    {
+      slug: "starter", name: "Starter",
+      priceMonthly: 749900, priceMonthlyUsd: 7900,
+      commissionBps: 300,
+      byokAddonPriceInr: 399900, byokAddonPriceUsd: 3900,
+      maxMonthlyGateTriggers: 50_000,
+      maxDomains: null, maxGates: 20, trialDays: 14, active: true,
+      maxPayingSubscribers: 1500,
+      subscriberOveragePriceInr: 500, subscriberOveragePriceUsd: 6,
+      maxFreeAdImpressions: 50_000,
+      adOveragePricePerMilleInr: 1200, adOveragePricePerMilleUsd: 15,
+    },
+    {
+      slug: "growth", name: "Growth",
+      priceMonthly: 1899900, priceMonthlyUsd: 19900,
+      commissionBps: 200,
+      byokAddonPriceInr: 999900, byokAddonPriceUsd: 9900,
+      maxMonthlyGateTriggers: 250_000,
+      maxDomains: null, maxGates: null, trialDays: 0, active: true,
+      maxPayingSubscribers: 10_000,
+      subscriberOveragePriceInr: 300, subscriberOveragePriceUsd: 4,
+      maxFreeAdImpressions: 200_000,
+      adOveragePricePerMilleInr: 900, adOveragePricePerMilleUsd: 10,
+    },
+    {
+      slug: "scale", name: "Scale",
+      priceMonthly: 4999900, priceMonthlyUsd: 49900,
+      commissionBps: 150,
+      byokAddonPriceInr: 2499900, byokAddonPriceUsd: 24900,
+      maxMonthlyGateTriggers: 1_000_000,
+      maxDomains: null, maxGates: null, trialDays: 0, active: true,
+      maxPayingSubscribers: null,
+      subscriberOveragePriceInr: null, subscriberOveragePriceUsd: null,
+      maxFreeAdImpressions: null,
+      adOveragePricePerMilleInr: 0, adOveragePricePerMilleUsd: 0,
+    },
   ]).onConflictDoNothing()
   console.log("✓ Plans")
 

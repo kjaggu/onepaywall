@@ -80,7 +80,10 @@ export default function EmailHubPage() {
         <h1 className="text-[17px] font-semibold text-[#111]">Email</h1>
       </div>
       <p className="text-[13px] text-[#888] mb-6">
-        Send campaigns and automations to your readers — pre-segmented by behavior.
+        Send campaigns and automations to your readers — pre-segmented by behavior.{" "}
+        <Link href="/docs/email" className="text-[#17a2a4] hover:underline">
+          Learn more →
+        </Link>
       </p>
 
       {loading ? (

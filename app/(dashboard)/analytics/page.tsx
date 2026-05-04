@@ -67,7 +67,10 @@ export default async function AnalyticsPage({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: "#111", margin: 0 }}>Analytics</h1>
-          <p style={{ fontSize: 12, color: "#aaa", marginTop: 2, marginBottom: 0 }}>Gate performance, reader behaviour, and revenue.</p>
+          <p style={{ fontSize: 12, color: "#aaa", marginTop: 2, marginBottom: 0 }}>
+            Gate performance, reader behaviour, and revenue.{" "}
+            <Link href="/docs/analytics" className="text-[#17a2a4] hover:underline">Learn more →</Link>
+          </p>
         </div>
         <RangeFilter current={days} />
       </div>

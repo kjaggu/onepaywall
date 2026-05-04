@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import Link from "next/link"
 import { Megaphone, Plus, Image as ImageIcon, Video, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CreateAdSheet } from "@/components/dashboard/ads/create-ad-sheet"
@@ -51,7 +52,10 @@ export default function AdsPage() {
 
   return (
     <div>
-      <div className="flex justify-end mb-3">
+      <div className="flex justify-end items-center gap-3 mb-3">
+        <Link href="/docs/advertising" className="text-[12px] text-[#17a2a4] hover:underline">
+          Docs →
+        </Link>
         <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
           <Plus size={14} />
           Create ad unit

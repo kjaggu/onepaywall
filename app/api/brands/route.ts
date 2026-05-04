@@ -8,15 +8,7 @@ import {
   getBrandsSummary,
 } from "@/lib/db/queries/brands"
 import { getPublisherLimits } from "@/lib/db/queries/billing"
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 63)
-}
+import { slugify } from "@/lib/utils"
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
