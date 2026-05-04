@@ -1,7 +1,14 @@
 import { notFound } from "next/navigation"
 import { CreditCard } from "lucide-react"
 import { getSession } from "@/lib/auth/session"
-import { listActivePlans, getCurrentSubscription } from "@/lib/db/queries/billing"
+import {
+  listActivePlans,
+  getCurrentSubscription,
+  getPublisherLimits,
+  getPublisherMonthlyGateTriggers,
+  getPublisherPayingSubscriberCount,
+  getPublisherMonthlyAdImpressions,
+} from "@/lib/db/queries/billing"
 import { fetchPlatformInvoices, getPlatformKeyId } from "@/lib/payments/billing"
 import { BillingManager } from "@/components/dashboard/settings/billing-manager"
 
@@ -9,26 +16,38 @@ export default async function BillingPage() {
   const session = await getSession()
   if (!session?.publisherId) notFound()
 
+  const now        = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
   const [allPlans, subscription] = await Promise.all([
     listActivePlans(),
     getCurrentSubscription(session.publisherId),
   ])
 
-  const invoices = subscription?.razorpaySubId
-    ? await fetchPlatformInvoices(subscription.razorpaySubId)
-    : []
+  const periodStart = subscription?.currentPeriodStart ?? monthStart
+  const periodEnd   = subscription?.currentPeriodEnd   ?? now
+
+  const [invoices, limits, gateTriggers, subscriberCount, adImpressions] = await Promise.all([
+    subscription?.razorpaySubId
+      ? fetchPlatformInvoices(subscription.razorpaySubId)
+      : Promise.resolve([]),
+    getPublisherLimits(session.publisherId),
+    getPublisherMonthlyGateTriggers(session.publisherId, monthStart, now),
+    getPublisherPayingSubscriberCount(session.publisherId),
+    getPublisherMonthlyAdImpressions(session.publisherId, periodStart, periodEnd),
+  ])
 
   // Pass only serialisable values to the client component (no Date objects).
   const initialState = {
     plans: allPlans.map(p => ({
-      slug:             p.slug,
-      name:             p.name,
-      priceMonthly:     p.priceMonthly,
-      maxDomains:       p.maxDomains,
-      maxMauPerDomain:  p.maxMauPerDomain,
-      maxGates:         p.maxGates,
-      trialDays:        p.trialDays,
-      hasRazorpayPlanId: !!p.razorpayPlanId,
+      slug:                   p.slug,
+      name:                   p.name,
+      priceMonthly:           p.priceMonthly,
+      maxMonthlyGateTriggers: p.maxMonthlyGateTriggers ?? null,
+      maxPayingSubscribers:   p.maxPayingSubscribers   ?? null,
+      maxGates:               p.maxGates,
+      trialDays:              p.trialDays,
+      hasRazorpayPlanId:      !!p.razorpayPlanId,
     })),
     subscription: subscription ? {
       planSlug:         subscription.planSlug,
@@ -48,6 +67,16 @@ export default async function BillingPage() {
     })),
     keyId:     getPlatformKeyId(),
     userEmail: session.email,
+    usage: {
+      gateTriggers,
+      gateTriggerLimit:       limits?.maxMonthlyGateTriggers ?? null,
+      subscriberCount,
+      subscriberLimit:        limits?.maxPayingSubscribers   ?? null,
+      adImpressions,
+      adFreeQuota:            limits?.maxFreeAdImpressions   ?? null,
+      adOveragePricePerMille: limits?.adOveragePricePerMilleInr ?? null,
+      currency:               "INR",
+    },
   }
 
   return (

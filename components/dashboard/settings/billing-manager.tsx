@@ -2,19 +2,20 @@
 
 import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ExternalLink, RotateCcw, X } from "lucide-react"
+import { Check, ExternalLink, RotateCcw, TrendingUp, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { fmtINR } from "@/lib/format"
 
 type Plan = {
-  slug:             string
-  name:             string
-  priceMonthly:     number | null
-  maxDomains:       number | null
-  maxMauPerDomain:  number | null
-  maxGates:         number | null
-  trialDays:        number | null
-  hasRazorpayPlanId: boolean
+  slug:                   string
+  name:                   string
+  priceMonthly:           number | null
+  maxMonthlyGateTriggers: number | null
+  maxPayingSubscribers:   number | null
+  maxGates:               number | null
+  trialDays:              number | null
+  hasRazorpayPlanId:      boolean
 }
 
 type Subscription = {
@@ -35,6 +36,17 @@ type Invoice = {
   shortUrl: string | null
 }
 
+type Usage = {
+  gateTriggers:           number
+  gateTriggerLimit:       number | null
+  subscriberCount:        number
+  subscriberLimit:        number | null
+  adImpressions:          number
+  adFreeQuota:            number | null
+  adOveragePricePerMille: number | null  // paise per 1K
+  currency:               string
+}
+
 type Props = {
   initialState: {
     plans:        Plan[]
@@ -42,6 +54,7 @@ type Props = {
     invoices:     Invoice[]
     keyId:        string | null
     userEmail:    string
+    usage:        Usage
   }
 }
 
@@ -66,22 +79,58 @@ function loadRazorpay(): Promise<void> {
   return _sdkPromise
 }
 
-function fmtINR(amountInPaise: number) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amountInPaise / 100)
-}
-
 function fmtDate(iso: string | null) {
   if (!iso) return "—"
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
 }
 
+function fmtCount(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`
+  return n.toLocaleString("en-IN")
+}
+
+function UsageMeter({
+  label,
+  value,
+  limit,
+  suffix = "",
+}: {
+  label:   string
+  value:   number
+  limit:   number
+  suffix?: string
+}) {
+  const pct      = Math.min(100, (value / limit) * 100)
+  const isHigh   = pct >= 80
+  const isFull   = pct >= 100
+  const barColor = isFull ? "#dc2626" : isHigh ? "#d97706" : "var(--color-brand)"
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between text-body-sm">
+        <span className="text-[var(--color-text-secondary)]">{label}</span>
+        <span className="font-medium text-[var(--color-text)]">
+          {fmtCount(value)}{suffix} <span className="text-[var(--color-text-secondary)] font-normal">/ {fmtCount(limit)}</span>
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-[var(--color-border)] overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, background: barColor }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function BillingManager({ initialState }: Props) {
   const router = useRouter()
-  const [busy, setBusy]   = useState<string | null>(null) // tracks which plan slug is currently being acted on
+  const [busy, setBusy]   = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
 
-  const { plans, subscription, invoices, keyId, userEmail } = initialState
+  const { plans, subscription, invoices, keyId, userEmail, usage } = initialState
 
   const isTrialing  = subscription?.status === "trialing"
   const isActive    = subscription?.status === "active"
@@ -93,6 +142,17 @@ export function BillingManager({ initialState }: Props) {
   const daysRemaining = subscription?.currentPeriodEnd
     ? Math.max(0, Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / 86_400_000))
     : null
+
+  // Estimate ad overage charge for current period
+  const adOver    = usage.adFreeQuota != null ? Math.max(0, usage.adImpressions - usage.adFreeQuota) : 0
+  const estAdFee  = usage.adOveragePricePerMille != null && adOver > 0
+    ? Math.floor((adOver / 1000) * usage.adOveragePricePerMille)
+    : 0
+
+  // Whether any meter is in the warning zone (> 80%) to show upgrade CTA
+  const anyMeterHigh =
+    (usage.gateTriggerLimit  != null && usage.gateTriggers    / usage.gateTriggerLimit  >= 0.8) ||
+    (usage.subscriberLimit   != null && usage.subscriberCount / usage.subscriberLimit   >= 0.8)
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
@@ -262,7 +322,6 @@ export function BillingManager({ initialState }: Props) {
         </Button>
       )
     }
-    // Trialing-on-different-plan, cancelled, past_due, suspended → subscribe action
     return (
       <Button onClick={() => handleSubscribe(p.slug)} disabled={disabled} className="w-full">
         {busy === p.slug ? "Opening checkout…" : "Subscribe"}
@@ -279,6 +338,8 @@ export function BillingManager({ initialState }: Props) {
     warning: { bg: "#fff8ed",                    border: "#f5d28a",                      fg: "#7a4500"               },
     danger:  { bg: "#fdecea",                    border: "#f5b5b0",                      fg: "#922118"               },
   }[status.tone]
+
+  const hasActiveSubscription = isActive || isTrialing || isPastDue
 
   return (
     <div className="flex flex-col gap-6">
@@ -324,8 +385,76 @@ export function BillingManager({ initialState }: Props) {
         </div>
       )}
 
+      {/* Usage meters — only shown when on an active plan with limits */}
+      {hasActiveSubscription && (
+        <div className="rounded-xl border border-[var(--color-border)] p-5 flex flex-col gap-4">
+          <h2 className="text-body font-semibold text-[var(--color-text)]">Usage this billing period</h2>
+
+          <div className="flex flex-col gap-3">
+            {usage.gateTriggerLimit != null ? (
+              <UsageMeter
+                label="Gate triggers"
+                value={usage.gateTriggers}
+                limit={usage.gateTriggerLimit}
+                suffix=" triggers"
+              />
+            ) : (
+              <div className="flex items-center justify-between text-body-sm">
+                <span className="text-[var(--color-text-secondary)]">Gate triggers</span>
+                <span className="font-medium text-[var(--color-text)]">{fmtCount(usage.gateTriggers)} <span className="text-[var(--color-text-secondary)] font-normal">/ unlimited</span></span>
+              </div>
+            )}
+
+            {usage.subscriberLimit != null ? (
+              <UsageMeter
+                label="Paying subscribers"
+                value={usage.subscriberCount}
+                limit={usage.subscriberLimit}
+                suffix=" seats"
+              />
+            ) : (
+              <div className="flex items-center justify-between text-body-sm">
+                <span className="text-[var(--color-text-secondary)]">Paying subscribers</span>
+                <span className="font-medium text-[var(--color-text)]">{fmtCount(usage.subscriberCount)} <span className="text-[var(--color-text-secondary)] font-normal">/ unlimited</span></span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-body-sm">
+              <span className="text-[var(--color-text-secondary)]">Ad impressions</span>
+              <span className="font-medium text-[var(--color-text)]">
+                {fmtCount(usage.adImpressions)}
+                {usage.adFreeQuota != null && (
+                  <span className="text-[var(--color-text-secondary)] font-normal"> / {fmtCount(usage.adFreeQuota)} free</span>
+                )}
+              </span>
+            </div>
+
+            {estAdFee > 0 && (
+              <div className="flex items-center justify-between text-body-sm pt-1 border-t border-[var(--color-border)]">
+                <span className="text-[var(--color-text-secondary)]">Est. ad overage charge</span>
+                <span className="font-medium text-[#d97706]">{fmtINR(estAdFee)}</span>
+              </div>
+            )}
+          </div>
+
+          {anyMeterHigh && (
+            <div className="flex items-center justify-between rounded-lg bg-[#fff8ed] border border-[#f5d28a] px-3 py-2.5 mt-1">
+              <div className="flex items-center gap-2 text-body-sm text-[#7a4500]">
+                <TrendingUp size={14} />
+                You&apos;re approaching your plan limits
+              </div>
+              <Button size="sm" variant="outline" className="shrink-0" onClick={() => {
+                document.getElementById("plans-section")?.scrollIntoView({ behavior: "smooth" })
+              }}>
+                Upgrade plan
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Plan picker */}
-      <div>
+      <div id="plans-section">
         <h2 className="text-body font-semibold text-[var(--color-text)] mb-3">Plans</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {plans.map(p => {
@@ -350,11 +479,27 @@ export function BillingManager({ initialState }: Props) {
                   <span className="text-body-sm text-[var(--color-text-secondary)]"> / mo</span>
                 </div>
                 <ul className="flex flex-col gap-1 text-body-sm text-[var(--color-text-secondary)] flex-1">
-                  <li className="flex items-center gap-1.5"><Check size={12} className="text-[var(--color-brand)] shrink-0" />{p.maxDomains == null ? "Unlimited domains" : `${p.maxDomains} domain${p.maxDomains === 1 ? "" : "s"}`}</li>
-                  <li className="flex items-center gap-1.5"><Check size={12} className="text-[var(--color-brand)] shrink-0" />{p.maxMauPerDomain == null ? "Unlimited MAU / domain" : `${p.maxMauPerDomain.toLocaleString("en-IN")} MAU / domain`}</li>
-                  <li className="flex items-center gap-1.5"><Check size={12} className="text-[var(--color-brand)] shrink-0" />{p.maxGates == null ? "Unlimited gates" : `${p.maxGates} gates`}</li>
+                  <li className="flex items-center gap-1.5">
+                    <Check size={12} className="text-[var(--color-brand)] shrink-0" />
+                    {p.maxMonthlyGateTriggers == null
+                      ? "Unlimited gate triggers"
+                      : `${fmtCount(p.maxMonthlyGateTriggers)} triggers / mo`}
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <Check size={12} className="text-[var(--color-brand)] shrink-0" />
+                    {p.maxPayingSubscribers == null
+                      ? "Unlimited subscriber seats"
+                      : `${fmtCount(p.maxPayingSubscribers)} subscriber seats`}
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <Check size={12} className="text-[var(--color-brand)] shrink-0" />
+                    {p.maxGates == null ? "Unlimited gates" : `${p.maxGates} gates`}
+                  </li>
                   {(p.trialDays ?? 0) > 0 && (
-                    <li className="flex items-center gap-1.5"><Check size={12} className="text-[var(--color-brand)] shrink-0" />{p.trialDays}-day free trial</li>
+                    <li className="flex items-center gap-1.5">
+                      <Check size={12} className="text-[var(--color-brand)] shrink-0" />
+                      {p.trialDays}-day free trial
+                    </li>
                   )}
                 </ul>
                 {planButton(p)}
