@@ -2,24 +2,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getPublisherDetail } from "@/lib/db/queries/admin"
-
-function fmtINR(paise: number | null) {
-  if (paise == null) return "—"
-  return "₹" + (paise / 100).toLocaleString("en-IN")
-}
-
-function relativeTime(date: Date | null): string {
-  if (!date) return "never"
-  const diff = Date.now() - new Date(date).getTime()
-  const s = Math.floor(diff / 1000)
-  if (s < 2)  return "<1s"
-  if (s < 60) return `${s}s`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}d`
-}
+import { fmtINR, relativeTime } from "@/lib/format"
 
 const planColorMap: Record<string, { bg: string; color: string }> = {
   trial:   { bg: "#f5f5f5", color: "#888"    },

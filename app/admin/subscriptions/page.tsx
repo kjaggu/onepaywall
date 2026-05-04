@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Search } from "lucide-react"
 import type { AdminSubscriptionRow } from "@/lib/db/queries/admin"
+import { fmtINR } from "@/lib/format"
 
 const statusStyle: Record<string, { bg: string; color: string }> = {
   active:   { bg: "#f0faf4", color: "#27adb0" },
@@ -15,11 +16,6 @@ const planColorMap: Record<string, { bg: string; color: string }> = {
   starter: { bg: "#eff3ff", color: "#3451b2" },
   growth:  { bg: "#f0fdf8", color: "#166534" },
   scale:   { bg: "#faf5ff", color: "#6b21a8" },
-}
-
-function fmtINR(paise: number | null) {
-  if (paise == null) return "—"
-  return "₹" + (paise / 100).toLocaleString("en-IN")
 }
 
 function fmtDate(d: string | Date | null) {

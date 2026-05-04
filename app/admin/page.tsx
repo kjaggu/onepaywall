@@ -1,21 +1,5 @@
 import { getPlatformStats } from "@/lib/db/queries/admin"
-
-function fmtINR(paise: number) {
-  return "₹" + (paise / 100).toLocaleString("en-IN")
-}
-
-function relativeTime(date: Date | null): string {
-  if (!date) return "never"
-  const diff = Date.now() - new Date(date).getTime()
-  const s = Math.floor(diff / 1000)
-  if (s < 2)  return "<1s"
-  if (s < 60) return `${s}s`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}d`
-}
+import { fmtINR, relativeTime } from "@/lib/format"
 
 function Spark({ data, color = "#27adb0", h = 22 }: { data: number[]; color?: string; h?: number }) {
   const w = 80, max = Math.max(...data), min = Math.min(...data)

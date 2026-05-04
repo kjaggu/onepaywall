@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, lt, or, sql } from "drizzle-orm"
+import { and, desc, eq, gt, gte, isNull, lt, or, sql } from "drizzle-orm"
 import { db } from "@/lib/db/client"
 import {
   domains,
@@ -6,6 +6,7 @@ import {
   gates,
   plans,
   publisherMembers,
+  publisherOverageCharges,
   publishers,
   subscriptions,
   users,
@@ -413,22 +414,113 @@ export async function listAllSubscriptions(): Promise<AdminSubscriptionRow[]> {
   return rows
 }
 
+// ─── Domain health snapshot ───────────────────────────────────────────────────
+
+export type DomainHealthRow = {
+  id: string
+  domain: string
+  publisherName: string
+  planSlug: string | null
+  domainStatus: "active" | "paused" | "removed"
+  lastPingAt: Date | null
+  callsToday: number
+  healthStatus: "ok" | "degraded" | "down" | "paused"
+}
+
+export async function getDomainsHealth(): Promise<DomainHealthRow[]> {
+  const since24h = new Date(Date.now() - 86_400_000)
+  const since1h  = new Date(Date.now() - 3_600_000)
+
+  type DRow = { id: string; domain: string; status: string; publisher_name: string; plan_slug: string | null }
+
+  const [domainRows, pingRows, callRows] = await Promise.all([
+    db.execute<DRow>(sql`
+      SELECT
+        d.id,
+        d.domain,
+        d.status,
+        pub.name AS publisher_name,
+        sub.plan_slug
+      FROM domains d
+      JOIN publishers pub ON pub.id = d.publisher_id
+      LEFT JOIN LATERAL (
+        SELECT plan_slug FROM subscriptions
+        WHERE publisher_id = d.publisher_id
+        ORDER BY created_at DESC LIMIT 1
+      ) sub ON true
+      WHERE d.deleted_at IS NULL
+        AND pub.deleted_at IS NULL
+      ORDER BY d.created_at DESC
+    `),
+
+    db
+      .select({
+        domainId:   gateEvents.domainId,
+        lastPingAt: sql<Date | null>`MAX(${gateEvents.occurredAt})`,
+      })
+      .from(gateEvents)
+      .groupBy(gateEvents.domainId),
+
+    db
+      .select({
+        domainId:   gateEvents.domainId,
+        callsToday: sql<number>`COUNT(*)::int`,
+      })
+      .from(gateEvents)
+      .where(gt(gateEvents.occurredAt, since24h))
+      .groupBy(gateEvents.domainId),
+  ])
+
+  const lastPingMap   = new Map(pingRows.map(r => [r.domainId, r.lastPingAt]))
+  const callsTodayMap = new Map(callRows.map(r => [r.domainId, Number(r.callsToday)]))
+
+  return domainRows.rows.map(d => {
+    const lastPingAt  = lastPingMap.get(d.id) ?? null
+    const callsToday  = callsTodayMap.get(d.id) ?? 0
+    const domainStatus = d.status as "active" | "paused" | "removed"
+
+    let healthStatus: DomainHealthRow["healthStatus"]
+    if (domainStatus === "paused")     healthStatus = "paused"
+    else if (!lastPingAt)              healthStatus = "down"
+    else if (lastPingAt >= since1h)    healthStatus = "ok"
+    else if (lastPingAt >= since24h)   healthStatus = "degraded"
+    else                               healthStatus = "down"
+
+    return { id: d.id, domain: d.domain, publisherName: d.publisher_name, planSlug: d.plan_slug ?? null, domainStatus, lastPingAt, callsToday, healthStatus }
+  })
+}
+
 // ─── Plans with live subscriber counts ───────────────────────────────────────
 
 export type AdminPlanRow = {
-  slug: string
-  name: string
-  priceMonthly: number | null
-  maxDomains: number | null
-  maxMauPerDomain: number | null
-  maxGates: number | null
-  active: boolean
-  subscriberCount: number
-  activeMRR: number
+  slug:                       string
+  name:                       string
+  priceMonthly:               number | null
+  priceMonthlyUsd:            number | null
+  commissionBps:              number
+  byokAddonPriceInr:          number | null
+  byokAddonPriceUsd:          number | null
+  maxMonthlyGateTriggers:     number | null
+  maxPayingSubscribers:       number | null
+  subscriberOveragePriceInr:  number | null
+  subscriberOveragePriceUsd:  number | null
+  maxFreeAdImpressions:       number | null
+  adOveragePricePerMilleInr:  number | null
+  adOveragePricePerMilleUsd:  number | null
+  maxGates:                   number | null
+  active:                     boolean
+  subscriberCount:            number
+  activeMRR:                  number
+  overageRevenueInr:          number
+  overageRevenueUsd:          number
 }
 
 export async function getPlansWithStats(): Promise<AdminPlanRow[]> {
-  const [planRows, subCountRows] = await Promise.all([
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  const [planRows, subCountRows, overageRows] = await Promise.all([
     db.select().from(plans).orderBy(plans.priceMonthly),
     db
       .select({
@@ -438,22 +530,54 @@ export async function getPlansWithStats(): Promise<AdminPlanRow[]> {
       .from(subscriptions)
       .where(eq(subscriptions.status, "active"))
       .groupBy(subscriptions.planSlug),
+    // Per-plan overage revenue this calendar month (join latest sub to get plan slug)
+    db.execute<{ plan_slug: string; currency: string; total: number }>(sql`
+      SELECT DISTINCT ON (s.publisher_id)
+        s.plan_slug,
+        oc.currency,
+        SUM(oc.total_amount) OVER (PARTITION BY s.plan_slug, oc.currency) AS total
+      FROM publisher_overage_charges oc
+      JOIN subscriptions s ON s.publisher_id = oc.publisher_id
+      WHERE oc.created_at >= ${monthStart}
+      ORDER BY s.publisher_id, s.created_at DESC
+    `),
   ])
 
   const subCountMap = new Map(subCountRows.map(r => [r.planSlug, Number(r.count)]))
 
+  // Aggregate overage per plan+currency
+  const overageMap = new Map<string, { inr: number; usd: number }>()
+  for (const r of overageRows.rows) {
+    const key  = r.plan_slug
+    const prev = overageMap.get(key) ?? { inr: 0, usd: 0 }
+    if (r.currency === "USD") overageMap.set(key, { ...prev, usd: prev.usd + Number(r.total) })
+    else                      overageMap.set(key, { ...prev, inr: prev.inr + Number(r.total) })
+  }
+
   return planRows.map(p => {
     const subscriberCount = subCountMap.get(p.slug) ?? 0
+    const overage         = overageMap.get(p.slug) ?? { inr: 0, usd: 0 }
     return {
-      slug:            p.slug,
-      name:            p.name,
-      priceMonthly:    p.priceMonthly,
-      maxDomains:      p.maxDomains,
-      maxMauPerDomain: p.maxMauPerDomain,
-      maxGates:        p.maxGates,
-      active:          p.active,
+      slug:                      p.slug,
+      name:                      p.name,
+      priceMonthly:              p.priceMonthly,
+      priceMonthlyUsd:           p.priceMonthlyUsd ?? null,
+      commissionBps:             p.commissionBps ?? 0,
+      byokAddonPriceInr:         p.byokAddonPriceInr ?? null,
+      byokAddonPriceUsd:         p.byokAddonPriceUsd ?? null,
+      maxMonthlyGateTriggers:    p.maxMonthlyGateTriggers ?? null,
+      maxPayingSubscribers:      p.maxPayingSubscribers ?? null,
+      subscriberOveragePriceInr: p.subscriberOveragePriceInr ?? null,
+      subscriberOveragePriceUsd: p.subscriberOveragePriceUsd ?? null,
+      maxFreeAdImpressions:      p.maxFreeAdImpressions ?? null,
+      adOveragePricePerMilleInr: p.adOveragePricePerMilleInr ?? null,
+      adOveragePricePerMilleUsd: p.adOveragePricePerMilleUsd ?? null,
+      maxGates:                  p.maxGates,
+      active:                    p.active,
       subscriberCount,
-      activeMRR:       (p.priceMonthly ?? 0) * subscriberCount,
+      activeMRR:                 (p.priceMonthly ?? 0) * subscriberCount,
+      overageRevenueInr:         overage.inr,
+      overageRevenueUsd:         overage.usd,
     }
   })
 }
